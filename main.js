@@ -1593,8 +1593,10 @@ async function load50Questions(uiStartNumber, retryCount = 0) {
                     readSchemaValue(parsed, normalizedRow, 'SUBJECT') || '';
                 var passageVersions = {
                     KJV: readSchemaValue(parsed, normalizedRow, 'P_KJV'),
-                    WEB: readSchemaValue(parsed, normalizedRow, 'P_WEB'),
-                    KO_WEB: readSchemaValue(parsed, normalizedRow, 'P_KO_WEB')
+                    WEB: readSchemaValue(parsed, normalizedRow, 'P_WEB') ||
+                        readSchemaValue(parsed, normalizedRow, 'P_EN'),
+                    KO_WEB: readSchemaValue(parsed, normalizedRow, 'P_KO_WEB') ||
+                        readSchemaValue(parsed, normalizedRow, 'P_KO')
                 };
 
                 if (!localized.question.EN) localized.question.EN = 'Question ' + (uiStartNumber + idx);
