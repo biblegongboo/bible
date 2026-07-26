@@ -105,6 +105,17 @@
       <div id="modeDescription" class="mode-description">
         🔵 Study · Choose a mode before or during the set.
       </div>
+      <div id="biblePassageControls" class="bible-passage-controls" aria-label="Bible passage controls">
+        <button type="button" id="biblePassageToggle" class="bible-passage-toggle" aria-pressed="false">
+          📖 Passage OFF
+        </button>
+        <label for="bibleTextVersionSelector">Bible text</label>
+        <select id="bibleTextVersionSelector">
+          <option value="WEB">WEB Modern English</option>
+          <option value="KJV">KJV Original</option>
+          <option value="KJV_WEB">KJV + WEB</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -1443,6 +1454,57 @@ html:not(.admin-user) .admin-preview-panel {
     font-size:12px;
     line-height:1.4;
   }
+  .bible-passage-controls {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:10px;
+  }
+  .bible-passage-controls label {
+    font-size:12px;
+    font-weight:700;
+    color:#475569;
+  }
+  .bible-passage-toggle,
+  #bibleTextVersionSelector {
+    min-height:38px;
+    border:1px solid #cbd5e1;
+    border-radius:9px;
+    background:#fff;
+    color:#1e293b;
+    padding:8px 11px;
+    font-weight:700;
+  }
+  .bible-passage-toggle {
+    cursor:pointer;
+  }
+  .bible-passage-toggle.is-on {
+    border-color:#16a34a;
+    background:#ecfdf5;
+    color:#166534;
+  }
+  .bible-passage-toggle:disabled {
+    cursor:not-allowed;
+    opacity:.58;
+  }
+  .bible-passage-version {
+    margin-bottom:10px;
+  }
+  .bible-passage-version:last-child {
+    margin-bottom:0;
+  }
+  .bible-version-label {
+    display:inline-block;
+    margin-bottom:5px;
+    border-radius:999px;
+    background:#e2e8f0;
+    color:#334155;
+    padding:2px 8px;
+    font-size:11px;
+    font-weight:800;
+  }
 
   .sat-tutor-panel {
     width:min(900px, calc(100% - 24px));
@@ -1614,7 +1676,7 @@ html:not(.admin-user) .admin-preview-panel {
 
 <!-- 2. GitHub main.js 불러오기 + 초기화 -->
 <script type="module">
-import { initialize } from './main.js?v=8.5-admin-preview5';
+import { initialize } from './main.js?v=8.6-bible-passage1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
