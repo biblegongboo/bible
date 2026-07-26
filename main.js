@@ -5895,11 +5895,25 @@ function initBibleSpeechControls() {
     window.speechSynthesis.cancel();
   }
 
-    function getBibleVoice_(langCode) {
+  function getBibleVoice_(langCode) {
     var prefix = langCode.slice(0, 2).toLowerCase();
     return window.speechSynthesis.getVoices().find(function(item) {
       return String(item.lang || '').toLowerCase().indexOf(prefix) === 0;
     });
+  }
+
+  function normalizeBibleReferencesForSpeech_(text, langCode) {
+    var value = String(text || '');
+    if (String(langCode || '').toLowerCase().indexOf('ko') === 0) {
+      value = value.replace(/\b(\d{1,3}):(\d{1,3})-(\d{1,3}):(\d{1,3})\b/g, '$1장 $2절부터 $3장 $4절까지');
+      value = value.replace(/\b(\d{1,3}):(\d{1,3})-(\d{1,3})\b/g, '$1장 $2절부터 $3절까지');
+      return value.replace(/\b(\d{1,3}):(\d{1,3})\b/g, '$1장 $2절');
+    }
+    value = value.replace(/\b(\d{1,3}):(\d{1,3})-(\d{1,3}):(\d{1,3})\b/g,
+      'chapter $1, verse $2 through chapter $3, verse $4');
+    value = value.replace(/\b(\d{1,3}):(\d{1,3})-(\d{1,3})\b/g,
+      'chapter $1, verses $2 through $3');
+    return value.replace(/\b(\d{1,3}):(\d{1,3})\b/g, 'chapter $1, verse $2');
   }
 
   function splitBibleSpeechSegments_(text) {
@@ -5910,6 +5924,7 @@ function initBibleSpeechControls() {
       var hangulCount = (clean.match(/[\u3131-\u318E\uAC00-\uD7A3]/g) || []).length;
       var latinCount = (clean.match(/[A-Za-z]/g) || []).length;
       var langCode = hangulCount > 0 && hangulCount >= latinCount * 0.25 ? 'ko-KR' : 'en-US';
+      clean = normalizeBibleReferencesForSpeech_(clean, langCode);
       var chunks = clean.match(/.{1,180}(?:[.!?。！？]\s*|$)/g) || [clean];
       chunks.forEach(function(chunk) {
         if (chunk.trim()) segments.push({ text: chunk.trim(), lang: langCode });
