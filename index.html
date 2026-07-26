@@ -113,14 +113,14 @@
         <select id="biblePrimaryTextSelector">
           <option value="WEB">WEB Modern English</option>
           <option value="KJV">KJV Original</option>
-          <option value="KO_WEB">WEB 한국어 직역</option>
+          <option value="KO_WEB">WEB Korean Literal Translation</option>
         </select>
         <label for="bibleSecondaryTextSelector">Second language</label>
         <select id="bibleSecondaryTextSelector">
           <option value="NONE">None</option>
           <option value="WEB">WEB Modern English</option>
           <option value="KJV">KJV Original</option>
-          <option value="KO_WEB">WEB 한국어 직역</option>
+          <option value="KO_WEB">WEB Korean Literal Translation</option>
         </select>
       </div>
     </div>
@@ -1519,6 +1519,9 @@ html:not(.admin-user) .admin-preview-panel {
   .legacy-language-switcher {
     display:none !important;
   }
+  #superGraphicStudioLink {
+    display:none !important;
+  }
   @media (max-width:600px) {
     .bible-passage-controls {
       grid-template-columns:1fr;
@@ -1702,7 +1705,7 @@ html:not(.admin-user) .admin-preview-panel {
 
 <!-- 2. GitHub main.js 불러오기 + 초기화 -->
 <script type="module">
-import { initialize } from './main.js?v=8.11-ko-verse-pronunciation1';
+import { initialize } from './main.js?v=8.12-english-ui1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

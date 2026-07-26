@@ -306,8 +306,11 @@ function applySubjectConfig() {
 function updateSubjectTitle(setNumber) {
   var title = document.querySelector('.sat-title');
   var subtitle = document.querySelector('.sat-sub');
-  if (title) title.textContent = String(subjectConfig.NAME || currentSubject) + (IS_TRIAL_USER ? ' · SAMPLE' : ' · Set ' + (setNumber || 1));
-  if (subtitle) subtitle.textContent = IS_TRIAL_USER ? 'Questions 1-20' : String(subjectConfig.CATEGORY || 'QUIZ');
+  var englishName = currentSubject === 'BIBLE_OT'
+    ? 'Old Testament'
+    : (currentSubject === 'BIBLE_NT' ? 'New Testament' : String(subjectConfig.NAME || currentSubject));
+  if (title) title.textContent = englishName + (IS_TRIAL_USER ? ' · Sample' : ' · Set ' + (setNumber || 1));
+  if (subtitle) subtitle.textContent = IS_TRIAL_USER ? 'Questions 1-20' : 'Bible';
 }
 
 // ========================================================================
@@ -1094,7 +1097,7 @@ function renderPassageLanguageBlock(q, isMath) {
       if (!text) return;
       var label = option === 'KJV'
         ? 'KJV Original'
-        : (option === 'KO_WEB' ? 'WEB 한국어 직역' : 'WEB Modern English');
+        : (option === 'KO_WEB' ? 'WEB Korean Literal Translation' : 'WEB Modern English');
       var languageClass = option === 'KO_WEB' ? 'language-line-ko' : 'language-line-en';
       blocks.push('<div class="bible-passage-version"><span class="bible-version-label">' + label + '</span>' +
         '<div class="passage-language-content language-line ' + languageClass + '">' +
@@ -5876,14 +5879,14 @@ function initBibleSpeechControls() {
 
   var readButton = document.createElement('button');
   readButton.type = 'button';
-  readButton.textContent = '🔊 읽기';
-  readButton.title = '현재 문제와 선택지 읽기';
+  readButton.textContent = '🔊 Read';
+  readButton.title = 'Read the current Bible lesson';
   readButton.style.cssText = 'border:0;border-radius:9px;padding:10px 13px;background:#f5a623;color:#fff;font-weight:800;cursor:pointer';
 
   var stopButton = document.createElement('button');
   stopButton.type = 'button';
-  stopButton.textContent = '⏹ 정지';
-  stopButton.title = '음성 읽기 정지';
+  stopButton.textContent = '⏹ Stop';
+  stopButton.title = 'Stop reading';
   stopButton.style.cssText = 'border:0;border-radius:9px;padding:10px 13px;background:#475569;color:#fff;font-weight:800;cursor:pointer';
 
   var bibleAutoReadActive = false;
@@ -5982,7 +5985,7 @@ function initBibleSpeechControls() {
       });
     }
 
-    // Screen labels such as "WEB 한국어 직역" are intentionally excluded.
+    // Screen labels such as version names are intentionally excluded.
     appendElements('.bible-passage-version .passage-language-content', 0);
     appendElements('.question-text .language-line', 0);
 
@@ -6122,19 +6125,15 @@ updateSetSelector = function() {
   var selector = DOM.setSelector;
   if (!selector) return;
   selector.innerHTML = '';
-  var language = String(window.currentLanguage || currentLanguage || 'EN').toUpperCase();
-
   BIBLE_CHAPTER_CATALOG.forEach(function(chapter, index) {
     var option = document.createElement('option');
-    var bookName = language === 'KO'
-      ? (chapter.BOOK_KO || chapter.BOOK_EN)
-      : (chapter.BOOK_EN || chapter.BOOK_KO);
+    var bookName = chapter.BOOK_EN || chapter.BOOK_KO || 'Bible';
     option.value = String(index + 1);
     option.dataset.catalog = '1';
     option.dataset.start = String(chapter.START);
     option.dataset.limit = String(chapter.QUESTION_COUNT);
     option.dataset.code = String(chapter.CODE || '');
-    option.textContent = bookName + ' ' + chapter.CHAPTER + (language === 'KO' ? '장' : '') +
+    option.textContent = bookName + ' Chapter ' + chapter.CHAPTER +
       ' (' + chapter.QUESTION_COUNT + ')';
     selector.appendChild(option);
   });
@@ -6143,7 +6142,7 @@ updateSetSelector = function() {
     DOM.startNumberInput.parentElement.style.display = 'none';
   }
   var hint = document.querySelector('.card-new .card-hint');
-  if (hint) hint.textContent = language === 'KO' ? '성경책과 장을 선택하세요.' : 'Select a Bible book and chapter.';
+  if (hint) hint.textContent = 'Select a Bible book and chapter.';
 
   setTimeout(function() {
     if (!selector.options.length) return;
