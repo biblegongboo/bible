@@ -5918,52 +5918,100 @@ function initBibleSpeechControls() {
     return segments;
   }
 
+  function collectBibleSpeechSegments_() {
+    var container = document.getElementById('questionContainer');
+    if (!container) return [];
+    var result = [];
+
+    function appendElements(selector, delayBeforeFirst) {
+      var elements = Array.prototype.slice.call(container.querySelectorAll(selector));
+      elements.forEach(function(element, elementIndex) {
+        var text = String(element.innerText || '').replace(/\s+/g, ' ').trim();
+        if (!text) return;
+        splitBibleSpeechSegments_(text).forEach(function(chunk, chunkIndex) {
+          result.push({
+            text: chunk.text,
+            lang: chunk.lang,
+            delayBefore: elementIndex === 0 && chunkIndex === 0 ? (delayBeforeFirst || 0) : 0
+          });
+        });
+      });
+    }
+
+    // Screen labels such as "WEB 한국어 직역" are intentionally excluded.
+    appendElements('.bible-passage-version .passage-language-content', 0);
+    appendElements('.question-text .language-line', 0);
+
+    if (currentMode === 'learn') {
+      // Pause for thinking, then read only the correct choice.
+      appendElements('.choice.correct .choice-language-content .language-line', 3000);
+    } else {
+      // Never include the visible A/B/C/D badges.
+      appendElements('.choice .choice-language-content .language-line', 1200);
+    }
+    return result;
+  }
+
   function readCurrentBibleQuestion(fromAutoAdvance) {
     if (!fromAutoAdvance) bibleAutoReadActive = currentMode === 'learn';
     stopBibleSpeech(true);
     var runId = bibleSpeechRunId;
     var questionIndexAtStart = currentIndex;
-    var container = document.getElementById('questionContainer');
-    var text = container ? String(container.innerText || '').trim() : '';
-    if (!text) {
+    var segments = collectBibleSpeechSegments_();
+    if (!segments.length) {
       if (typeof showToast === 'function') showToast('읽을 문제가 없습니다.', 'warn');
       return;
     }
 
-    var segments = splitBibleSpeechSegments_(text);
-    if (!segments.length) return;
+    function finishBibleSpeech_() {
+      if (
+        runId !== bibleSpeechRunId ||
+        !bibleAutoReadActive ||
+        currentMode !== 'learn' ||
+        currentIndex !== questionIndexAtStart
+      ) return;
+      if (currentIndex >= currentQuestions.length - 1) {
+        bibleAutoReadActive = false;
+        return;
+      }
+      goNext();
+      window.setTimeout(function() {
+        if (bibleAutoReadActive && currentMode === 'learn') {
+          readCurrentBibleQuestion(true);
+        }
+      }, 350);
+    }
 
-    segments.forEach(function(segment, segmentIndex) {
-      var utterance = new SpeechSynthesisUtterance(segment.text);
-      utterance.lang = segment.lang;
-      utterance.rate = 0.95;
-      var voice = getBibleVoice_(segment.lang);
-      if (voice) utterance.voice = voice;
-      if (segmentIndex === segments.length - 1) {
+    function speakBibleSegment_(segmentIndex) {
+      if (runId !== bibleSpeechRunId) return;
+      if (segmentIndex >= segments.length) {
+        finishBibleSpeech_();
+        return;
+      }
+      var segment = segments[segmentIndex];
+      var speak = function() {
+        if (runId !== bibleSpeechRunId) return;
+        var utterance = new SpeechSynthesisUtterance(segment.text);
+        utterance.lang = segment.lang;
+        utterance.rate = 0.95;
+        var voice = getBibleVoice_(segment.lang);
+        if (voice) utterance.voice = voice;
         utterance.onend = function() {
-          if (
-            runId !== bibleSpeechRunId ||
-            !bibleAutoReadActive ||
-            currentMode !== 'learn' ||
-            currentIndex !== questionIndexAtStart
-          ) return;
-          if (currentIndex >= currentQuestions.length - 1) {
-            bibleAutoReadActive = false;
-            return;
-          }
-          goNext();
-          window.setTimeout(function() {
-            if (bibleAutoReadActive && currentMode === 'learn') {
-              readCurrentBibleQuestion(true);
-            }
-          }, 350);
+          speakBibleSegment_(segmentIndex + 1);
         };
         utterance.onerror = function() {
           bibleAutoReadActive = false;
         };
+        window.speechSynthesis.speak(utterance);
+      };
+      if (segment.delayBefore > 0) {
+        window.setTimeout(speak, segment.delayBefore);
+      } else {
+        speak();
       }
-      window.speechSynthesis.speak(utterance);
-    });
+    }
+
+    speakBibleSegment_(0);
   }
   readButton.addEventListener('click', function() { readCurrentBibleQuestion(false); });
   stopButton.addEventListener('click', function() { stopBibleSpeech(false); });
