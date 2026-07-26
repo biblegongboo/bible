@@ -6149,7 +6149,14 @@ updateSetSelector = function() {
     var bookName = chapter.BOOK_EN || chapter.BOOK_KO || 'Bible';
     option.value = String(index + 1);
     option.dataset.catalog = '1';
-    option.dataset.start = String(chapter.START);
+    // BIBLE-CATALOG START_ROW is the 1-based logical question number (N).
+    // Older GAS responses also expose START = START_ROW - 1, which would
+    // incorrectly begin each chapter with the previous chapter's last item.
+    option.dataset.start = String(
+      chapter.START_ROW != null && chapter.START_ROW !== ''
+        ? chapter.START_ROW
+        : chapter.START
+    );
     option.dataset.limit = String(chapter.QUESTION_COUNT);
     option.dataset.code = String(chapter.CODE || '');
     option.textContent = bookName + ' Chapter ' + chapter.CHAPTER +
