@@ -1084,6 +1084,18 @@ function renderQuestionLanguageBlock(q, isMath) {
   );
 }
 
+function getBiblePassageReference_(q, option) {
+  var sourceCode = String((q && (q.sourceCode || q.subject)) || '').trim();
+  var match = sourceCode.match(/^(?:OT|NT)-(.+)-(\d{2})-(\d{2})$/);
+  if (!match) return '';
+  var book = match[1].replace(/-/g, ' ');
+  var chapter = parseInt(match[2], 10);
+  var verse = parseInt(match[3], 10);
+  return option === 'KO_WEB'
+    ? book + ' ' + chapter + '장 ' + verse + '절'
+    : book + ' ' + chapter + ':' + verse;
+}
+
 function renderPassageLanguageBlock(q, isMath) {
   if (!isBiblePassageVisible_()) return '';
   var versions = q && q.passageVersions ? q.passageVersions : {};
@@ -1099,7 +1111,10 @@ function renderPassageLanguageBlock(q, isMath) {
         ? 'KJV Original'
         : (option === 'KO_WEB' ? 'WEB Korean Literal Translation' : 'WEB Modern English');
       var languageClass = option === 'KO_WEB' ? 'language-line-ko' : 'language-line-en';
+      var reference = getBiblePassageReference_(q, option);
       blocks.push('<div class="bible-passage-version"><span class="bible-version-label">' + label + '</span>' +
+        (reference ? '<span class="bible-passage-reference" aria-label="Bible reference">' +
+          escapeHtml(reference) + '</span>' : '') +
         '<div class="passage-language-content language-line ' + languageClass + '">' +
         renderWithEditingMarks(text, isMath) + '</div></div>');
     });
@@ -5908,18 +5923,22 @@ function initBibleSpeechControls() {
   function normalizeBibleReferencesForSpeech_(text, langCode) {
     var value = String(text || '');
     if (String(langCode || '').toLowerCase().indexOf('ko') === 0) {
+      value = value.replace(/\b(\d{1,3})\s*장\s*(\d{1,3})\s*절/g,
+        function(_, chapter, verse) {
+          return koreanBibleNumber_(chapter) + '장 ' + koreanBibleNumber_(verse) + '절';
+        });
       value = value.replace(/\b(\d{1,3}):(\d{1,3})-(\d{1,3}):(\d{1,3})\b/g,
         function(_, c1, v1, c2, v2) {
-          return koreanBibleNumber_(c1) + ' 장 ' + koreanBibleNumber_(v1) + ' 절부터 ' +
-            koreanBibleNumber_(c2) + ' 장 ' + koreanBibleNumber_(v2) + ' 절까지';
+          return koreanBibleNumber_(c1) + '장 ' + koreanBibleNumber_(v1) + '절부터 ' +
+            koreanBibleNumber_(c2) + '장 ' + koreanBibleNumber_(v2) + '절까지';
         });
       value = value.replace(/\b(\d{1,3}):(\d{1,3})-(\d{1,3})\b/g,
         function(_, chapter, firstVerse, lastVerse) {
-          return koreanBibleNumber_(chapter) + ' 장 ' + koreanBibleNumber_(firstVerse) +
-            ' 절부터 ' + koreanBibleNumber_(lastVerse) + ' 절까지';
+          return koreanBibleNumber_(chapter) + '장 ' + koreanBibleNumber_(firstVerse) +
+            '절부터 ' + koreanBibleNumber_(lastVerse) + '절까지';
         });
       return value.replace(/\b(\d{1,3}):(\d{1,3})\b/g, function(_, chapter, verse) {
-        return koreanBibleNumber_(chapter) + ' 장 ' + koreanBibleNumber_(verse) + ' 절';
+        return koreanBibleNumber_(chapter) + '장 ' + koreanBibleNumber_(verse) + '절';
       });
     }
     value = value.replace(/\b(\d{1,3}):(\d{1,3})-(\d{1,3}):(\d{1,3})\b/g,
