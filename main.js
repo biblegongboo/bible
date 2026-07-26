@@ -5905,15 +5905,44 @@ function initBibleSpeechControls() {
   function normalizeBibleReferencesForSpeech_(text, langCode) {
     var value = String(text || '');
     if (String(langCode || '').toLowerCase().indexOf('ko') === 0) {
-      value = value.replace(/\b(\d{1,3}):(\d{1,3})-(\d{1,3}):(\d{1,3})\b/g, '$1장 $2절부터 $3장 $4절까지');
-      value = value.replace(/\b(\d{1,3}):(\d{1,3})-(\d{1,3})\b/g, '$1장 $2절부터 $3절까지');
-      return value.replace(/\b(\d{1,3}):(\d{1,3})\b/g, '$1장 $2절');
+      value = value.replace(/\b(\d{1,3}):(\d{1,3})-(\d{1,3}):(\d{1,3})\b/g,
+        function(_, c1, v1, c2, v2) {
+          return koreanBibleNumber_(c1) + ' 장 ' + koreanBibleNumber_(v1) + ' 절부터 ' +
+            koreanBibleNumber_(c2) + ' 장 ' + koreanBibleNumber_(v2) + ' 절까지';
+        });
+      value = value.replace(/\b(\d{1,3}):(\d{1,3})-(\d{1,3})\b/g,
+        function(_, chapter, firstVerse, lastVerse) {
+          return koreanBibleNumber_(chapter) + ' 장 ' + koreanBibleNumber_(firstVerse) +
+            ' 절부터 ' + koreanBibleNumber_(lastVerse) + ' 절까지';
+        });
+      return value.replace(/\b(\d{1,3}):(\d{1,3})\b/g, function(_, chapter, verse) {
+        return koreanBibleNumber_(chapter) + ' 장 ' + koreanBibleNumber_(verse) + ' 절';
+      });
     }
     value = value.replace(/\b(\d{1,3}):(\d{1,3})-(\d{1,3}):(\d{1,3})\b/g,
       'chapter $1, verse $2 through chapter $3, verse $4');
     value = value.replace(/\b(\d{1,3}):(\d{1,3})-(\d{1,3})\b/g,
       'chapter $1, verses $2 through $3');
     return value.replace(/\b(\d{1,3}):(\d{1,3})\b/g, 'chapter $1, verse $2');
+  }
+
+  function koreanBibleNumber_(input) {
+    var number = Math.max(0, parseInt(input, 10) || 0);
+    if (number === 0) return '영';
+    var digits = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'];
+    var units = ['', '십', '백', '천'];
+    var result = '';
+    var position = 0;
+    while (number > 0) {
+      var digit = number % 10;
+      if (digit) {
+        var digitText = digit === 1 && position > 0 ? '' : digits[digit];
+        result = digitText + units[position] + result;
+      }
+      number = Math.floor(number / 10);
+      position++;
+    }
+    return result;
   }
 
   function splitBibleSpeechSegments_(text) {
