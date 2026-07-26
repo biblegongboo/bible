@@ -49,7 +49,7 @@
       <span class="sat-badge">Practice</span>
     </div>
     <div class="sat-sub">Reading &amp; Writing · Math</div>
-    <div class="language-switcher" aria-label="Language selector">
+    <div class="language-switcher legacy-language-switcher" aria-label="Language selector">
       <label for="languageSelector">Language</label>
       <select id="languageSelector">
         <option value="EN">English</option>
@@ -105,15 +105,22 @@
       <div id="modeDescription" class="mode-description">
         🔵 Study · Choose a mode before or during the set.
       </div>
-      <div id="biblePassageControls" class="bible-passage-controls" aria-label="Bible passage controls">
+      <div id="biblePassageControls" class="bible-passage-controls" aria-label="Bible language controls">
         <button type="button" id="biblePassageToggle" class="bible-passage-toggle" aria-pressed="false">
           📖 Passage OFF
         </button>
-        <label for="bibleTextVersionSelector">Bible text</label>
-        <select id="bibleTextVersionSelector">
+        <label for="biblePrimaryTextSelector">First language</label>
+        <select id="biblePrimaryTextSelector">
           <option value="WEB">WEB Modern English</option>
           <option value="KJV">KJV Original</option>
-          <option value="KJV_WEB">KJV + WEB</option>
+          <option value="KO_WEB">WEB 한국어 직역</option>
+        </select>
+        <label for="bibleSecondaryTextSelector">Second language</label>
+        <select id="bibleSecondaryTextSelector">
+          <option value="NONE">None</option>
+          <option value="WEB">WEB Modern English</option>
+          <option value="KJV">KJV Original</option>
+          <option value="KO_WEB">WEB 한국어 직역</option>
         </select>
       </div>
     </div>
@@ -1455,7 +1462,8 @@ html:not(.admin-user) .admin-preview-panel {
     line-height:1.4;
   }
   .bible-passage-controls {
-    display:flex;
+    display:grid;
+    grid-template-columns:auto minmax(180px, 240px);
     align-items:center;
     justify-content:center;
     flex-wrap:wrap;
@@ -1468,7 +1476,8 @@ html:not(.admin-user) .admin-preview-panel {
     color:#475569;
   }
   .bible-passage-toggle,
-  #bibleTextVersionSelector {
+  #biblePrimaryTextSelector,
+  #bibleSecondaryTextSelector {
     min-height:38px;
     border:1px solid #cbd5e1;
     border-radius:9px;
@@ -1479,6 +1488,8 @@ html:not(.admin-user) .admin-preview-panel {
   }
   .bible-passage-toggle {
     cursor:pointer;
+    grid-column:1 / -1;
+    justify-self:center;
   }
   .bible-passage-toggle.is-on {
     border-color:#16a34a;
@@ -1504,6 +1515,21 @@ html:not(.admin-user) .admin-preview-panel {
     padding:2px 8px;
     font-size:11px;
     font-weight:800;
+  }
+  .legacy-language-switcher {
+    display:none !important;
+  }
+  @media (max-width:600px) {
+    .bible-passage-controls {
+      grid-template-columns:1fr;
+    }
+    .bible-passage-controls label {
+      text-align:left;
+    }
+    #biblePrimaryTextSelector,
+    #bibleSecondaryTextSelector {
+      width:100%;
+    }
   }
 
   .sat-tutor-panel {
@@ -1676,7 +1702,7 @@ html:not(.admin-user) .admin-preview-panel {
 
 <!-- 2. GitHub main.js 불러오기 + 초기화 -->
 <script type="module">
-import { initialize } from './main.js?v=8.6-bible-passage1';
+import { initialize } from './main.js?v=8.7-bible-language-slots1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
