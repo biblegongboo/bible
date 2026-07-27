@@ -6054,9 +6054,14 @@ function initBibleSpeechControls() {
           return koreanBibleNumber_(chapter) + '장 ' + koreanBibleNumber_(firstVerse) +
             '절부터 ' + koreanBibleNumber_(lastVerse) + '절까지';
         });
-      return value.replace(/\b(\d{1,3}):(\d{1,3})\b/g, function(_, chapter, verse) {
+      value = value.replace(/\b(\d{1,3}):(\d{1,3})\b/g, function(_, chapter, verse) {
         return koreanBibleNumber_(chapter) + '장 ' + koreanBibleNumber_(verse) + '절';
       });
+      // Keep the reference visually unchanged, but make TTS pause before the verse text.
+      return value.replace(
+        /((?:[일이삼사오육칠팔구십백천영]+장\s*)?[일이삼사오육칠팔구십백천영]+절(?:까지)?)(?=\s+[^.!?。！？])/g,
+        '$1. '
+      ).replace(/\.\s{2,}/g, '. ');
     }
     value = value.replace(/\b(\d{1,3}):(\d{1,3})-(\d{1,3}):(\d{1,3})\b/g,
       'chapter $1, verse $2 through chapter $3, verse $4');
