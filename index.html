@@ -109,6 +109,9 @@
         <button type="button" id="biblePassageToggle" class="bible-passage-toggle" aria-pressed="false">
           📖 Passage OFF
         </button>
+        <button type="button" id="bibleQuizToggle" class="bible-quiz-toggle is-on" aria-pressed="true">
+          📝 Quiz ON
+        </button>
         <label for="biblePrimaryTextSelector">First language</label>
         <select id="biblePrimaryTextSelector">
           <option value="WEB">WEB Modern English</option>
@@ -1476,6 +1479,7 @@ html:not(.admin-user) .admin-preview-panel {
     color:#475569;
   }
   .bible-passage-toggle,
+  .bible-quiz-toggle,
   #biblePrimaryTextSelector,
   #bibleSecondaryTextSelector {
     min-height:38px;
@@ -1486,12 +1490,13 @@ html:not(.admin-user) .admin-preview-panel {
     padding:8px 11px;
     font-weight:700;
   }
-  .bible-passage-toggle {
+  .bible-passage-toggle,
+  .bible-quiz-toggle {
     cursor:pointer;
-    grid-column:1 / -1;
     justify-self:center;
   }
-  .bible-passage-toggle.is-on {
+  .bible-passage-toggle.is-on,
+  .bible-quiz-toggle.is-on {
     border-color:#16a34a;
     background:#ecfdf5;
     color:#166534;
@@ -1499,6 +1504,14 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-passage-toggle:disabled {
     cursor:not-allowed;
     opacity:.58;
+  }
+  html.bible-reading-only #modeButtons,
+  html.bible-reading-only #modeDescription,
+  html.bible-reading-only .sat-tutor-panel {
+    display:none !important;
+  }
+  .bible-reading-card {
+    min-height:240px;
   }
   .bible-passage-version {
     margin-bottom:10px;
@@ -1713,7 +1726,7 @@ html:not(.admin-user) .admin-preview-panel {
 
 <!-- 2. GitHub main.js 불러오기 + 초기화 -->
 <script type="module">
-import { initialize } from './main.js?v=8.15-passage-column-fallback1';
+import { initialize } from './main.js?v=8.16-bible-reading-mode1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

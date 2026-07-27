@@ -117,7 +117,8 @@ var TRIAL_START = 1;
 var TRIAL_LIMIT = 20;
 var LANGUAGE_STORAGE_KEY = 'quiz_language_v7';
 var MODE_STORAGE_KEY = 'quiz_mode_v8_0B';
-var BIBLE_PASSAGE_PREFS_KEY = 'bible_passage_preferences_v1';
+var BIBLE_PASSAGE_PREFS_KEY = 'bible_passage_preferences_v2';
+var BIBLE_QUIZ_VISIBLE_KEY = 'bible_quiz_visible_v1';
 var BIBLE_PRIMARY_TEXT_KEY = 'bible_primary_text_v2';
 var BIBLE_SECONDARY_TEXT_KEY = 'bible_secondary_text_v2';
 var SUPPORTED_MODES = ['learn', 'study', 'exam'];
@@ -125,7 +126,8 @@ var currentMode = (localStorage.getItem(MODE_STORAGE_KEY) || 'study').toLowerCas
 if (SUPPORTED_MODES.indexOf(currentMode) < 0) currentMode = 'study';
 var learnRevealed = {};
 var examFinished = false;
-var biblePassagePreferences = { learn: true, study: false, exam: false };
+var biblePassagePreferences = { learn: true, study: true, exam: true };
+var bibleQuizVisible = localStorage.getItem(BIBLE_QUIZ_VISIBLE_KEY) !== 'false';
 try {
   var savedBiblePassagePreferences = JSON.parse(localStorage.getItem(BIBLE_PASSAGE_PREFS_KEY) || '{}');
   SUPPORTED_MODES.forEach(function(mode) {
@@ -679,6 +681,7 @@ DOM.languageSelector = null;
 DOM.modeButtons = null;
 DOM.modeDescription = null;
 DOM.biblePassageToggle = null;
+DOM.bibleQuizToggle = null;
 DOM.biblePrimaryTextSelector = null;
 DOM.bibleSecondaryTextSelector = null;
 
@@ -746,6 +749,7 @@ function initDOM() {
     DOM.modeButtons = document.getElementById('modeButtons');
     DOM.modeDescription = document.getElementById('modeDescription');
     DOM.biblePassageToggle = document.getElementById('biblePassageToggle');
+    DOM.bibleQuizToggle = document.getElementById('bibleQuizToggle');
     DOM.biblePrimaryTextSelector = document.getElementById('biblePrimaryTextSelector');
     DOM.bibleSecondaryTextSelector = document.getElementById('bibleSecondaryTextSelector');
     LOG.debug('✅ DOM initialized');
@@ -840,13 +844,52 @@ const LoadingManager = {
 // ========================================================================
 // BLOCK 0520: 진행 표시 (원본 B005)
 // ========================================================================
+function getBibleSourceCode_(question) {
+  return String(question && (question.sourceCode || question.subject) || '').trim();
+}
+
+function getBibleVerseIndexes_() {
+  var indexes = [];
+  var seen = {};
+  currentQuestions.forEach(function(question, index) {
+    var sourceCode = getBibleSourceCode_(question) || ('INDEX-' + index);
+    if (seen[sourceCode]) return;
+    seen[sourceCode] = true;
+    indexes.push(index);
+  });
+  return indexes;
+}
+
+function getFirstIndexForSource_(sourceCode) {
+  if (!sourceCode) return Math.max(0, currentIndex);
+  for (var index = 0; index < currentQuestions.length; index++) {
+    if (getBibleSourceCode_(currentQuestions[index]) === sourceCode) return index;
+  }
+  return Math.max(0, currentIndex);
+}
+
+function getBibleReadingPosition_() {
+  var indexes = getBibleVerseIndexes_();
+  var sourceCode = getBibleSourceCode_(currentQuestions[currentIndex]);
+  var position = indexes.findIndex(function(index) {
+    return getBibleSourceCode_(currentQuestions[index]) === sourceCode;
+  });
+  return { indexes: indexes, position: Math.max(0, position) };
+}
+
 function updateProgressDisplay() {
+  var displayIndex = currentIndex;
   var total = currentQuestions.length || 1;
-  var percent = ((currentIndex + 1) / total) * 100;
+  if (!bibleQuizVisible) {
+    var reading = getBibleReadingPosition_();
+    displayIndex = reading.position;
+    total = reading.indexes.length || 1;
+  }
+  var percent = ((displayIndex + 1) / total) * 100;
   if (DOM.quizProgressBar) DOM.quizProgressBar.style.width = percent + '%';
   if (DOM.progressText) {
     DOM.progressText.style.display = 'inline-block';
-    DOM.progressText.innerText = (currentIndex + 1) + ' / ' + total;
+    DOM.progressText.innerText = (displayIndex + 1) + ' / ' + total;
   }
 }
 
@@ -1086,7 +1129,7 @@ function renderQuestionLanguageBlock(q, isMath) {
 
 function getBiblePassageReference_(q, option) {
   var sourceCode = String((q && (q.sourceCode || q.subject)) || '').trim();
-  var match = sourceCode.match(/^(?:OT|NT)-(.+)-(\d{2})-(\d{2})$/);
+  var match = sourceCode.match(/^(?:OT|NT)-(.+)-(\d{2,3})-(\d{2,3})$/);
   if (!match) return '';
   var book = match[1].replace(/-/g, ' ');
   var chapter = parseInt(match[2], 10);
@@ -1258,14 +1301,24 @@ function initModeSelector() {
 }
 
 function isBiblePassageVisible_() {
+  if (!bibleQuizVisible) return true;
   if (currentMode === 'exam') return !!examFinished;
   return !!biblePassagePreferences[currentMode];
+}
+
+function updateBibleReadingModeUI_() {
+  document.documentElement.classList.toggle('bible-reading-only', !bibleQuizVisible);
+  if (DOM.bibleQuizToggle) {
+    DOM.bibleQuizToggle.classList.toggle('is-on', bibleQuizVisible);
+    DOM.bibleQuizToggle.setAttribute('aria-pressed', bibleQuizVisible ? 'true' : 'false');
+    DOM.bibleQuizToggle.textContent = bibleQuizVisible ? '📝 Quiz ON' : '📖 Quiz OFF';
+  }
 }
 
 function updateBiblePassageControls_() {
   var visible = isBiblePassageVisible_();
   if (DOM.biblePassageToggle) {
-    var locked = currentMode === 'exam' && !examFinished;
+    var locked = !bibleQuizVisible || (currentMode === 'exam' && !examFinished);
     DOM.biblePassageToggle.disabled = locked;
     DOM.biblePassageToggle.classList.toggle('is-on', visible);
     DOM.biblePassageToggle.setAttribute('aria-pressed', visible ? 'true' : 'false');
@@ -1273,12 +1326,27 @@ function updateBiblePassageControls_() {
       ? '🔒 Passage after submission'
       : (visible ? '📖 Passage ON' : '📕 Passage OFF');
   }
+  updateBibleReadingModeUI_();
   if (DOM.biblePrimaryTextSelector) DOM.biblePrimaryTextSelector.value = biblePrimaryText;
   if (DOM.bibleSecondaryTextSelector) DOM.bibleSecondaryTextSelector.value = bibleSecondaryText;
 }
 
 function initBiblePassageControls_() {
   updateBiblePassageControls_();
+  if (DOM.bibleQuizToggle && !DOM.bibleQuizToggle.dataset.bound) {
+    DOM.bibleQuizToggle.dataset.bound = '1';
+    DOM.bibleQuizToggle.addEventListener('click', function() {
+      bibleQuizVisible = !bibleQuizVisible;
+      if (!bibleQuizVisible) {
+        biblePassagePreferences[currentMode] = true;
+        localStorage.setItem(BIBLE_PASSAGE_PREFS_KEY, JSON.stringify(biblePassagePreferences));
+        currentIndex = getFirstIndexForSource_(getBibleSourceCode_(currentQuestions[currentIndex]));
+      }
+      localStorage.setItem(BIBLE_QUIZ_VISIBLE_KEY, String(bibleQuizVisible));
+      updateBiblePassageControls_();
+      if (currentQuestions.length) renderCurrentQuestion();
+    });
+  }
   if (DOM.biblePassageToggle && !DOM.biblePassageToggle.dataset.bound) {
     DOM.biblePassageToggle.dataset.bound = '1';
     DOM.biblePassageToggle.addEventListener('click', function() {
@@ -1892,6 +1960,16 @@ function randomizeChoicesOnly(q) {
 // BLOCK 0900: 퀴즈 네비게이션 (원본 B008)
 // ========================================================================
 function goNext() {
+  if (!bibleQuizVisible) {
+    var reading = getBibleReadingPosition_();
+    if (reading.position < reading.indexes.length - 1) {
+      RendererManager.disposeCurrent();
+      currentIndex = reading.indexes[reading.position + 1];
+      renderCurrentQuestion();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    return;
+  }
   if (currentIndex < currentQuestions.length - 1) {
     RendererManager.disposeCurrent();
     currentIndex++;
@@ -1901,6 +1979,16 @@ function goNext() {
 }
 
 function goPrev() {
+  if (!bibleQuizVisible) {
+    var reading = getBibleReadingPosition_();
+    if (reading.position > 0) {
+      RendererManager.disposeCurrent();
+      currentIndex = reading.indexes[reading.position - 1];
+      renderCurrentQuestion();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    return;
+  }
   if (currentIndex > 0) {
     RendererManager.disposeCurrent();
     currentIndex--;
@@ -1910,6 +1998,10 @@ function goPrev() {
 }
 
 function skipQuestion() {
+  if (!bibleQuizVisible) {
+    goNext();
+    return;
+  }
   if (userAnswers[currentIndex] === null || userAnswers[currentIndex] === undefined) {
     userAnswers[currentIndex] = -1;
     saveProgress();
@@ -5038,6 +5130,29 @@ function renderCurrentQuestion() {
   var passageHtml = renderPassageLanguageBlock(q, isMath);
   var questionDisplay = renderQuestionLanguageBlock(q, isMath);
 
+  if (!bibleQuizVisible) {
+    var reading = getBibleReadingPosition_();
+    var reference = getBiblePassageReference_(q, 'WEB') || getBibleSourceCode_(q);
+    DOM.questionContainer.innerHTML =
+      '<div class="question-card bible-reading-card">' +
+      '<div class="q-num">Bible Reading · ' + escapeHtml(reference) + '</div>' +
+      passageHtml +
+      '</div>';
+    DOM.explanationBox.classList.remove('show');
+    DOM.skipBtn.style.display = 'none';
+    DOM.submitBtn.style.display = 'none';
+    DOM.nextBtn.style.display =
+      reading.position < reading.indexes.length - 1 ? 'inline-block' : 'none';
+    DOM.nextBtn.innerHTML = 'NEXT VERSE (N)';
+    DOM.prevBtn.disabled = reading.position === 0;
+    if (window.MathJax && MathJax.typesetPromise) {
+      MathJax.typesetPromise([DOM.questionContainer]).catch(console.warn);
+    }
+    return;
+  }
+
+  DOM.skipBtn.style.display = 'inline-block';
+
   if (isSubjective) {
     renderSubjectiveQuestion(q, answered, headerText, passageHtml);
     return;
@@ -6008,6 +6123,7 @@ function initBibleSpeechControls() {
 
     // Screen labels such as version names are intentionally excluded.
     appendElements('.bible-passage-version .passage-language-content', 0);
+    if (!bibleQuizVisible) return result;
     appendElements('.question-text .language-line', 0);
 
     if (currentMode === 'learn') {
@@ -6021,7 +6137,7 @@ function initBibleSpeechControls() {
   }
 
   function readCurrentBibleQuestion(fromAutoAdvance) {
-    if (!fromAutoAdvance) bibleAutoReadActive = currentMode === 'learn';
+    if (!fromAutoAdvance) bibleAutoReadActive = !bibleQuizVisible || currentMode === 'learn';
     stopBibleSpeech(true);
     var runId = bibleSpeechRunId;
     var questionIndexAtStart = currentIndex;
@@ -6035,16 +6151,21 @@ function initBibleSpeechControls() {
       if (
         runId !== bibleSpeechRunId ||
         !bibleAutoReadActive ||
-        currentMode !== 'learn' ||
+        (bibleQuizVisible && currentMode !== 'learn') ||
         currentIndex !== questionIndexAtStart
       ) return;
-      if (currentIndex >= currentQuestions.length - 1) {
+      var atLastItem = currentIndex >= currentQuestions.length - 1;
+      if (!bibleQuizVisible) {
+        var reading = getBibleReadingPosition_();
+        atLastItem = reading.position >= reading.indexes.length - 1;
+      }
+      if (atLastItem) {
         bibleAutoReadActive = false;
         return;
       }
       goNext();
       window.setTimeout(function() {
-        if (bibleAutoReadActive && currentMode === 'learn') {
+        if (bibleAutoReadActive && (!bibleQuizVisible || currentMode === 'learn')) {
           readCurrentBibleQuestion(true);
         }
       }, 350);
