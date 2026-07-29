@@ -10,11 +10,13 @@
   }
 
   function headers_() {
-    return {
+    var headers = {
       apikey: publishableKey,
-      Authorization: 'Bearer ' + publishableKey,
       Accept: 'application/json'
     };
+    var accessToken = currentAccessToken_();
+    if (accessToken) headers.Authorization = 'Bearer ' + accessToken;
+    return headers;
   }
 
   function currentAccessToken_() {
@@ -90,26 +92,7 @@
   }
 
   async function catalog_(signal) {
-    var rows = await rest_(
-      'bible_question_catalog',
-      'select=catalog_code,testament,book_code,chapter,start_n,last_n,question_count,status' +
-        '&order=start_n.asc',
-      signal
-    );
-    return response_({
-      status: 'success',
-      catalog: rows.map(function(row) {
-        return {
-          CODE: row.catalog_code,
-          BOOK_EN: row.book_code,
-          CHAPTER: row.chapter,
-          START_ROW: row.start_n,
-          LAST_ROW: row.last_n,
-          QUESTION_COUNT: row.question_count,
-          STATUS: row.status
-        };
-      })
-    });
+    return callQuestionFunction_({ action: 'catalog', sheet: 'BIBLE-OT' }, signal);
   }
 
   async function peopleSearch_(payload, signal) {

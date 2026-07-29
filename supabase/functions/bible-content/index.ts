@@ -85,6 +85,25 @@ Deno.serve(async (request) => {
   if (!isAdmin && !isTrial && !allowedSubjects.includes(requestedSubject)) {
     return json({ status: "error", code: "AUTH_SUBJECT_DENIED", message: "Subject access is not assigned." }, 403);
   }
+  if (payload.action === "catalog") {
+    const { data: catalogRows, error: catalogError } = await admin
+      .from("bible_question_catalog")
+      .select("catalog_code,book_code,chapter,start_n,last_n,question_count,status")
+      .order("start_n", { ascending: true });
+    if (catalogError) return json({ status: "error", message: catalogError.message }, 500);
+    return json({
+      status: "success",
+      catalog: (catalogRows || []).map((row) => ({
+        CODE: row.catalog_code,
+        BOOK_EN: row.book_code,
+        CHAPTER: row.chapter,
+        START_ROW: row.start_n,
+        LAST_ROW: row.last_n,
+        QUESTION_COUNT: row.question_count,
+        STATUS: row.status,
+      })),
+    });
+  }
   if (requestedSubject === "BIBLE_NT") {
     return json(payload.total === "true" || payload.total === true
       ? { status: "success", total: 0 }
