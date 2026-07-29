@@ -59,9 +59,9 @@
     </div>
 
     <div class="quiz-tools" aria-label="Quiz tools">
-      <button type="button" id="biblePeopleToggle" class="quiz-tool-toggle bible-people-toggle" aria-label="Open Bible People" aria-controls="biblePeoplePanel" aria-expanded="false">People</button>
       <button type="button" id="calculatorToggle" class="quiz-tool-toggle" aria-label="Open calculator" aria-controls="calculatorPanel" aria-expanded="false">🧮</button>
     </div>
+    <button type="button" id="biblePeopleToggle" class="quiz-tool-toggle bible-people-toggle persistent-people-toggle" aria-label="Open Bible People" aria-controls="biblePeoplePanel" aria-expanded="false">People</button>
     <button type="button" id="timerToggle" class="quiz-tool-toggle quiz-timer-toggle persistent-timer-toggle" aria-label="Open timer" aria-controls="timerPanel" aria-expanded="false"><span aria-hidden="true">⏱️</span><span id="headerTimerDisplay" class="header-timer-display">00:00:00</span></button>
     <section id="calculatorPanel" class="quiz-tool-panel calculator-panel" aria-label="Scientific calculator" hidden>
       <div class="tool-panel-head"><span>Scientific Calculator</span><span id="calculatorTimerMirror" class="calculator-timer-mirror">02:14:00</span><button type="button" class="tool-close" data-close-tool aria-label="Close calculator">×</button></div>
@@ -1764,7 +1764,8 @@ html:not(.admin-user) .admin-preview-panel {
 
 <!-- 2. GitHub main.js 불러오기 + 초기화 -->
 <style>
-  .bible-people-toggle{width:auto!important;min-width:72px;padding:0 12px!important;font-size:13px!important;font-weight:800}
+  .bible-people-toggle{display:flex!important;width:auto!important;min-width:72px;padding:0 12px!important;font-size:13px!important;font-weight:800}
+  .persistent-people-toggle{position:fixed;top:12px;right:max(150px,calc((100vw - 900px)/2 + 156px));z-index:101}
   .bible-people-panel{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.72);padding:24px;overflow:auto}
   .bible-people-panel[hidden]{display:none!important}
   .bible-people-dialog{width:min(1050px,100%);min-height:min(720px,calc(100vh - 48px));margin:0 auto;background:#f8fafc;border-radius:22px;box-shadow:0 28px 80px rgba(0,0,0,.35);overflow:hidden;color:#172033}
@@ -1790,11 +1791,11 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-relationship strong{display:block;color:#172033;margin-bottom:3px}.bible-reference-more{margin-top:10px;color:#64748b;font-size:12px}
   .bible-person-graph{min-height:390px;margin-top:12px;border:1px solid #dbe3ee;border-radius:12px;overflow:hidden}
   body.bible-people-open{overflow:hidden}
-  @media(max-width:760px){.bible-people-panel{padding:0}.bible-people-dialog{min-height:100vh;border-radius:0}.bible-people-layout{grid-template-columns:1fr}.bible-people-results{min-height:0;max-height:210px}.bible-people-detail{min-height:430px}.bible-person-title{display:block}.bible-person-id{display:inline-block;margin-top:10px}}
+  @media(max-width:760px){.persistent-people-toggle{right:150px}.bible-people-panel{padding:0}.bible-people-dialog{min-height:100vh;border-radius:0}.bible-people-layout{grid-template-columns:1fr}.bible-people-results{min-height:0;max-height:210px}.bible-people-detail{min-height:430px}.bible-person-title{display:block}.bible-person-id{display:inline-block;margin-top:10px}}
 </style>
 
 <script type="module">
-import { initialize } from './main.js?v=8.21-people-db1';
+import { initialize } from './main.js?v=8.21-people-db2';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
