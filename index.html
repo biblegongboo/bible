@@ -118,14 +118,14 @@
         <select id="biblePrimaryTextSelector" aria-label="First language">
           <option value="WEB">WEB Modern English</option>
           <option value="KJV">KJV Original</option>
-          <option value="KO_WEB">WEB Korean Literal Translation</option>
+          <option value="KO_WEB">한국어</option>
         </select>
         <label for="bibleSecondaryTextSelector">Second language</label>
         <select id="bibleSecondaryTextSelector" aria-label="Second language">
           <option value="NONE">None</option>
           <option value="WEB">WEB Modern English</option>
           <option value="KJV">KJV Original</option>
-          <option value="KO_WEB">WEB Korean Literal Translation</option>
+          <option value="KO_WEB">한국어</option>
         </select>
       </div>
     </div>
@@ -175,7 +175,6 @@
 
     <!-- 진행률 -->
     <div class="progress-area" style="display:none;">
-      <span class="progress-count" id="progressText">1 / 1</span>
       <div class="progress-bar-container">
         <div class="progress-bar" id="quizProgressBar"></div>
       </div>
@@ -1460,8 +1459,8 @@ html:not(.admin-user) .admin-preview-panel {
   .mode-buttons {
     display:grid;
     grid-template-columns:repeat(3,1fr);
-    gap:8px;
-    padding:6px;
+    gap:6px;
+    padding:4px;
     border-radius:16px;
     background:rgba(255,255,255,.08);
     border:1px solid rgba(255,255,255,.14);
@@ -1470,7 +1469,7 @@ html:not(.admin-user) .admin-preview-panel {
   .mode-btn {
     border:1px solid transparent;
     border-radius:12px;
-    padding:10px 8px;
+    padding:6px 8px;
     font-size:14px;
     font-weight:800;
     color:#fff;
@@ -1519,17 +1518,17 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-quiz-toggle,
   #biblePrimaryTextSelector,
   #bibleSecondaryTextSelector {
-    min-height:38px;
+    min-height:32px;
     border:1px solid #cbd5e1;
     border-radius:9px;
     background:#fff;
     color:#1e293b;
-    padding:8px 11px;
+    padding:5px 8px;
     font-weight:700;
   }
   #biblePrimaryTextSelector,
   #bibleSecondaryTextSelector {
-    width:min(220px, 25vw);
+    width:min(178px, 22vw);
   }
   .bible-passage-toggle,
   .bible-quiz-toggle {
@@ -1590,7 +1589,8 @@ html:not(.admin-user) .admin-preview-panel {
     }
     #biblePrimaryTextSelector,
     #bibleSecondaryTextSelector {
-      width:min(100%, 260px);
+      width:calc(50% - 4px);
+      min-width:0;
     }
   }
 
@@ -1764,8 +1764,9 @@ html:not(.admin-user) .admin-preview-panel {
 
 <!-- 2. GitHub main.js 불러오기 + 초기화 -->
 <style>
-  .bible-people-toggle{display:flex!important;width:auto!important;min-width:72px;padding:0 12px!important;font-size:13px!important;font-weight:800}
-  .persistent-people-toggle{position:fixed;top:12px;right:max(150px,calc((100vw - 900px)/2 + 156px));z-index:101}
+  .bible-people-toggle{display:flex!important;width:auto!important;min-width:66px;padding:0 9px!important;font-size:13px!important;font-weight:800}
+  .persistent-people-toggle{position:fixed;top:12px;right:max(134px,calc((100vw - 900px)/2 + 140px));z-index:101;height:34px!important}
+  .persistent-timer-toggle{height:34px!important;min-width:112px!important}
   .bible-people-panel{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.72);padding:24px;overflow:auto}
   .bible-people-panel[hidden]{display:none!important}
   .bible-people-dialog{width:min(1050px,100%);min-height:min(720px,calc(100vh - 48px));margin:0 auto;background:#f8fafc;border-radius:22px;box-shadow:0 28px 80px rgba(0,0,0,.35);overflow:hidden;color:#172033}
@@ -1791,11 +1792,11 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-relationship strong{display:block;color:#172033;margin-bottom:3px}.bible-reference-more{margin-top:10px;color:#64748b;font-size:12px}
   .bible-person-graph{min-height:390px;margin-top:12px;border:1px solid #dbe3ee;border-radius:12px;overflow:hidden}
   body.bible-people-open{overflow:hidden}
-  @media(max-width:760px){.persistent-people-toggle{right:150px}.bible-people-panel{padding:0}.bible-people-dialog{min-height:100vh;border-radius:0}.bible-people-layout{grid-template-columns:1fr}.bible-people-results{min-height:0;max-height:210px}.bible-people-detail{min-height:430px}.bible-person-title{display:block}.bible-person-id{display:inline-block;margin-top:10px}}
+  @media(max-width:760px){.persistent-people-toggle{right:134px}.bible-people-panel{padding:0}.bible-people-dialog{min-height:100vh;border-radius:0}.bible-people-layout{grid-template-columns:1fr}.bible-people-results{min-height:0;max-height:210px}.bible-people-detail{min-height:430px}.bible-person-title{display:block}.bible-person-id{display:inline-block;margin-top:10px}}
 </style>
 
 <script type="module">
-import { initialize } from './main.js?v=8.21-people-db2';
+import { initialize } from './main.js?v=8.22-compact-controls1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
