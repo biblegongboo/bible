@@ -1,4 +1,4 @@
-import { renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.32-atlas-layout1';
+import { renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.33-journey1-zoom1';
 
 let initialized = false;
 let dataPromise = null;
@@ -20,9 +20,9 @@ function setStatus(message, isError = false) {
 function loadData() {
   if (dataPromise) return dataPromise;
   dataPromise = Promise.all([
-    fetch('./content/places.json?v=8.32-atlas-layout1').then(checkResponse),
-    fetch('./content/journeys.json?v=8.32-atlas-layout1').then(checkResponse),
-    fetch('./content/timelines.json?v=8.32-atlas-layout1').then(checkResponse)
+    fetch('./content/places.json?v=8.33-journey1-zoom1').then(checkResponse),
+    fetch('./content/journeys.json?v=8.33-journey1-zoom1').then(checkResponse),
+    fetch('./content/timelines.json?v=8.33-journey1-zoom1').then(checkResponse)
   ]).then(([places, journeys, timelines]) => {
     data = { places, journeys, timelines };
     return data;
@@ -159,11 +159,25 @@ function renderPlaceResults(query = '') {
 
 function renderJourney(index = 0) {
   const output = document.getElementById('bibleJourneyOutput');
-  const journey = data.journeys[Number(index) || 0];
+  const journeyIndex = Number(index) || 0;
+  const journey = data.journeys[journeyIndex];
   if (!output || !journey) return;
+  const graphic = structuredClone(journey.graphic);
+  if (journeyIndex === 0 && Array.isArray(graphic?.board?.boundingbox) && graphic.board.boundingbox.length === 4) {
+    const [left, top, right, bottom] = graphic.board.boundingbox.map(Number);
+    const centerX = (left + right) / 2;
+    const centerY = (top + bottom) / 2;
+    const zoomScale = 0.8;
+    graphic.board.boundingbox = [
+      centerX + (left - centerX) * zoomScale,
+      centerY + (top - centerY) * zoomScale,
+      centerX + (right - centerX) * zoomScale,
+      centerY + (bottom - centerY) * zoomScale
+    ];
+  }
   output.innerHTML = `<h3>${escapeHtml(journey.title_en || journey.journey_id)}</h3>
     <p class="bible-reference-more">Source-provided coordinate route. Modern political boundaries are not implied.</p>
-    ${renderSuperGraphicPayload(journey.graphic)}`;
+    ${renderSuperGraphicPayload(graphic)}`;
   setStatus('Journey route loaded.');
 }
 
