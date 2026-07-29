@@ -70,7 +70,7 @@ function rowsFromSheet(workbook, sheetName) {
       headers.map((header, columnIndex) => [header, row[columnIndex]])
         .filter(([header]) => header)
     ))
-    .map((row) => ({ ...row, __rowNumber: rowIndex + 2 }));
+    .map((row, rowIndex) => ({ ...row, __rowNumber: rowIndex + 2 }));
 }
 
 function legacyPassword(pin) {
@@ -146,6 +146,15 @@ async function upsert(baseUrl, key, table, conflict, rows) {
   }
 }
 
+async function countRows(baseUrl, key, table) {
+  const result = await api(`${baseUrl}/rest/v1/${table}?select=*`, key, {
+    method: "HEAD",
+    headers: { Prefer: "count=exact" },
+  });
+  const contentRange = result.headers.get("content-range") || "*/0";
+  return Number(contentRange.split("/").pop()) || 0;
+}
+
 const env = await loadEnv(envPath);
 const baseUrl = String(env.SUPABASE_URL || "").replace(/\/rest\/v1\/?$/, "").replace(/\/+$/, "");
 const key = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
@@ -215,6 +224,9 @@ const subjects = subjectRows.map((row) => ({
 await upsert(baseUrl, key, "member_profiles", "id", profiles);
 await upsert(baseUrl, key, "study_subjects", "code", subjects);
 
+const remoteProfileCount = await countRows(baseUrl, key, "member_profiles");
+const remoteSubjectCount = await countRows(baseUrl, key, "study_subjects");
+
 const report = {
   completedAt: new Date().toISOString(),
   sourceWorkbook: workbookPath,
@@ -223,6 +235,11 @@ const report = {
   profilesUpserted: profiles.length,
   subjectsUpserted: subjects.length,
   backupRowsNotActivated: rowsFromSheet(workbook, "backup").length,
+  remoteProfileCount,
+  remoteSubjectCount,
+  verificationPassed:
+    remoteProfileCount >= profiles.length &&
+    remoteSubjectCount >= subjects.length,
 };
 await fs.mkdir(path.dirname(reportPath), { recursive: true });
 await fs.writeFile(reportPath, JSON.stringify(report, null, 2), "utf8");
