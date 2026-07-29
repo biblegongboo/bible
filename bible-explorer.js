@@ -1,4 +1,4 @@
-import { renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.34-atlas-spacing1';
+import { renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.35-atlas-square1';
 
 let initialized = false;
 let dataPromise = null;
@@ -20,9 +20,9 @@ function setStatus(message, isError = false) {
 function loadData() {
   if (dataPromise) return dataPromise;
   dataPromise = Promise.all([
-    fetch('./content/places.json?v=8.34-atlas-spacing1').then(checkResponse),
-    fetch('./content/journeys.json?v=8.34-atlas-spacing1').then(checkResponse),
-    fetch('./content/timelines.json?v=8.34-atlas-spacing1').then(checkResponse)
+    fetch('./content/places.json?v=8.35-atlas-square1').then(checkResponse),
+    fetch('./content/journeys.json?v=8.35-atlas-square1').then(checkResponse),
+    fetch('./content/timelines.json?v=8.35-atlas-square1').then(checkResponse)
   ]).then(([places, journeys, timelines]) => {
     data = { places, journeys, timelines };
     return data;
@@ -65,18 +65,18 @@ function placeMapPayload(selected, nearby) {
     schemaVersion: '1.1',
     engine: 'jsxgraph',
     type: 'bible.map.places',
-    board: { boundingbox: [left, top, right, bottom], axis: true, grid: true },
+    board: { boundingbox: [left, top, right, bottom], axis: true, grid: true, square: true },
     objects: nearby.map((place, index) => {
       const isSelected = place.id === selected.id;
       const angle = (Math.PI * 2 * index / Math.max(1, nearby.length)) - Math.PI / 2;
       const ring = index % 3;
-      const offsetDistance = isSelected ? 14 : Math.round((25 + ring * 17) * 1.32);
+      const offsetDistance = isSelected ? 16 : Math.round((25 + ring * 17) * 1.716);
       const offsetX = Math.round(Math.cos(angle) * offsetDistance);
       const offsetY = Math.round(Math.sin(angle) * offsetDistance);
-      const anchorX = ((Number(place.lon) - left) / Math.max(0.0001, right - left)) * 792 + offsetX;
-      const anchorY = ((top - Number(place.lat)) / Math.max(0.0001, top - bottom)) * 400 - offsetY;
-      const labelWidth = Math.max(28, String(place.name || '').length * 6.2);
-      const labelBox = { left: anchorX - 3, right: anchorX + labelWidth, top: anchorY - 8, bottom: anchorY + 8 };
+      const anchorX = ((Number(place.lon) - left) / Math.max(0.0001, right - left)) * 700 + offsetX;
+      const anchorY = ((top - Number(place.lat)) / Math.max(0.0001, top - bottom)) * 700 - offsetY;
+      const labelWidth = Math.max(32, String(place.name || '').length * 7.4);
+      const labelBox = { left: anchorX - 3, right: anchorX + labelWidth, top: anchorY - 10, bottom: anchorY + 10 };
       const collides = !isSelected && labelBoxes.some((box) =>
         labelBox.left < box.right && labelBox.right > box.left &&
         labelBox.top < box.bottom && labelBox.bottom > box.top
@@ -96,7 +96,7 @@ function placeMapPayload(selected, nearby) {
               offsetX,
               offsetY
             ],
-            fontSize: isSelected ? 12 : 10,
+            fontSize: isSelected ? 15 : 12,
             color: isSelected ? '#991b1b' : '#172033'
           }
         }
