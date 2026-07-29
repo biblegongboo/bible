@@ -21,7 +21,7 @@ function loadData() {
   if (dataPromise) return dataPromise;
   dataPromise = Promise.all([
     fetch('./content/places.json?v=8.38-family-roles1').then(checkResponse),
-    fetch('./content/journeys.json?v=8.38-family-roles1').then(checkResponse),
+    fetch('./content/journeys.json?v=8.42-estimated-journeys1').then(checkResponse),
     fetch('./content/timelines.json?v=8.38-family-roles1').then(checkResponse)
   ]).then(([places, journeys, timelines]) => {
     data = { places, journeys, timelines };
@@ -176,7 +176,9 @@ function renderJourney(index = 0) {
     ];
   }
   output.innerHTML = `<h3>${escapeHtml(journey.title_en || journey.journey_id)}</h3>
-    <p class="bible-reference-more">Source-provided coordinate route. Modern political boundaries are not implied.</p>
+    <p class="bible-reference-more">${journey.status === 'estimated'
+      ? 'Estimated Route · 추정 경로 — reconstructed from source events, Bible references, and source-provided place coordinates.'
+      : 'Source-provided coordinate route. Modern political boundaries are not implied.'}</p>
     ${renderSuperGraphicPayload(graphic)}`;
   setStatus('Journey route loaded.');
 }
