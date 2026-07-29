@@ -6328,6 +6328,7 @@ if (document.readyState === 'loading') {
 // ========================================================================
 var biblePeopleExplorerInitialized = false;
 var biblePeopleSelectedId = '';
+var biblePeopleSearchTimer = null;
 
 async function biblePeopleApi_(action, values) {
   var params = new URLSearchParams();
@@ -6512,10 +6513,8 @@ async function biblePeopleLoadDetail_(personId) {
   }
 }
 
-async function biblePeopleSearchSubmit_(event) {
-  event.preventDefault();
-  var input = document.getElementById('biblePeopleSearchInput');
-  var query = String(input && input.value || '').trim();
+async function biblePeopleRunSearch_(query) {
+  query = String(query || '').trim();
   if (!query) return;
   biblePeopleSetStatus_('Searching...');
   try {
@@ -6529,6 +6528,12 @@ async function biblePeopleSearchSubmit_(event) {
   }
 }
 
+function biblePeopleSearchSubmit_(event) {
+  event.preventDefault();
+  var input = document.getElementById('biblePeopleSearchInput');
+  biblePeopleRunSearch_(input && input.value);
+}
+
 function initBiblePeopleExplorer() {
   if (biblePeopleExplorerInitialized) return;
   var toggle = document.getElementById('biblePeopleToggle');
@@ -6540,6 +6545,22 @@ function initBiblePeopleExplorer() {
   toggle.addEventListener('click', biblePeopleOpen_);
   close.addEventListener('click', biblePeopleClose_);
   form.addEventListener('submit', biblePeopleSearchSubmit_);
+  var input = document.getElementById('biblePeopleSearchInput');
+  if (input) {
+    input.addEventListener('input', function() {
+      clearTimeout(biblePeopleSearchTimer);
+      var query = String(input.value || '').trim();
+      if (!query) {
+        var results = document.getElementById('biblePeopleResults');
+        if (results) results.innerHTML = '';
+        biblePeopleSetStatus_('Start typing a name or alias.');
+        return;
+      }
+      biblePeopleSearchTimer = setTimeout(function() {
+        biblePeopleRunSearch_(query);
+      }, 280);
+    });
+  }
   panel.addEventListener('click', function(event) {
     if (event.target === panel) biblePeopleClose_();
   });
