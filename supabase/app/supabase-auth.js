@@ -10,6 +10,11 @@
     return config.enabled === true && !!baseUrl && !!publishableKey;
   }
 
+  function legacyCompatiblePassword_(password) {
+    var value = String(password || '');
+    return value.length < 6 ? 'GB!' + value : value;
+  }
+
   function readSession_() {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
@@ -94,7 +99,10 @@
     if (!configured_()) throw new Error('Supabase login is not configured.');
     var data = await request_('/auth/v1/token?grant_type=password', {
       method: 'POST',
-      body: JSON.stringify({ email: email, password: password })
+      body: JSON.stringify({
+        email: email,
+        password: legacyCompatiblePassword_(password)
+      })
     });
     writeSession_(data);
     var profile = await profile_(data.access_token);
@@ -122,7 +130,10 @@
   async function changePassword(email, oldPassword, newPassword) {
     var login = await request_('/auth/v1/token?grant_type=password', {
       method: 'POST',
-      body: JSON.stringify({ email: email, password: oldPassword })
+      body: JSON.stringify({
+        email: email,
+        password: legacyCompatiblePassword_(oldPassword)
+      })
     });
     await request_('/auth/v1/user', {
       method: 'PUT',
