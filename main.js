@@ -6007,22 +6007,62 @@ function initBibleSpeechControls() {
 
   var wrap = document.createElement('div');
   wrap.id = 'bibleSpeechControls';
-  wrap.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:12000;display:flex;gap:8px;padding:8px;background:rgba(15,23,42,.92);border-radius:12px;box-shadow:0 6px 22px rgba(0,0,0,.25)';
+  wrap.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:12000;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px;max-width:min(520px,calc(100vw - 32px));padding:8px;background:rgba(15,23,42,.92);border-radius:12px;box-shadow:0 6px 22px rgba(0,0,0,.25)';
 
   var readButton = document.createElement('button');
   readButton.type = 'button';
-  readButton.textContent = '🔊 Read';
+  readButton.textContent = '▶ Play';
   readButton.title = 'Read the current Bible lesson';
   readButton.style.cssText = 'border:0;border-radius:9px;padding:10px 13px;background:#f5a623;color:#fff;font-weight:800;cursor:pointer';
 
+  var replayButton = document.createElement('button');
+  replayButton.type = 'button';
+  replayButton.textContent = '↻ Replay';
+  replayButton.title = 'Read the current item again without moving to the next item';
+  replayButton.style.cssText = 'border:0;border-radius:9px;padding:10px 12px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer';
+
   var stopButton = document.createElement('button');
   stopButton.type = 'button';
-  stopButton.textContent = '⏹ Stop';
+  stopButton.textContent = '■ Stop';
   stopButton.title = 'Stop reading';
   stopButton.style.cssText = 'border:0;border-radius:9px;padding:10px 13px;background:#475569;color:#fff;font-weight:800;cursor:pointer';
 
+  var speedSelect = document.createElement('select');
+  speedSelect.title = 'Reading speed';
+  speedSelect.setAttribute('aria-label', 'Reading speed');
+  speedSelect.style.cssText = 'border:0;border-radius:9px;padding:9px 8px;background:#fff;color:#0f172a;font-weight:800;cursor:pointer';
+  [
+    { value: '0.75', label: 'Speed 0.75×' },
+    { value: '1', label: 'Speed 1.0×' },
+    { value: '1.25', label: 'Speed 1.25×' },
+    { value: '1.5', label: 'Speed 1.5×' }
+  ].forEach(function(optionData) {
+    var option = document.createElement('option');
+    option.value = optionData.value;
+    option.textContent = optionData.label;
+    speedSelect.appendChild(option);
+  });
+
+  var autoNextButton = document.createElement('button');
+  autoNextButton.type = 'button';
+  autoNextButton.title = 'Automatically move to the next item after reading';
+  autoNextButton.style.cssText = 'border:0;border-radius:9px;padding:10px 12px;color:#fff;font-weight:800;cursor:pointer';
+
+  var speechSpeedKey = 'bibleSpeechSpeed';
+  var speechAutoNextKey = 'bibleSpeechAutoNext';
+  var savedSpeed = Number(localStorage.getItem(speechSpeedKey));
+  var bibleSpeechRate = [0.75, 1, 1.25, 1.5].indexOf(savedSpeed) !== -1 ? savedSpeed : 1;
+  var bibleAutoNextEnabled = localStorage.getItem(speechAutoNextKey) !== 'false';
+  speedSelect.value = String(bibleSpeechRate);
+
   var bibleAutoReadActive = false;
   var bibleSpeechRunId = 0;
+
+  function updateAutoNextButton_() {
+    autoNextButton.textContent = 'Auto Next ' + (bibleAutoNextEnabled ? 'ON' : 'OFF');
+    autoNextButton.setAttribute('aria-pressed', bibleAutoNextEnabled ? 'true' : 'false');
+    autoNextButton.style.background = bibleAutoNextEnabled ? '#16a34a' : '#64748b';
+  }
 
   function stopBibleSpeech(keepAutoRead) {
     bibleSpeechRunId++;
@@ -6141,8 +6181,13 @@ function initBibleSpeechControls() {
     return result;
   }
 
-  function readCurrentBibleQuestion(fromAutoAdvance) {
-    if (!fromAutoAdvance) bibleAutoReadActive = !bibleQuizVisible || currentMode === 'learn';
+  function readCurrentBibleQuestion(fromAutoAdvance, replayOnly) {
+    if (!fromAutoAdvance) {
+      bibleAutoReadActive =
+        !replayOnly &&
+        bibleAutoNextEnabled &&
+        (!bibleQuizVisible || currentMode === 'learn');
+    }
     stopBibleSpeech(true);
     var runId = bibleSpeechRunId;
     var questionIndexAtStart = currentIndex;
@@ -6153,6 +6198,10 @@ function initBibleSpeechControls() {
     }
 
     function finishBibleSpeech_() {
+      if (replayOnly || !bibleAutoNextEnabled) {
+        bibleAutoReadActive = false;
+        return;
+      }
       if (
         runId !== bibleSpeechRunId ||
         !bibleAutoReadActive ||
@@ -6187,7 +6236,7 @@ function initBibleSpeechControls() {
         if (runId !== bibleSpeechRunId) return;
         var utterance = new SpeechSynthesisUtterance(segment.text);
         utterance.lang = segment.lang;
-        utterance.rate = 0.95;
+        utterance.rate = bibleSpeechRate;
         var voice = getBibleVoice_(segment.lang);
         if (voice) utterance.voice = voice;
         utterance.onend = function() {
@@ -6207,8 +6256,25 @@ function initBibleSpeechControls() {
 
     speakBibleSegment_(0);
   }
-  readButton.addEventListener('click', function() { readCurrentBibleQuestion(false); });
+  updateAutoNextButton_();
+  readButton.addEventListener('click', function() { readCurrentBibleQuestion(false, false); });
+  replayButton.addEventListener('click', function() { readCurrentBibleQuestion(false, true); });
   stopButton.addEventListener('click', function() { stopBibleSpeech(false); });
+  speedSelect.addEventListener('change', function() {
+    var nextRate = Number(speedSelect.value);
+    if ([0.75, 1, 1.25, 1.5].indexOf(nextRate) === -1) nextRate = 1;
+    bibleSpeechRate = nextRate;
+    localStorage.setItem(speechSpeedKey, String(nextRate));
+    if (window.speechSynthesis.speaking) {
+      readCurrentBibleQuestion(false, !bibleAutoNextEnabled);
+    }
+  });
+  autoNextButton.addEventListener('click', function() {
+    bibleAutoNextEnabled = !bibleAutoNextEnabled;
+    localStorage.setItem(speechAutoNextKey, bibleAutoNextEnabled ? 'true' : 'false');
+    if (!bibleAutoNextEnabled) bibleAutoReadActive = false;
+    updateAutoNextButton_();
+  });
   document.addEventListener('click', function(event) {
     var id = event.target && event.target.id;
     if (['prevBtn', 'nextBtn', 'skipBtn', 'submitBtn', 'quitBtn'].indexOf(id) !== -1) {
@@ -6216,9 +6282,11 @@ function initBibleSpeechControls() {
     }
   });
   window.addEventListener('beforeunload', function() { stopBibleSpeech(false); });
-
   wrap.appendChild(readButton);
+  wrap.appendChild(replayButton);
   wrap.appendChild(stopButton);
+  wrap.appendChild(speedSelect);
+  wrap.appendChild(autoNextButton);
   document.body.appendChild(wrap);
 }
 
