@@ -62,6 +62,7 @@
       <button type="button" id="calculatorToggle" class="quiz-tool-toggle" aria-label="Open calculator" aria-controls="calculatorPanel" aria-expanded="false">🧮</button>
     </div>
     <button type="button" id="biblePeopleToggle" class="quiz-tool-toggle bible-people-toggle persistent-people-toggle" aria-label="Open Bible People" aria-controls="biblePeoplePanel" aria-expanded="false">People</button>
+    <button type="button" id="bibleExploreToggle" class="quiz-tool-toggle bible-explore-toggle persistent-explore-toggle" aria-label="Open Bible Atlas" aria-controls="bibleExplorePanel" aria-expanded="false">Atlas</button>
     <button type="button" id="timerToggle" class="quiz-tool-toggle quiz-timer-toggle persistent-timer-toggle" aria-label="Open timer" aria-controls="timerPanel" aria-expanded="false"><span aria-hidden="true">⏱️</span><span id="headerTimerDisplay" class="header-timer-display">00:00:00</span></button>
     <section id="calculatorPanel" class="quiz-tool-panel calculator-panel" aria-label="Scientific calculator" hidden>
       <div class="tool-panel-head"><span>Scientific Calculator</span><span id="calculatorTimerMirror" class="calculator-timer-mirror">02:14:00</span><button type="button" class="tool-close" data-close-tool aria-label="Close calculator">×</button></div>
@@ -271,6 +272,37 @@
         </div>
       </main>
     </div>
+  </div>
+</section>
+
+<!-- ===== BIBLE ATLAS / JOURNEYS / TIMELINE ===== -->
+<section id="bibleExplorePanel" class="bible-people-panel bible-explore-panel" aria-label="Bible Atlas" hidden>
+  <div class="bible-people-dialog bible-explore-dialog" role="dialog" aria-modal="true" aria-labelledby="bibleExploreTitle">
+    <header class="bible-people-head">
+      <div><span class="bible-people-kicker">BIBLE CONTEXT</span><h2 id="bibleExploreTitle">Atlas, Journeys &amp; Timeline</h2></div>
+      <button type="button" id="bibleExploreClose" class="bible-people-close" aria-label="Close Bible Atlas">&times;</button>
+    </header>
+    <nav class="bible-explore-tabs" aria-label="Bible context sections">
+      <button type="button" class="is-active" data-bible-explore-tab="places">Places</button>
+      <button type="button" data-bible-explore-tab="journeys">Journeys</button>
+      <button type="button" data-bible-explore-tab="timeline">Timeline</button>
+    </nav>
+    <div id="bibleExploreStatus" class="bible-people-status" aria-live="polite">Loading Bible context data...</div>
+    <section class="bible-explore-view is-active" data-bible-explore-view="places">
+      <div class="bible-explore-toolbar"><input id="biblePlaceSearch" type="search" autocomplete="off" placeholder="Search Jerusalem, Bethlehem, Jordan..."></div>
+      <div class="bible-people-layout bible-explore-layout">
+        <aside id="biblePlaceResults" class="bible-people-results" aria-label="Place results"></aside>
+        <main id="biblePlaceDetail" class="bible-people-detail"></main>
+      </div>
+    </section>
+    <section class="bible-explore-view" data-bible-explore-view="journeys">
+      <div class="bible-explore-toolbar"><select id="bibleJourneySelector" aria-label="Select a journey"></select></div>
+      <div id="bibleJourneyOutput" class="bible-explore-output"></div>
+    </section>
+    <section class="bible-explore-view" data-bible-explore-view="timeline">
+      <div class="bible-explore-toolbar"><select id="bibleTimelineSelector" aria-label="Select a Bible book"></select></div>
+      <div id="bibleTimelineOutput" class="bible-explore-output"></div>
+    </section>
   </div>
 </section>
 
@@ -1766,6 +1798,8 @@ html:not(.admin-user) .admin-preview-panel {
 <style>
   .bible-people-toggle{display:flex!important;width:auto!important;min-width:66px;padding:0 9px!important;font-size:13px!important;font-weight:800}
   .persistent-people-toggle{position:fixed;top:12px;right:max(134px,calc((100vw - 900px)/2 + 140px));z-index:101;height:34px!important}
+  .bible-explore-toggle{display:flex!important;width:auto!important;min-width:60px;padding:0 9px!important;font-size:13px!important;font-weight:800}
+  .persistent-explore-toggle{position:fixed;top:12px;right:max(205px,calc((100vw - 900px)/2 + 211px));z-index:101;height:34px!important}
   .persistent-timer-toggle{height:34px!important;min-width:112px!important}
   .bible-people-panel{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.72);padding:24px;overflow:auto}
   .bible-people-panel[hidden]{display:none!important}
@@ -1791,12 +1825,15 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-reference,.bible-relationship{border:1px solid #e2e8f0;border-radius:9px;padding:9px 10px;background:#f8fafc;font-size:12px;color:#334155}
   .bible-relationship strong{display:block;color:#172033;margin-bottom:3px}.bible-reference-more{margin-top:10px;color:#64748b;font-size:12px}
   .bible-person-graph{min-height:390px;margin-top:12px;border:1px solid #dbe3ee;border-radius:12px;overflow:hidden}
+  .bible-explore-tabs{display:flex;gap:8px;padding:16px 26px 6px}.bible-explore-tabs button{border:1px solid #cbd5e1;border-radius:999px;background:#fff;color:#334155;padding:9px 17px;font-weight:800;cursor:pointer}.bible-explore-tabs button.is-active{background:#17233d;color:#fff;border-color:#17233d}
+  .bible-explore-view{display:none}.bible-explore-view.is-active{display:block}.bible-explore-toolbar{display:flex;padding:10px 26px 14px}.bible-explore-toolbar input,.bible-explore-toolbar select{width:100%;border:2px solid #cbd5e1;border-radius:11px;padding:12px 14px;background:#fff;font-size:15px}
+  .bible-explore-layout{padding-top:0}.bible-explore-output{margin:0 26px 26px;min-height:480px;border:1px solid #dbe3ee;border-radius:15px;background:#fff;padding:16px;overflow:auto}.bible-place-card{padding:22px}.bible-place-card h3{font-size:26px;margin-bottom:5px}.bible-place-card p{line-height:1.6;color:#475569}.bible-place-map{min-height:420px;margin-top:16px;border:1px solid #dbe3ee;border-radius:12px;overflow:hidden}
   body.bible-people-open{overflow:hidden}
-  @media(max-width:760px){.persistent-people-toggle{right:134px}.bible-people-panel{padding:0}.bible-people-dialog{min-height:100vh;border-radius:0}.bible-people-layout{grid-template-columns:1fr}.bible-people-results{min-height:0;max-height:210px}.bible-people-detail{min-height:430px}.bible-person-title{display:block}.bible-person-id{display:inline-block;margin-top:10px}}
+  @media(max-width:760px){.persistent-people-toggle{right:134px}.persistent-explore-toggle{right:205px}.bible-people-panel{padding:0}.bible-people-dialog{min-height:100vh;border-radius:0}.bible-people-layout{grid-template-columns:1fr}.bible-people-results{min-height:0;max-height:210px}.bible-people-detail{min-height:430px}.bible-person-title{display:block}.bible-person-id{display:inline-block;margin-top:10px}.bible-explore-tabs{padding-left:14px;padding-right:14px}.bible-explore-toolbar{padding-left:14px;padding-right:14px}.bible-explore-output{margin-left:14px;margin-right:14px}}
 </style>
 
 <script type="module">
-import { initialize } from './main.js?v=8.26-people-graph2';
+import { initialize } from './main.js?v=8.27-atlas1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
