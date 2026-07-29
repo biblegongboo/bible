@@ -2,3 +2,8 @@
 .env.*
 !.env.example
 supabase/.temp/
+node_modules/
+__pycache__/
+*.pyc
+supabase/workbook-inventory.json
+supabase/workbook-migration-report.json
