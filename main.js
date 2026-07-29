@@ -6336,6 +6336,7 @@ if (document.readyState === 'loading') {
 var biblePeopleExplorerInitialized = false;
 var biblePeopleSelectedId = '';
 var biblePeopleSearchTimer = null;
+var biblePeopleDirectoryLoaded = false;
 
 async function biblePeopleApi_(action, values) {
   var params = new URLSearchParams();
@@ -6370,6 +6371,11 @@ function biblePeopleOpen_() {
     var input = document.getElementById('biblePeopleSearchInput');
     if (input) input.focus();
   }, 0);
+  if (!biblePeopleDirectoryLoaded) {
+    biblePeopleDirectoryLoaded = true;
+    biblePeopleSetStatus_('Loading names...');
+    biblePeopleRunSearch_('a', true);
+  }
 }
 
 function biblePeopleClose_() {
@@ -6520,15 +6526,17 @@ async function biblePeopleLoadDetail_(personId) {
   }
 }
 
-async function biblePeopleRunSearch_(query) {
+async function biblePeopleRunSearch_(query, isDirectory) {
   query = String(query || '').trim();
   if (!query) return;
   biblePeopleSetStatus_('Searching...');
   try {
     var people = await biblePeopleApi_('people_search', { q: query, limit: 30 });
     biblePeopleRenderResults_(people);
-    biblePeopleSetStatus_(people.length + ' result' + (people.length === 1 ? '' : 's') + ' found.');
-    if (people.length === 1) biblePeopleLoadDetail_(people[0].PERSON_ID);
+    biblePeopleSetStatus_(isDirectory
+      ? 'Select a name, or type to search all people and aliases.'
+      : people.length + ' result' + (people.length === 1 ? '' : 's') + ' found.');
+    if (!isDirectory && people.length === 1) biblePeopleLoadDetail_(people[0].PERSON_ID);
   } catch (error) {
     biblePeopleRenderResults_([]);
     biblePeopleSetStatus_(error.message, true);
