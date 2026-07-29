@@ -1,4 +1,4 @@
-import { renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.33-journey1-zoom1';
+import { renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.34-atlas-spacing1';
 
 let initialized = false;
 let dataPromise = null;
@@ -20,9 +20,9 @@ function setStatus(message, isError = false) {
 function loadData() {
   if (dataPromise) return dataPromise;
   dataPromise = Promise.all([
-    fetch('./content/places.json?v=8.33-journey1-zoom1').then(checkResponse),
-    fetch('./content/journeys.json?v=8.33-journey1-zoom1').then(checkResponse),
-    fetch('./content/timelines.json?v=8.33-journey1-zoom1').then(checkResponse)
+    fetch('./content/places.json?v=8.34-atlas-spacing1').then(checkResponse),
+    fetch('./content/journeys.json?v=8.34-atlas-spacing1').then(checkResponse),
+    fetch('./content/timelines.json?v=8.34-atlas-spacing1').then(checkResponse)
   ]).then(([places, journeys, timelines]) => {
     data = { places, journeys, timelines };
     return data;
@@ -70,10 +70,10 @@ function placeMapPayload(selected, nearby) {
       const isSelected = place.id === selected.id;
       const angle = (Math.PI * 2 * index / Math.max(1, nearby.length)) - Math.PI / 2;
       const ring = index % 3;
-      const offsetDistance = isSelected ? 13 : Math.round((25 + ring * 17) * 1.1);
+      const offsetDistance = isSelected ? 14 : Math.round((25 + ring * 17) * 1.32);
       const offsetX = Math.round(Math.cos(angle) * offsetDistance);
       const offsetY = Math.round(Math.sin(angle) * offsetDistance);
-      const anchorX = ((Number(place.lon) - left) / Math.max(0.0001, right - left)) * 660 + offsetX;
+      const anchorX = ((Number(place.lon) - left) / Math.max(0.0001, right - left)) * 792 + offsetX;
       const anchorY = ((top - Number(place.lat)) / Math.max(0.0001, top - bottom)) * 400 - offsetY;
       const labelWidth = Math.max(28, String(place.name || '').length * 6.2);
       const labelBox = { left: anchorX - 3, right: anchorX + labelWidth, top: anchorY - 8, bottom: anchorY + 8 };

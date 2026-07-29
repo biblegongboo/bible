@@ -13,7 +13,7 @@ function engineOf(payload) {
 
 function assetUrl(fileName) {
   const url = new URL(fileName, import.meta.url);
-  url.searchParams.set('v', '8.33-journey1-zoom1');
+  url.searchParams.set('v', '8.34-atlas-spacing1');
   return url.href;
 }
 
