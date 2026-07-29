@@ -8,8 +8,8 @@
 
 // Super graphics are isolated from the Legacy SAT renderer.  The router only
 // activates for an explicit engine:"super" JSON payload.
-import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.31-timeline1';
-import './bible-explorer.js?v=8.31-timeline1';
+import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.32-atlas-layout1';
+import './bible-explorer.js?v=8.32-atlas-layout1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
