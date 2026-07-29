@@ -6007,7 +6007,8 @@ function initBibleSpeechControls() {
 
   var wrap = document.createElement('div');
   wrap.id = 'bibleSpeechControls';
-  wrap.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:12000;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px;max-width:min(520px,calc(100vw - 32px));padding:8px;background:rgba(15,23,42,.92);border-radius:12px;box-shadow:0 6px 22px rgba(0,0,0,.25)';
+  wrap.hidden = true;
+  wrap.style.cssText = 'position:relative;z-index:4;display:none;flex-wrap:wrap;justify-content:flex-end;gap:7px;width:fit-content;max-width:100%;margin:12px 0 4px auto;padding:8px;background:rgba(15,23,42,.72);border:1px solid rgba(255,255,255,.16);border-radius:12px';
 
   var readButton = document.createElement('button');
   readButton.type = 'button';
@@ -6032,6 +6033,7 @@ function initBibleSpeechControls() {
   speedSelect.setAttribute('aria-label', 'Reading speed');
   speedSelect.style.cssText = 'border:0;border-radius:9px;padding:9px 8px;background:#fff;color:#0f172a;font-weight:800;cursor:pointer';
   [
+    { value: '0.5', label: 'Speed 0.5×' },
     { value: '0.75', label: 'Speed 0.75×' },
     { value: '1', label: 'Speed 1.0×' },
     { value: '1.25', label: 'Speed 1.25×' },
@@ -6051,7 +6053,7 @@ function initBibleSpeechControls() {
   var speechSpeedKey = 'bibleSpeechSpeed';
   var speechAutoNextKey = 'bibleSpeechAutoNext';
   var savedSpeed = Number(localStorage.getItem(speechSpeedKey));
-  var bibleSpeechRate = [0.75, 1, 1.25, 1.5].indexOf(savedSpeed) !== -1 ? savedSpeed : 1;
+  var bibleSpeechRate = [0.5, 0.75, 1, 1.25, 1.5].indexOf(savedSpeed) !== -1 ? savedSpeed : 1;
   var bibleAutoNextEnabled = localStorage.getItem(speechAutoNextKey) !== 'false';
   speedSelect.value = String(bibleSpeechRate);
 
@@ -6062,6 +6064,17 @@ function initBibleSpeechControls() {
     autoNextButton.textContent = 'Auto Next ' + (bibleAutoNextEnabled ? 'ON' : 'OFF');
     autoNextButton.setAttribute('aria-pressed', bibleAutoNextEnabled ? 'true' : 'false');
     autoNextButton.style.background = bibleAutoNextEnabled ? '#16a34a' : '#64748b';
+  }
+
+  function syncBibleSpeechControlsVisibility_() {
+    var quizContent = document.getElementById('quizContent');
+    var hasVisibleQuestion =
+      quizContent &&
+      currentQuestions.length > 0 &&
+      window.getComputedStyle(quizContent).display !== 'none';
+    wrap.hidden = !hasVisibleQuestion;
+    wrap.style.display = hasVisibleQuestion ? 'flex' : 'none';
+    if (!hasVisibleQuestion) stopBibleSpeech(false);
   }
 
   function stopBibleSpeech(keepAutoRead) {
@@ -6262,7 +6275,7 @@ function initBibleSpeechControls() {
   stopButton.addEventListener('click', function() { stopBibleSpeech(false); });
   speedSelect.addEventListener('change', function() {
     var nextRate = Number(speedSelect.value);
-    if ([0.75, 1, 1.25, 1.5].indexOf(nextRate) === -1) nextRate = 1;
+    if ([0.5, 0.75, 1, 1.25, 1.5].indexOf(nextRate) === -1) nextRate = 1;
     bibleSpeechRate = nextRate;
     localStorage.setItem(speechSpeedKey, String(nextRate));
     if (window.speechSynthesis.speaking) {
@@ -6287,7 +6300,21 @@ function initBibleSpeechControls() {
   wrap.appendChild(stopButton);
   wrap.appendChild(speedSelect);
   wrap.appendChild(autoNextButton);
-  document.body.appendChild(wrap);
+  var quizHeader = document.querySelector('.quiz-header');
+  var learningModePanel = quizHeader && quizHeader.querySelector('.learning-mode-panel');
+  if (quizHeader && learningModePanel) {
+    quizHeader.insertBefore(wrap, learningModePanel);
+  } else if (quizHeader) {
+    quizHeader.appendChild(wrap);
+  } else {
+    document.body.appendChild(wrap);
+  }
+  var quizContent = document.getElementById('quizContent');
+  if (quizContent && typeof MutationObserver !== 'undefined') {
+    new MutationObserver(syncBibleSpeechControlsVisibility_)
+      .observe(quizContent, { attributes: true, attributeFilter: ['style', 'class'] });
+  }
+  syncBibleSpeechControlsVisibility_();
 }
 
 if (document.readyState === 'loading') {
