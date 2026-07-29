@@ -8,8 +8,8 @@
 
 // Super graphics are isolated from the Legacy SAT renderer.  The router only
 // activates for an explicit engine:"super" JSON payload.
-import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.36-family-tree1';
-import './bible-explorer.js?v=8.36-family-tree1';
+import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.37-family-label1';
+import './bible-explorer.js?v=8.37-family-label1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -6343,7 +6343,7 @@ var biblePeopleNameIndexPromise = null;
 
 function biblePeopleLoadNameIndex_() {
   if (biblePeopleNameIndexPromise) return biblePeopleNameIndexPromise;
-  biblePeopleNameIndexPromise = fetch('./content/people-index.json?v=8.36-family-tree1')
+  biblePeopleNameIndexPromise = fetch('./content/people-index.json?v=8.37-family-label1')
     .then(function(response) {
       if (!response.ok) throw new Error('Bible person names could not be loaded.');
       return response.json();
@@ -6436,12 +6436,13 @@ function biblePeopleRenderResults_(people) {
 }
 
 function biblePeopleRelationshipName_(relationship, personId) {
-  if (relationship.RELATED_NAME_EN) return relationship.RELATED_NAME_EN;
   var relatedId = relationship.RELATED_ID ||
     (relationship.FROM_ID === personId ? relationship.TO_ID : relationship.FROM_ID);
-  return biblePeopleNameIndex[relatedId] && biblePeopleNameIndex[relatedId].name
+  var displayName = relationship.RELATED_NAME_EN ||
+    (biblePeopleNameIndex[relatedId] && biblePeopleNameIndex[relatedId].name
     ? biblePeopleNameIndex[relatedId].name
-    : relatedId;
+    : relatedId);
+  return String(displayName || '').replace(/^PER-/i, '');
 }
 
 function biblePeopleRelationshipType_(relationship, personId) {
