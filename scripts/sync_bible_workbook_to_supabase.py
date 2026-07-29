@@ -560,6 +560,8 @@ def main() -> int:
 
     if not args.dry_run:
         supabase_url = os.environ.get("SUPABASE_URL", "").rstrip("/")
+        if supabase_url.endswith("/rest/v1"):
+            supabase_url = supabase_url[: -len("/rest/v1")]
         service_key = (
             os.environ.get("SUPABASE_SECRET_KEY", "")
             or os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
