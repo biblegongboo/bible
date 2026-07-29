@@ -1,6 +1,6 @@
 window.BIBLE_SUPABASE_CONFIG = Object.freeze({
   url: "https://vwvxpzktafhiuptsrugq.supabase.co/rest/v1/",
-  publishableKey: "sb_publishable_qRorlC6gEj9w2aparBf_kQ_KabCoJca",
+  publishableKey: "sb_publishable_GLrKssDJrdEO4rYXpgnlIg_4MHyErjr",
   questionFunction: 'bible-content',
   enabled: true
 });
