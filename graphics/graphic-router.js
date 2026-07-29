@@ -13,7 +13,7 @@ function engineOf(payload) {
 
 function assetUrl(fileName) {
   const url = new URL(fileName, import.meta.url);
-  url.searchParams.set('v', '8.29-atlas-labels1');
+  url.searchParams.set('v', '8.30-atlas-collision1');
   return url.href;
 }
 
