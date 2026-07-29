@@ -59,6 +59,7 @@
     </div>
 
     <div class="quiz-tools" aria-label="Quiz tools">
+      <button type="button" id="biblePeopleToggle" class="quiz-tool-toggle bible-people-toggle" aria-label="Open Bible People" aria-controls="biblePeoplePanel" aria-expanded="false">People</button>
       <button type="button" id="calculatorToggle" class="quiz-tool-toggle" aria-label="Open calculator" aria-controls="calculatorPanel" aria-expanded="false">🧮</button>
     </div>
     <button type="button" id="timerToggle" class="quiz-tool-toggle quiz-timer-toggle persistent-timer-toggle" aria-label="Open timer" aria-controls="timerPanel" aria-expanded="false"><span aria-hidden="true">⏱️</span><span id="headerTimerDisplay" class="header-timer-display">00:00:00</span></button>
@@ -243,6 +244,36 @@
   </div>
 </div>
 <!-- ===== BLOCK 04 END ===== -->
+
+<!-- ===== BIBLE PEOPLE DB ===== -->
+<section id="biblePeoplePanel" class="bible-people-panel" aria-label="Bible People" hidden>
+  <div class="bible-people-dialog" role="dialog" aria-modal="true" aria-labelledby="biblePeopleTitle">
+    <header class="bible-people-head">
+      <div>
+        <span class="bible-people-kicker">BIBLE REFERENCE</span>
+        <h2 id="biblePeopleTitle">Bible People</h2>
+      </div>
+      <button type="button" id="biblePeopleClose" class="bible-people-close" aria-label="Close Bible People">&times;</button>
+    </header>
+    <form id="biblePeopleSearchForm" class="bible-people-search" role="search">
+      <label for="biblePeopleSearchInput">Search by name or alias</label>
+      <div>
+        <input id="biblePeopleSearchInput" type="search" autocomplete="off" placeholder="Aaron, Abraham, David..." required>
+        <button type="submit">Search</button>
+      </div>
+    </form>
+    <div id="biblePeopleStatus" class="bible-people-status" aria-live="polite">Enter a Bible person’s name.</div>
+    <div class="bible-people-layout">
+      <aside id="biblePeopleResults" class="bible-people-results" aria-label="Search results"></aside>
+      <main id="biblePeopleDetail" class="bible-people-detail">
+        <div class="bible-people-empty">
+          <strong>Explore people across Scripture</strong>
+          <span>Search for a person to view descriptions, references, and relationships.</span>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
 
 <!-- ===== BLOCK 05: Admin JSON Graphic and Math Preview ===== -->
 <button type="button" id="adminPreviewToggle" class="admin-preview-toggle" aria-controls="adminPreviewPanel" aria-expanded="false" hidden>JSON / LaTeX Preview</button>
@@ -1732,8 +1763,38 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.js"></script>
 
 <!-- 2. GitHub main.js 불러오기 + 초기화 -->
+<style>
+  .bible-people-toggle{width:auto!important;min-width:72px;padding:0 12px!important;font-size:13px!important;font-weight:800}
+  .bible-people-panel{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.72);padding:24px;overflow:auto}
+  .bible-people-panel[hidden]{display:none!important}
+  .bible-people-dialog{width:min(1050px,100%);min-height:min(720px,calc(100vh - 48px));margin:0 auto;background:#f8fafc;border-radius:22px;box-shadow:0 28px 80px rgba(0,0,0,.35);overflow:hidden;color:#172033}
+  .bible-people-head{display:flex;align-items:center;justify-content:space-between;padding:22px 26px;background:#17233d;color:#fff}
+  .bible-people-head h2{margin:2px 0 0;font-size:28px}.bible-people-kicker{font-size:11px;font-weight:800;letter-spacing:1.8px;color:#fbbf24}
+  .bible-people-close{width:42px;height:42px;border:1px solid rgba(255,255,255,.3);border-radius:10px;background:rgba(255,255,255,.12);color:#fff;font-size:28px;cursor:pointer}
+  .bible-people-search{padding:20px 26px 10px}.bible-people-search label{display:block;margin-bottom:7px;font-size:12px;font-weight:800;color:#475569}
+  .bible-people-search>div{display:flex;gap:9px}.bible-people-search input{flex:1;min-width:0;border:2px solid #cbd5e1;border-radius:11px;padding:13px 15px;font-size:16px;background:#fff}
+  .bible-people-search button{border:0;border-radius:11px;padding:0 23px;background:#f59e0b;color:#172033;font-weight:900;cursor:pointer}
+  .bible-people-status{min-height:22px;padding:0 26px 12px;color:#64748b;font-size:13px}.bible-people-status.is-error{color:#b91c1c}
+  .bible-people-layout{display:grid;grid-template-columns:290px 1fr;gap:16px;padding:0 26px 26px}
+  .bible-people-results,.bible-people-detail{border:1px solid #dbe3ee;border-radius:15px;background:#fff;min-height:500px;overflow:auto}
+  .bible-person-result{display:block;width:100%;border:0;border-bottom:1px solid #e2e8f0;background:#fff;padding:14px;text-align:left;cursor:pointer}
+  .bible-person-result:hover,.bible-person-result.is-active{background:#eff6ff}.bible-person-result strong,.bible-person-result span{display:block}
+  .bible-person-result strong{font-size:15px;color:#172033}.bible-person-result span{margin-top:3px;font-size:12px;color:#64748b}
+  .bible-people-empty{min-height:500px;display:grid;place-content:center;gap:7px;text-align:center;padding:30px;color:#64748b}.bible-people-empty strong{font-size:20px;color:#334155}
+  .bible-person-card{padding:24px}.bible-person-title{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;border-bottom:1px solid #e2e8f0;padding-bottom:17px}
+  .bible-person-title h3{font-size:28px;margin:0}.bible-person-title p{margin:4px 0 0;color:#64748b}.bible-person-id{font:700 11px ui-monospace,Consolas,monospace;color:#64748b;background:#f1f5f9;border-radius:8px;padding:7px 9px}
+  .bible-person-description{margin:18px 0;line-height:1.65;color:#334155}.bible-person-meta{display:flex;flex-wrap:wrap;gap:7px;margin:13px 0}
+  .bible-person-chip{display:inline-flex;padding:6px 9px;border-radius:999px;background:#e0ecff;color:#1e40af;font-size:12px;font-weight:800}
+  .bible-person-section{margin-top:24px}.bible-person-section h4{margin-bottom:10px;font-size:16px}.bible-person-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+  .bible-reference,.bible-relationship{border:1px solid #e2e8f0;border-radius:9px;padding:9px 10px;background:#f8fafc;font-size:12px;color:#334155}
+  .bible-relationship strong{display:block;color:#172033;margin-bottom:3px}.bible-reference-more{margin-top:10px;color:#64748b;font-size:12px}
+  .bible-person-graph{min-height:390px;margin-top:12px;border:1px solid #dbe3ee;border-radius:12px;overflow:hidden}
+  body.bible-people-open{overflow:hidden}
+  @media(max-width:760px){.bible-people-panel{padding:0}.bible-people-dialog{min-height:100vh;border-radius:0}.bible-people-layout{grid-template-columns:1fr}.bible-people-results{min-height:0;max-height:210px}.bible-people-detail{min-height:430px}.bible-person-title{display:block}.bible-person-id{display:inline-block;margin-top:10px}}
+</style>
+
 <script type="module">
-import { initialize } from './main.js?v=8.20-compact-header1';
+import { initialize } from './main.js?v=8.21-people-db1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

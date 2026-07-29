@@ -5581,6 +5581,7 @@ function initialize() {
   initAdminPreviewTool();
   initTimer();
   attachEvents();
+  initBiblePeopleExplorer();
 
   // Keep the initial quiz screen responsive.  Non-SAT subjects prepare the
   // isolated Super Engine after the UI has already been displayed; SAT keeps
@@ -6322,8 +6323,230 @@ if (document.readyState === 'loading') {
 } else {
   initBibleSpeechControls();
 }
+// ========================================================================
+// BIBLE: People DB explorer
+// ========================================================================
+var biblePeopleExplorerInitialized = false;
+var biblePeopleSelectedId = '';
 
+async function biblePeopleApi_(action, values) {
+  var params = new URLSearchParams();
+  params.set('action', action);
+  Object.keys(values || {}).forEach(function(key) {
+    if (values[key] != null && values[key] !== '') params.set(key, String(values[key]));
+  });
+  var response = await fetchQuizApi_(params);
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+  var data = await response.json();
+  if (!data || data.status === 'error' || data.success === false) {
+    throwQuizApiError_(data, 'The Bible People request could not be completed.');
+  }
+  return data.data;
+}
 
+function biblePeopleSetStatus_(message, isError) {
+  var status = document.getElementById('biblePeopleStatus');
+  if (!status) return;
+  status.textContent = message || '';
+  status.classList.toggle('is-error', !!isError);
+}
+
+function biblePeopleOpen_() {
+  var panel = document.getElementById('biblePeoplePanel');
+  var toggle = document.getElementById('biblePeopleToggle');
+  if (!panel) return;
+  panel.hidden = false;
+  document.body.classList.add('bible-people-open');
+  if (toggle) toggle.setAttribute('aria-expanded', 'true');
+  setTimeout(function() {
+    var input = document.getElementById('biblePeopleSearchInput');
+    if (input) input.focus();
+  }, 0);
+}
+
+function biblePeopleClose_() {
+  var panel = document.getElementById('biblePeoplePanel');
+  var toggle = document.getElementById('biblePeopleToggle');
+  if (panel) panel.hidden = true;
+  document.body.classList.remove('bible-people-open');
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.focus();
+  }
+}
+
+function biblePeopleRenderResults_(people) {
+  var results = document.getElementById('biblePeopleResults');
+  if (!results) return;
+  if (!Array.isArray(people) || !people.length) {
+    results.innerHTML = '<div class="bible-people-empty"><strong>No results</strong><span>Try another English name or alias.</span></div>';
+    return;
+  }
+  results.innerHTML = people.map(function(person) {
+    var aliases = Array.isArray(person.ALIASES) && person.ALIASES.length
+      ? 'Aliases: ' + person.ALIASES.slice(0, 3).join(', ')
+      : (person.ROLES || person.GENDER || 'Bible person');
+    return '<button type="button" class="bible-person-result' +
+      (person.PERSON_ID === biblePeopleSelectedId ? ' is-active' : '') +
+      '" data-person-id="' + escapeHtml(person.PERSON_ID) + '">' +
+      '<strong>' + escapeHtml(person.NAME_EN || person.PERSON_ID) + '</strong>' +
+      (person.NAME_KO ? '<span>' + escapeHtml(person.NAME_KO) + '</span>' : '') +
+      '<span>' + escapeHtml(aliases) + '</span></button>';
+  }).join('');
+  results.querySelectorAll('[data-person-id]').forEach(function(button) {
+    button.addEventListener('click', function() {
+      biblePeopleLoadDetail_(button.getAttribute('data-person-id'));
+    });
+  });
+}
+
+function biblePeopleRelationshipName_(relationship, personId) {
+  if (relationship.RELATED_NAME_EN) return relationship.RELATED_NAME_EN;
+  return relationship.FROM_ID === personId ? relationship.TO_ID : relationship.FROM_ID;
+}
+
+function biblePeopleGraphPayload_(person, relationships) {
+  var related = (relationships || []).slice(0, 18);
+  var objects = [{
+    id: 'center',
+    type: 'point',
+    coords: [0, 0],
+    name: person.NAME_EN || person.PERSON_ID,
+    attributes: { size: 5, strokeColor: '#b45309', fillColor: '#fbbf24' }
+  }];
+  var radius = related.length > 10 ? 8 : 6.5;
+  related.forEach(function(relationship, index) {
+    var angle = (Math.PI * 2 * index / Math.max(1, related.length)) - Math.PI / 2;
+    var coords = [radius * Math.cos(angle), radius * Math.sin(angle)];
+    var id = 'related_' + index;
+    var relatedName = biblePeopleRelationshipName_(relationship, person.PERSON_ID);
+    objects.push({
+      id: id,
+      type: 'point',
+      coords: coords,
+      name: relatedName,
+      attributes: { size: 3, strokeColor: '#1d4ed8', fillColor: '#60a5fa' }
+    });
+    objects.push({
+      id: 'line_' + index,
+      type: 'segment',
+      from: [0, 0],
+      to: coords,
+      attributes: { strokeColor: '#94a3b8', strokeWidth: 1.5 }
+    });
+    objects.push({
+      id: 'label_' + index,
+      type: 'text',
+      position: [coords[0] * .54, coords[1] * .54],
+      value: relationship.RELATIONSHIP_TYPE || 'related',
+      attributes: { color: '#475569', fontSize: 10 }
+    });
+  });
+  return {
+    schemaVersion: '1.1',
+    engine: 'jsxgraph',
+    type: 'bible.people.relationships',
+    board: { boundingbox: [-11, 10, 11, -10], axis: false, grid: false },
+    objects: objects
+  };
+}
+
+function biblePeopleRenderDetail_(detail) {
+  var host = document.getElementById('biblePeopleDetail');
+  if (!host || !detail || !detail.person) return;
+  var person = detail.person;
+  var aliases = Array.isArray(detail.aliases) ? detail.aliases : [];
+  var references = Array.isArray(detail.references) ? detail.references : [];
+  var relationships = Array.isArray(detail.relationships) ? detail.relationships : [];
+  var roles = String(person.ROLES || '').split('|').filter(Boolean);
+  var description = person.DESCRIPTION_EN || person.DESCRIPTION_KO || 'No source description is available.';
+  var referenceLimit = 24;
+  var relationshipLimit = 30;
+  var graphHtml = relationships.length
+    ? renderSuperGraphicPayload(biblePeopleGraphPayload_(person, relationships))
+    : '<div class="bible-people-empty"><span>No source-provided relationships are available.</span></div>';
+
+  host.innerHTML = '<article class="bible-person-card">' +
+    '<div class="bible-person-title"><div><h3>' + escapeHtml(person.NAME_EN || person.PERSON_ID) + '</h3>' +
+    (person.NAME_KO ? '<p>' + escapeHtml(person.NAME_KO) + '</p>' : '') +
+    '</div><span class="bible-person-id">' + escapeHtml(person.PERSON_ID) + '</span></div>' +
+    '<div class="bible-person-meta">' +
+    roles.map(function(role) { return '<span class="bible-person-chip">' + escapeHtml(role) + '</span>'; }).join('') +
+    (person.GENDER ? '<span class="bible-person-chip">' + escapeHtml(person.GENDER) + '</span>' : '') +
+    '</div><p class="bible-person-description">' + escapeHtml(description) + '</p>' +
+    (aliases.length ? '<section class="bible-person-section"><h4>Aliases</h4><div class="bible-person-meta">' +
+      aliases.map(function(alias) { return '<span class="bible-person-chip">' + escapeHtml(alias.ALIAS) + '</span>'; }).join('') +
+      '</div></section>' : '') +
+    '<section class="bible-person-section"><h4>Scripture references (' + references.length + ')</h4>' +
+    '<div class="bible-person-grid">' + references.slice(0, referenceLimit).map(function(reference) {
+      return '<div class="bible-reference">' + escapeHtml(reference.SOURCE_CODE) +
+        (reference.IS_KEY === 'TRUE' || reference.IS_KEY === 'true' ? ' · Key' : '') + '</div>';
+    }).join('') + '</div>' +
+    (references.length > referenceLimit ? '<div class="bible-reference-more">Showing the first ' + referenceLimit + ' of ' + references.length + ' references.</div>' : '') +
+    '</section><section class="bible-person-section"><h4>Relationships (' + relationships.length + ')</h4>' +
+    '<div class="bible-person-grid">' + relationships.slice(0, relationshipLimit).map(function(relationship) {
+      return '<div class="bible-relationship"><strong>' +
+        escapeHtml(biblePeopleRelationshipName_(relationship, person.PERSON_ID)) +
+        '</strong>' + escapeHtml(relationship.RELATIONSHIP_TYPE || 'related') + '</div>';
+    }).join('') + '</div></section>' +
+    '<section class="bible-person-section"><h4>Relationship graph</h4><div class="bible-person-graph">' + graphHtml + '</div></section>' +
+    '</article>';
+}
+
+async function biblePeopleLoadDetail_(personId) {
+  if (!personId) return;
+  biblePeopleSelectedId = personId;
+  biblePeopleSetStatus_('Loading person details...');
+  var host = document.getElementById('biblePeopleDetail');
+  if (host) host.innerHTML = '<div class="bible-people-empty"><strong>Loading...</strong></div>';
+  document.querySelectorAll('[data-person-id]').forEach(function(button) {
+    button.classList.toggle('is-active', button.getAttribute('data-person-id') === personId);
+  });
+  try {
+    var detail = await biblePeopleApi_('person_detail', { person_id: personId });
+    biblePeopleRenderDetail_(detail);
+    biblePeopleSetStatus_('Loaded ' + (detail.person.NAME_EN || personId) + '.');
+  } catch (error) {
+    if (host) host.innerHTML = '<div class="bible-people-empty"><strong>Unable to load this person</strong><span>' + escapeHtml(error.message) + '</span></div>';
+    biblePeopleSetStatus_(error.message, true);
+  }
+}
+
+async function biblePeopleSearchSubmit_(event) {
+  event.preventDefault();
+  var input = document.getElementById('biblePeopleSearchInput');
+  var query = String(input && input.value || '').trim();
+  if (!query) return;
+  biblePeopleSetStatus_('Searching...');
+  try {
+    var people = await biblePeopleApi_('people_search', { q: query, limit: 30 });
+    biblePeopleRenderResults_(people);
+    biblePeopleSetStatus_(people.length + ' result' + (people.length === 1 ? '' : 's') + ' found.');
+    if (people.length === 1) biblePeopleLoadDetail_(people[0].PERSON_ID);
+  } catch (error) {
+    biblePeopleRenderResults_([]);
+    biblePeopleSetStatus_(error.message, true);
+  }
+}
+
+function initBiblePeopleExplorer() {
+  if (biblePeopleExplorerInitialized) return;
+  var toggle = document.getElementById('biblePeopleToggle');
+  var panel = document.getElementById('biblePeoplePanel');
+  var close = document.getElementById('biblePeopleClose');
+  var form = document.getElementById('biblePeopleSearchForm');
+  if (!toggle || !panel || !close || !form) return;
+  biblePeopleExplorerInitialized = true;
+  toggle.addEventListener('click', biblePeopleOpen_);
+  close.addEventListener('click', biblePeopleClose_);
+  form.addEventListener('submit', biblePeopleSearchSubmit_);
+  panel.addEventListener('click', function(event) {
+    if (event.target === panel) biblePeopleClose_();
+  });
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' && !panel.hidden) biblePeopleClose_();
+  });
+}
 
 // ========================================================================
 // BIBLE: Chapter catalog selector (BIBLE-CATALOG)
