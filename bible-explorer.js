@@ -1,4 +1,4 @@
-import { renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.30-atlas-collision1';
+import { renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.31-timeline1';
 
 let initialized = false;
 let dataPromise = null;
@@ -20,9 +20,9 @@ function setStatus(message, isError = false) {
 function loadData() {
   if (dataPromise) return dataPromise;
   dataPromise = Promise.all([
-    fetch('./content/places.json?v=8.30-atlas-collision1').then(checkResponse),
-    fetch('./content/journeys.json?v=8.30-atlas-collision1').then(checkResponse),
-    fetch('./content/timelines.json?v=8.30-atlas-collision1').then(checkResponse)
+    fetch('./content/places.json?v=8.31-timeline1').then(checkResponse),
+    fetch('./content/journeys.json?v=8.31-timeline1').then(checkResponse),
+    fetch('./content/timelines.json?v=8.31-timeline1').then(checkResponse)
   ]).then(([places, journeys, timelines]) => {
     data = { places, journeys, timelines };
     return data;
@@ -170,7 +170,11 @@ function renderJourney(index = 0) {
 function renderTimeline(index = 0) {
   const output = document.getElementById('bibleTimelineOutput');
   const timeline = data.timelines[Number(index) || 0];
-  if (!output || !timeline) return;
+  if (!output) return;
+  if (!timeline) {
+    output.innerHTML = '<div class="bible-people-empty"><strong>Loading timeline...</strong></div>';
+    return;
+  }
   output.innerHTML = renderSuperGraphicPayload(timeline.graphic);
   setStatus(`${timeline.event_count} events loaded in Scripture order.`);
 }
@@ -184,7 +188,10 @@ function populate() {
   timelineSelector.innerHTML = data.timelines.map((timeline, index) =>
     `<option value="${index}">${escapeHtml(timeline.book_code.replace(/^(OT|NT)-/, ''))} (${timeline.event_count} events)</option>`
   ).join('');
-  renderPlaceResults();
+  const activeTab = document.querySelector('[data-bible-explore-tab].is-active')?.dataset.bibleExploreTab || 'places';
+  if (activeTab === 'places') renderPlaceResults();
+  if (activeTab === 'journeys') requestAnimationFrame(() => renderJourney(journeySelector.value));
+  if (activeTab === 'timeline') requestAnimationFrame(() => renderTimeline(timelineSelector.value));
 }
 
 function open() {
@@ -219,8 +226,14 @@ function init() {
       document.querySelectorAll('[data-bible-explore-view]').forEach((view) => {
         view.classList.toggle('is-active', view.dataset.bibleExploreView === button.dataset.bibleExploreTab);
       });
-      if (button.dataset.bibleExploreTab === 'journeys' && !document.getElementById('bibleJourneyOutput').innerHTML) renderJourney();
-      if (button.dataset.bibleExploreTab === 'timeline' && !document.getElementById('bibleTimelineOutput').innerHTML) renderTimeline();
+      const selectedTab = button.dataset.bibleExploreTab;
+      if (selectedTab === 'journeys') document.getElementById('bibleJourneyOutput').innerHTML = '<div class="bible-people-empty"><strong>Loading journey...</strong></div>';
+      if (selectedTab === 'timeline') document.getElementById('bibleTimelineOutput').innerHTML = '<div class="bible-people-empty"><strong>Loading timeline...</strong></div>';
+      loadData().then(() => requestAnimationFrame(() => {
+        if (selectedTab === 'places') renderPlaceResults(document.getElementById('biblePlaceSearch').value);
+        if (selectedTab === 'journeys') renderJourney(document.getElementById('bibleJourneySelector').value);
+        if (selectedTab === 'timeline') renderTimeline(document.getElementById('bibleTimelineSelector').value);
+      })).catch((error) => setStatus(error.message, true));
     });
   });
   document.getElementById('biblePlaceSearch').addEventListener('input', (event) => renderPlaceResults(event.target.value));
