@@ -1486,6 +1486,7 @@ async function detectTotalQuestions() {
     const cachedTime = localStorage.getItem(TOTAL_CACHE_KEY + '_time');
     const now = Date.now();
     const CACHE_TTL = 5 * 60 * 1000;
+    const staleCachedTotal = Math.max(0, parseInt(cached, 10) || 0);
 
     if (cached && cachedTime && (now - parseInt(cachedTime) < CACHE_TTL)) {
         const total = parseInt(cached);
@@ -1496,10 +1497,9 @@ async function detectTotalQuestions() {
     }
 
     console.log('🔄 Fetching fresh total...');
-    localStorage.removeItem(TOTAL_CACHE_KEY);
-    
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    // Apps Script cold starts and token verification can exceed ten seconds.
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
     
     try {
         updateSplash(30, 'Checking total questions...');
@@ -1546,6 +1546,13 @@ async function detectTotalQuestions() {
         }
     }
     
+    if (staleCachedTotal > 0) {
+        TOTAL_QUESTIONS = staleCachedTotal;
+        console.warn('Using last known question total:', staleCachedTotal);
+        updateSplash(60, 'Preparing data...');
+        return TOTAL_QUESTIONS;
+    }
+
     throw new Error('Question count is unavailable for ' + currentSubject);
 }
 
