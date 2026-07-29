@@ -6008,7 +6008,7 @@ function initBibleSpeechControls() {
   var wrap = document.createElement('div');
   wrap.id = 'bibleSpeechControls';
   wrap.hidden = true;
-  wrap.style.cssText = 'position:relative;z-index:4;display:none;flex-wrap:wrap;justify-content:flex-end;gap:7px;width:fit-content;max-width:100%;margin:12px 0 4px auto;padding:8px;background:rgba(15,23,42,.72);border:1px solid rgba(255,255,255,.16);border-radius:12px';
+  wrap.style.cssText = 'position:relative;z-index:4;display:none;flex-wrap:wrap;justify-content:center;gap:7px;width:fit-content;max-width:100%;margin:10px auto 3px;padding:7px;background:rgba(15,23,42,.72);border:1px solid rgba(255,255,255,.16);border-radius:12px';
 
   var readButton = document.createElement('button');
   readButton.type = 'button';
