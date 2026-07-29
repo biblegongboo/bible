@@ -8,8 +8,8 @@
 
 // Super graphics are isolated from the Legacy SAT renderer.  The router only
 // activates for an explicit engine:"super" JSON payload.
-import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.37-family-label1';
-import './bible-explorer.js?v=8.37-family-label1';
+import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
+import './bible-explorer.js?v=8.38-family-roles1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -6343,7 +6343,7 @@ var biblePeopleNameIndexPromise = null;
 
 function biblePeopleLoadNameIndex_() {
   if (biblePeopleNameIndexPromise) return biblePeopleNameIndexPromise;
-  biblePeopleNameIndexPromise = fetch('./content/people-index.json?v=8.37-family-label1')
+  biblePeopleNameIndexPromise = fetch('./content/people-index.json?v=8.38-family-roles1')
     .then(function(response) {
       if (!response.ok) throw new Error('Bible person names could not be loaded.');
       return response.json();
@@ -6457,6 +6457,22 @@ function biblePeopleRelationshipType_(relationship, personId) {
   return type;
 }
 
+function biblePeopleRelationshipRole_(relationship, personId) {
+  var type = relationship.DISPLAY_TYPE || biblePeopleRelationshipType_(relationship, personId);
+  var relatedId = relationship.RELATED_ID ||
+    (relationship.FROM_ID === personId ? relationship.TO_ID : relationship.FROM_ID);
+  var gender = String(
+    biblePeopleNameIndex[relatedId] && biblePeopleNameIndex[relatedId].gender || ''
+  ).toLowerCase();
+  if (type === 'parent') return gender === 'male' ? 'Father' : gender === 'female' ? 'Mother' : 'Parent';
+  if (type === 'partner') return gender === 'male' ? 'Husband' : gender === 'female' ? 'Wife' : 'Spouse';
+  if (type === 'sibling') return gender === 'male' ? 'Brother' : gender === 'female' ? 'Sister' : 'Sibling';
+  if (type === 'child') return gender === 'male' ? 'Son' : gender === 'female' ? 'Daughter' : 'Child';
+  return String(type || 'Related').replace(/_/g, ' ').replace(/\b\w/g, function(letter) {
+    return letter.toUpperCase();
+  });
+}
+
 function biblePeopleUniqueRelationships_(relationships, personId) {
   var unique = new Map();
   (relationships || []).forEach(function(relationship) {
@@ -6510,7 +6526,8 @@ function biblePeopleGraphPayload_(person, relationships) {
         id: id,
         type: 'point',
         coords: coords,
-        name: biblePeopleRelationshipName_(relationship, person.PERSON_ID),
+        name: biblePeopleRelationshipName_(relationship, person.PERSON_ID) +
+          ' (' + biblePeopleRelationshipRole_(relationship, person.PERSON_ID) + ')',
         attributes: { size: 4, strokeColor: color.stroke, fillColor: color.fill, label: { fontSize: 12, color: color.text, offset: [8, 8] } }
       });
       objects.push({
@@ -6576,7 +6593,7 @@ function biblePeopleRenderDetail_(detail) {
     '<div class="bible-person-grid">' + relationships.slice(0, relationshipLimit).map(function(relationship) {
       return '<div class="bible-relationship"><strong>' +
         escapeHtml(biblePeopleRelationshipName_(relationship, person.PERSON_ID)) +
-        '</strong>' + escapeHtml(relationship.DISPLAY_TYPE || relationship.RELATIONSHIP_TYPE || 'related') + '</div>';
+        '</strong>' + escapeHtml(biblePeopleRelationshipRole_(relationship, person.PERSON_ID)) + '</div>';
     }).join('') + '</div></section>' +
     '<section class="bible-person-section"><h4>Relationship graph</h4><div class="bible-person-graph">' + graphHtml + '</div></section>' +
     '</article>';
