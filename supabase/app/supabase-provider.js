@@ -17,6 +17,15 @@
     };
   }
 
+  function currentAccessToken_() {
+    try {
+      var user = JSON.parse(localStorage.getItem('quiz_current_user_v1') || 'null');
+      return String(user && user.session_token || '');
+    } catch (_) {
+      return '';
+    }
+  }
+
   function response_(payload, status) {
     return new Response(JSON.stringify(payload), {
       status: status || 200,
@@ -64,6 +73,7 @@
     var result = await fetch(baseUrl + '/functions/v1/' + functionName, {
       method: 'POST',
       headers: Object.assign({}, headers_(), {
+        Authorization: 'Bearer ' + (currentAccessToken_() || publishableKey),
         'Content-Type': 'application/json;charset=utf-8'
       }),
       body: JSON.stringify(payload),

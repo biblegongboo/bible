@@ -274,7 +274,7 @@
                 <input id="signupPhone" type="tel" placeholder="01012345678" />
             </div>
             <div class="form-group">
-                <label>Password (min 4 characters)</label>
+                <label>Password (min 6 characters)</label>
                 <div class="password-wrapper">
                     <input id="signupPassword" type="password" placeholder="Create a password" />
                     <span class="toggle-password" id="toggleSignupPassword">👁️</span>
@@ -305,7 +305,7 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>New Password (min 4 characters)</label>
+                <label>New Password (min 6 characters)</label>
                 <div class="password-wrapper">
                     <input id="changeNewPassword" type="password" placeholder="Enter new password" />
                     <span class="toggle-password" id="toggleChangeNewPassword">👁️</span>
@@ -323,8 +323,9 @@
         </div>
     </div>
 
+    <script src="./supabase-config.js"></script>
+    <script src="./supabase-auth.js"></script>
     <script>
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxKNN8TEzdSXnH0lhvFsLh-vMsIa7cGs9tYepzJvNzPvto8f2MnDRNKu7roLaTHt8U/exec';
 
         function showResult(elementId, message, isSuccess) {
             const el = document.getElementById(elementId);
@@ -395,30 +396,8 @@
             }
             showResult('loginResult', '⏳ Logging in...', false);
             try {
-                const response = await fetch(GAS_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({ action: 'login', email, pin: password })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    const user = Object.assign({}, data.user || {}, {
-                        name: (data.user && data.user.name) || data.name || '',
-                        email: (data.user && data.user.email) || email,
-                        expired_date: data.expired_date ?? (data.user && data.user.expired_date) ?? '',
-                        access_subjects: data.access_subjects ?? (data.user && data.user.access_subjects) ?? [],
-                        payment_status: data.payment_status ?? (data.user && data.user.payment_status) ?? '',
-                        account_type: data.account_type ?? (data.user && data.user.account_type) ?? 'personal',
-                        is_trial: Boolean(
-                            data.is_trial ??
-                            (data.user && data.user.is_trial) ??
-                            (data.user && data.user.is_sample) ??
-                            String(data.payment_status ?? (data.user && data.user.payment_status) ?? '').toLowerCase() === 'p'
-                        ),
-                        trial_start: Number(data.trial_start ?? (data.user && data.user.trial_start) ?? 1),
-                        trial_limit: Number(data.trial_limit ?? (data.user && data.user.trial_limit) ?? 20),
-                        session_token: data.session_token ?? (data.user && data.user.session_token) ?? ''
-                    });
+                const user = await window.BibleSupabaseAuth.signIn(email, password);
+                if (true) {
                     const subjects = [
           { CODE: 'BIBLE_OT', NAME: 'Old Testament · 구약', CATEGORY: 'BIBLE', SHEET: 'BIBLE-OT', SET_SIZE: 120, FORMAT: 'BIBLE_EN_KO', ACTIVE: 'Y', VERSION: '1.0' },
           { CODE: 'BIBLE_NT', NAME: 'New Testament · 신약', CATEGORY: 'BIBLE', SHEET: 'BIBLE-NT', SET_SIZE: 120, FORMAT: 'BIBLE_EN_KO', ACTIVE: 'Y', VERSION: '1.0' }
@@ -431,7 +410,7 @@
                         : '✅ Welcome, ' + (user.name || email) + '!';
                     showResult('loginResult', welcomeText, true);
                     renderSubjectPicker(subjects, user);
-                } else {
+                } else if (false) {
                     let msg = data.message;
                     if (data.status === 'pending') msg = '⏳ ' + msg;
                     else if (data.status === 'expired') msg = '⏰ ' + msg;
@@ -530,8 +509,8 @@
                 showResult('signupResult', '❌ Passwords do not match.', false);
                 return;
             }
-            if (password.length < 4) {
-                showResult('signupResult', '❌ Password must be at least 4 characters.', false);
+            if (password.length < 6) {
+                showResult('signupResult', '❌ Password must be at least 6 characters.', false);
                 return;
             }
             if (!/^[0-9]{10,11}$/.test(phone)) {
@@ -542,20 +521,19 @@
             showResult('signupResult', '⏳ Processing sign up...', false);
 
             try {
-                const response = await fetch(GAS_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({ action: 'signup', email, pin: password, name, pn: phone })
-                });
-                const data = await response.json();
+                const data = await window.BibleSupabaseAuth.signUp(
+                    email,
+                    password,
+                    { name: name, phone: phone }
+                );
 
-                if (data.success) {
+                if (data.access_token) {
                     // 🔥 방법 5: URL에 상태 전달
                     window.location.href =
                         './login.html?signup=success&email=' +
                         encodeURIComponent(email);
                 } else {
-                    showResult('signupResult', '❌ ' + data.message, false);
+                    showResult('signupResult', '✅ Registration received. Please confirm your email.', true);
                 }
             } catch (err) {
                 showResult('signupResult', '❌ Server error: ' + err.message, false);
@@ -579,21 +557,16 @@
                 showResult('changePasswordResult', '❌ New passwords do not match.', false);
                 return;
             }
-            if (newPassword.length < 4) {
-                showResult('changePasswordResult', '❌ New password must be at least 4 characters.', false);
+            if (newPassword.length < 6) {
+                showResult('changePasswordResult', '❌ New password must be at least 6 characters.', false);
                 return;
             }
 
             showResult('changePasswordResult', '⏳ Processing...', false);
 
             try {
-                const response = await fetch(GAS_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({ action: 'changePassword', email, oldPassword, newPassword })
-                });
-                const data = await response.json();
-                showResult('changePasswordResult', data.success ? '✅ ' + data.message : '❌ ' + data.message, data.success);
+                await window.BibleSupabaseAuth.changePassword(email, oldPassword, newPassword);
+                showResult('changePasswordResult', '✅ Password changed.', true);
             } catch (err) {
                 showResult('changePasswordResult', '❌ Server error: ' + err.message, false);
             }
