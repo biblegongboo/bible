@@ -1,0 +1,2070 @@
+<link rel="icon" href="data:,">
+<script>
+(function () {
+  try {
+    const user = JSON.parse(localStorage.getItem('quiz_current_user_v1') || 'null');
+    if (String(user?.account_type || '').trim().toLowerCase() === 'admin') {
+      document.documentElement.classList.add('admin-user');
+    }
+  } catch (e) {
+    console.warn('Admin copy mode check failed:', e);
+  }
+})();
+</script>
+
+<!-- ============================================================ -->
+<!-- BLOCK 01: 외부 라이브러리 (CDN) -->
+<!-- ============================================================ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjs@14.3.0/lib/browser/math.js"></script>
+
+
+
+<!-- ============================================================ -->
+<!-- BLOCK 02: 타이머 UI -->
+<!-- ============================================================ -->
+<!-- ============================================================ -->
+<!-- BLOCK 03: 스플래시 오버레이 (로딩 화면) -->
+<!-- ============================================================ -->
+<div id="splashOverlay">
+  <div class="icon">📚</div>
+  <div class="title">gongboo<span>.org</span></div>
+  <div class="subtitle">QUIZ</div>
+  <div class="bar-track"><div class="bar-fill" id="splashBar"></div></div>
+  <div class="status-text" id="splashStatus">Loading...</div>
+  <div class="error-msg" id="splashError">Load Failed</div>
+  <button class="retry-btn" id="splashRetry">Retry</button>
+</div>
+
+<!-- ============================================================ -->
+<!-- BLOCK 04: 메인 컨테이너 (퀴즈 전체) -->
+<!-- ============================================================ -->
+<div class="quiz-container" style="display:none" id="mainContainer">
+
+  <!-- ===== BLOCK 04-1: 헤더 ===== -->
+  <div class="quiz-header">
+    <div class="sat-logo">
+      <span class="sat-icon">📝</span>
+      <span class="sat-title">Digital SAT <span class="set-separator">·</span> Set <span id="currentSetTitle">1</span></span>
+      <span class="sat-badge">Practice</span>
+    </div>
+    <div class="sat-sub">Reading &amp; Writing · Math</div>
+    <div class="language-switcher legacy-language-switcher" aria-label="Language selector">
+      <label for="languageSelector">Language</label>
+      <select id="languageSelector">
+        <option value="EN">English</option>
+        <option value="KO">한국어</option>
+      </select>
+    </div>
+
+    <div class="quiz-tools" aria-label="Quiz tools">
+      <button type="button" id="calculatorToggle" class="quiz-tool-toggle" aria-label="Open calculator" aria-controls="calculatorPanel" aria-expanded="false">🧮</button>
+    </div>
+    <button type="button" id="biblePeopleToggle" class="quiz-tool-toggle bible-people-toggle persistent-people-toggle" aria-label="Open Bible People" aria-controls="biblePeoplePanel" aria-expanded="false">People</button>
+    <button type="button" id="bibleExploreToggle" class="quiz-tool-toggle bible-explore-toggle persistent-explore-toggle" aria-label="Open Bible Atlas" aria-controls="bibleExplorePanel" aria-expanded="false">Atlas</button>
+    <button type="button" id="timerToggle" class="quiz-tool-toggle quiz-timer-toggle persistent-timer-toggle" aria-label="Open timer" aria-controls="timerPanel" aria-expanded="false"><span aria-hidden="true">⏱️</span><span id="headerTimerDisplay" class="header-timer-display">00:00:00</span></button>
+    <section id="calculatorPanel" class="quiz-tool-panel calculator-panel" aria-label="Scientific calculator" hidden>
+      <div class="tool-panel-head"><span>Scientific Calculator</span><span id="calculatorTimerMirror" class="calculator-timer-mirror">02:14:00</span><button type="button" class="tool-close" data-close-tool aria-label="Close calculator">×</button></div>
+      <div id="calculatorExpression" class="calculator-expression" aria-live="polite"></div>
+      <input id="calculatorDisplay" class="calculator-display" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Calculator expression" value="0">
+      <div class="calculator-toolbar">
+        <button type="button" id="calculatorAngleMode" data-calc-action="angle">DEG</button>
+        <button type="button" data-calc-action="memory-clear">MC</button><button type="button" data-calc-action="memory-recall">MR</button>
+        <button type="button" data-calc-action="memory-add">M+</button><button type="button" data-calc-action="memory-subtract">M−</button>
+      </div>
+      <div class="calculator-grid">
+        <button data-calc-value="sin(">sin</button><button data-calc-value="cos(">cos</button><button data-calc-value="tan(">tan</button><button data-calc-value="asin(">sin⁻¹</button><button data-calc-value="acos(">cos⁻¹</button><button data-calc-value="atan(">tan⁻¹</button>
+        <button data-calc-value="log10(">log</button><button data-calc-value="log(">ln</button><button data-calc-value="sqrt(">√</button><button data-calc-value="abs(">abs</button><button data-calc-value="exp(">eˣ</button><button data-calc-value="!">x!</button>
+        <button data-calc-value="pi">π</button><button data-calc-value="e">e</button><button data-calc-value="(">(</button><button data-calc-value=")">)</button><button data-calc-value="^">xʸ</button><button data-calc-value="%">%</button>
+        <button class="calc-danger" data-calc-action="clear">C</button><button data-calc-action="backspace">⌫</button><button data-calc-value="7">7</button><button data-calc-value="8">8</button><button data-calc-value="9">9</button><button class="calc-operator" data-calc-value="/">÷</button>
+        <button data-calc-value="ans">Ans</button><button data-calc-action="sign">±</button><button data-calc-value="4">4</button><button data-calc-value="5">5</button><button data-calc-value="6">6</button><button class="calc-operator" data-calc-value="*">×</button>
+        <button data-calc-value="1/(">1/x</button><button data-calc-value="^2">x²</button><button data-calc-value="1">1</button><button data-calc-value="2">2</button><button data-calc-value="3">3</button><button class="calc-operator" data-calc-value="-">−</button>
+        <button data-calc-value="0">0</button><button data-calc-value=".">.</button><button data-calc-value=",">,</button><button class="calc-equals" data-calc-action="equals">=</button><button class="calc-operator" data-calc-value="+">+</button><button data-calc-value="mod">mod</button>
+      </div>
+    </section>
+    <section id="timerPanel" class="quiz-tool-panel timer-tool-panel" aria-label="Quiz timer" hidden>
+      <div class="tool-panel-head"><span>Timer</span><button type="button" class="tool-close" data-close-tool aria-label="Close timer">×</button></div>
+      <div class="timer-display" id="timerDisplay" aria-live="polite">00:00:00</div>
+      <div class="timer-label">Time Remaining</div>
+      <div class="timer-setting" aria-label="Set timer duration">
+        <label>HH<input id="timerHours" type="number" min="0" max="99" value="" placeholder="00" inputmode="numeric"></label><span>:</span>
+        <label>MM<input id="timerMinutes" type="number" min="0" max="59" value="" placeholder="00" inputmode="numeric"></label><span>:</span>
+        <label>SS<input id="timerSecondsInput" type="number" min="0" max="59" value="" placeholder="00" inputmode="numeric"></label>
+        <button type="button" id="timerSetBtn" class="timer-set-btn">Set</button>
+      </div>
+      <div class="timer-controls">
+        <button type="button" class="timer-btn" id="timerPauseBtn">▶ Start</button>
+        <button type="button" class="timer-btn reset-btn" id="timerResetBtn">↺ Reset</button>
+      </div>
+    </section>
+
+    <div class="learning-mode-panel" aria-label="Learning mode preview">
+      <div id="modeButtons" class="mode-buttons">
+        <button type="button" class="mode-btn mode-learn" data-ui-mode="learn">🟢 Learn</button>
+        <button type="button" class="mode-btn mode-study active" data-ui-mode="study">🔵 Study</button>
+        <button type="button" class="mode-btn mode-exam" data-ui-mode="exam">🔴 Exam</button>
+      </div>
+      <div id="modeDescription" class="mode-description">
+        🔵 Study · Choose a mode before or during the set.
+      </div>
+      <div id="biblePassageControls" class="bible-passage-controls" aria-label="Bible language controls">
+        <button type="button" id="biblePassageToggle" class="bible-passage-toggle" aria-pressed="false">
+          📖 Passage OFF
+        </button>
+        <button type="button" id="bibleQuizToggle" class="bible-quiz-toggle is-on" aria-pressed="true">
+          📝 Quiz ON
+        </button>
+        <label for="biblePrimaryTextSelector">First language</label>
+        <select id="biblePrimaryTextSelector" aria-label="First language">
+          <option value="WEB">WEB Modern English</option>
+          <option value="KJV">KJV Original</option>
+          <option value="KO_WEB">한국어</option>
+        </select>
+        <label for="bibleSecondaryTextSelector">Second language</label>
+        <select id="bibleSecondaryTextSelector" aria-label="Second language">
+          <option value="NONE">None</option>
+          <option value="WEB">WEB Modern English</option>
+          <option value="KJV">KJV Original</option>
+          <option value="KO_WEB">한국어</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+   <!-- ===== BLOCK 04-2: 설정 영역 (시작/재개) ===== -->
+  <div id="setupSection" class="setup-area">
+    <div class="cards-container">
+      <!-- 새 학습 카드 -->
+      <div class="card card-new">
+        <div class="card-icon">📖</div>
+        <div class="card-title card-title-new">NEW LESSON</div>
+        <div class="card-sub">Start from a new number</div>
+        <div class="input-wrapper" style="margin-top:8px;">
+          <select id="setSelector" style="width:100%;padding:14px 42px 14px 18px;font-size:16px;font-weight:600;border:2px solid #ddd;border-radius:12px;text-align:left;text-align-last:left;background:#f8f9fa;outline:none;transition:all .3s;color:#1a1a2e;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 16px center">
+            <option value="1">Loading sets...</option>
+          </select>
+        </div>
+        <div class="input-wrapper">
+          <input type="number" id="startNumber" min="1" placeholder="1-720">
+        </div>
+        <button class="btn-start" id="startQuizBtn">▶ START</button>
+        <div class="card-hint">Select a set or enter a number</div>
+      </div>
+
+      <!-- 재개 카드 -->
+      <div class="card card-resume" id="resumeCard">
+        <div class="card-icon">⏳</div>
+        <div class="card-title card-title-resume">RESUME</div>
+        <div class="card-sub card-sub-resume">Continue previous session</div>
+        <div id="savedBadgeContainer">
+          <div class="no-session">No saved session <small>Start a new lesson</small></div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-hint">Progress is saved automatically</div>
+  </div>
+
+  <!-- ===== BLOCK 04-3: 퀴즈 본문 ===== -->
+  <div id="quizMain" class="quiz-main">
+
+    <!-- 리뷰 배너 -->
+    <div id="reviewBanner" class="review-banner" style="display:none">
+      <span>Review Mode</span>
+      <button id="exitReviewBtn" class="exit-review-btn">EXIT REVIEW</button>
+    </div>
+
+    <!-- 진행률 -->
+    <div class="progress-area" style="display:none;">
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="quizProgressBar"></div>
+      </div>
+      <div class="account-identity" id="accountIdentity"></div>
+    </div>
+
+    <!-- 문제 콘텐츠 -->
+    <div id="quizContent" style="display:none;">
+      <div id="questionContainer"></div>
+      <div id="explanationBox" class="explanation">
+        <div id="explanationText" style="margin-top:5px"></div>
+      </div>
+      <div class="nav-buttons">
+        <button id="prevBtn" class="nav-btn btn-prev">◀ PREV (P)</button>
+        <button id="skipBtn" class="nav-btn btn-skip">SKIP (S)</button>
+        <button id="nextBtn" class="nav-btn btn-next">NEXT (N) ▶</button>
+      </div>
+      <div class="nav-buttons" style="margin-top:12px">
+        <button id="submitBtn" class="nav-btn btn-submit" style="display:none">SUBMIT (Enter)</button>
+        <button id="quitBtn" class="nav-btn btn-quit">✕ QUIT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BLOCK 04-4: 결과 모달 ===== -->
+  <div id="resultModal" class="modal">
+    <div class="modal-content">
+      <h2 style="text-align:center">📊 RESULT</h2>
+      <div class="stats">
+        <div class="stat-card"><div>✅ CORRECT</div><div class="stat-value" id="correctCount">0</div></div>
+        <div class="stat-card"><div>🎯 ACCURACY</div><div class="stat-value" id="accuracyRate">0%</div></div>
+      </div>
+      <div><strong>Results (Click to move)</strong></div>
+      <div id="resultGrid" class="result-grid"></div>
+      <div class="button-group">
+        <button id="retryAllBtn" class="nav-btn btn-prev" style="flex:1">🔄 RETRY</button>
+        <button id="reviewWrongBtn" class="nav-btn btn-warning" style="flex:1">📝 REVIEW</button>
+        <button id="closeModalBtn" class="nav-btn btn-prev" style="flex:1">✕ CLOSE</button>
+      </div>
+      <div id="loadNextContainer" style="margin-top:15px"></div>
+    </div>
+  </div>
+
+  <!-- ===== BLOCK 04-5: 오답 리뷰 모달 ===== -->
+  <div id="wrongModal" class="modal">
+    <div class="modal-content" style="max-width:750px">
+      <h2 style="text-align:center">📝 REVIEW</h2>
+      <p style="text-align:center;margin-bottom:15px;color:#666">Wrong / Skipped / Unanswered</p>
+      <div id="wrongList" class="wrong-list"></div>
+      <div class="button-group">
+        <button id="retryWrongFromReviewBtn" class="nav-btn btn-warning" style="flex:1">🔄 RETRY WRONG ONLY</button>
+        <button id="closeWrongBtn" class="nav-btn btn-prev" style="flex:1">✕ CLOSE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BLOCK 04-6: 진행 모달 ===== -->
+  <div id="progressModal" class="modal" style="display:none">
+    <div class="modal-content" style="max-width:500px;text-align:center;border-radius:16px;padding:30px">
+      <div id="progressModalBody" style="text-align:left;margin:10px 0;line-height:1.8;font-size:16px"></div>
+      <div class="button-group" style="display:flex;justify-content:center;gap:12px;margin-top:25px">
+        <button id="progressContinueBtn" class="nav-btn" style="flex:1;max-width:180px;padding:12px 24px;font-size:16px;font-weight:700;border:none;border-radius:12px;cursor:pointer;background:#27ae60;color:#fff">▶ Continue</button>
+        <button id="progressCancelBtn" class="nav-btn" style="flex:1;max-width:180px;padding:12px 24px;font-size:16px;font-weight:700;border:none;border-radius:12px;cursor:pointer;background:#e74c3c;color:#fff">Start Fresh</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ===== BLOCK 04 END ===== -->
+
+<!-- ===== BIBLE PEOPLE DB ===== -->
+<section id="biblePeoplePanel" class="bible-people-panel" aria-label="Bible People" hidden>
+  <div class="bible-people-dialog" role="dialog" aria-modal="true" aria-labelledby="biblePeopleTitle">
+    <header class="bible-people-head">
+      <div>
+        <span class="bible-people-kicker">BIBLE REFERENCE</span>
+        <h2 id="biblePeopleTitle">Bible People</h2>
+      </div>
+      <button type="button" id="biblePeopleClose" class="bible-people-close" aria-label="Close Bible People">&times;</button>
+    </header>
+    <form id="biblePeopleSearchForm" class="bible-people-search" role="search">
+      <label for="biblePeopleSearchInput">Search by name or alias</label>
+      <div>
+        <input id="biblePeopleSearchInput" type="search" autocomplete="off" placeholder="Aaron, Abraham, David..." required>
+        <button type="submit">Search</button>
+      </div>
+    </form>
+    <div id="biblePeopleStatus" class="bible-people-status" aria-live="polite">Enter a Bible person’s name.</div>
+    <div class="bible-people-layout">
+      <aside id="biblePeopleResults" class="bible-people-results" aria-label="Search results"></aside>
+      <main id="biblePeopleDetail" class="bible-people-detail">
+        <div class="bible-people-empty">
+          <strong>Explore people across Scripture</strong>
+          <span>Search for a person to view descriptions, references, and relationships.</span>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- ===== BIBLE ATLAS / JOURNEYS / TIMELINE ===== -->
+<section id="bibleExplorePanel" class="bible-people-panel bible-explore-panel" aria-label="Bible Atlas" hidden>
+  <div class="bible-people-dialog bible-explore-dialog" role="dialog" aria-modal="true" aria-labelledby="bibleExploreTitle">
+    <header class="bible-people-head">
+      <div><span class="bible-people-kicker">BIBLE CONTEXT</span><h2 id="bibleExploreTitle">Atlas, Journeys &amp; Timeline</h2></div>
+      <button type="button" id="bibleExploreClose" class="bible-people-close" aria-label="Close Bible Atlas">&times;</button>
+    </header>
+    <nav class="bible-explore-tabs" aria-label="Bible context sections">
+      <button type="button" class="is-active" data-bible-explore-tab="places">Places</button>
+      <button type="button" data-bible-explore-tab="journeys">Journeys</button>
+      <button type="button" data-bible-explore-tab="timeline">Timeline</button>
+    </nav>
+    <div id="bibleExploreStatus" class="bible-people-status" aria-live="polite">Loading Bible context data...</div>
+    <section class="bible-explore-view is-active" data-bible-explore-view="places">
+      <div class="bible-explore-toolbar"><input id="biblePlaceSearch" type="search" autocomplete="off" placeholder="Search Jerusalem, Bethlehem, Jordan..."></div>
+      <div class="bible-people-layout bible-explore-layout">
+        <aside id="biblePlaceResults" class="bible-people-results" aria-label="Place results"></aside>
+        <main id="biblePlaceDetail" class="bible-people-detail"></main>
+      </div>
+    </section>
+    <section class="bible-explore-view" data-bible-explore-view="journeys">
+      <div class="bible-explore-toolbar"><select id="bibleJourneySelector" aria-label="Select a journey"></select></div>
+      <div id="bibleJourneyOutput" class="bible-explore-output"></div>
+    </section>
+    <section class="bible-explore-view" data-bible-explore-view="timeline">
+      <div class="bible-explore-toolbar"><select id="bibleTimelineSelector" aria-label="Select a Bible book"></select></div>
+      <div id="bibleTimelineOutput" class="bible-explore-output"></div>
+    </section>
+  </div>
+</section>
+
+<!-- ===== BLOCK 05: Admin JSON Graphic and Math Preview ===== -->
+<button type="button" id="adminPreviewToggle" class="admin-preview-toggle" aria-controls="adminPreviewPanel" aria-expanded="false" hidden>JSON / LaTeX Preview</button>
+<a id="superGraphicStudioLink" class="admin-preview-toggle" href="./graphics/viewer.html" target="_blank" rel="noopener" hidden>Super Graphic Studio</a>
+<section id="adminPreviewPanel" class="admin-preview-panel" aria-label="Admin JSON graphic and math preview" hidden>
+  <div class="admin-preview-head">
+    <div><strong>ADMIN PREVIEW</strong><small>Same quiz graphic and math renderer</small></div>
+    <button type="button" id="adminPreviewClose" aria-label="Close preview">x</button>
+  </div>
+  <div class="admin-preview-grid">
+    <article class="admin-preview-card">
+      <h3>JSON Graphic</h3>
+      <textarea id="adminGraphicInput" spellcheck="false" placeholder="Paste the Google Sheet G value here"></textarea>
+      <div class="admin-preview-actions">
+        <button type="button" id="adminGraphicRender">Render</button>
+        <button type="button" id="adminGraphicFormat">Format JSON</button>
+        <button type="button" id="adminGraphicClear">Clear</button>
+      </div>
+      <div id="adminGraphicStatus" class="admin-preview-status">Waiting for JSON.</div>
+      <div id="adminGraphicOutput" class="admin-preview-output"><div class="admin-preview-empty">Graphic output appears here.</div></div>
+    </article>
+    <article class="admin-preview-card">
+      <h3>Math / LaTeX</h3>
+      <textarea id="adminMathInput" spellcheck="false" placeholder="Paste a question, choice, explanation, or LaTeX expression here"></textarea>
+      <div class="admin-preview-actions">
+        <button type="button" id="adminMathRender">Render</button>
+        <button type="button" id="adminMathClear">Clear</button>
+      </div>
+      <div id="adminMathStatus" class="admin-preview-status">Waiting for math text.</div>
+      <div id="adminMathOutput" class="admin-preview-output"><div class="admin-preview-empty">Math output appears here.</div></div>
+    </article>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- BLOCK 06: CSS 스타일 (공통) -->
+<!-- ============================================================ -->
+<style>
+  /* ===== 공통 리셋 ===== */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box
+  }
+  body {
+    font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+    background: #f0f2f5
+  }
+  .quiz-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: #fff;
+    min-height: 100vh;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.05)
+  }
+
+  /* ===== 헤더 ===== */
+  .quiz-header {
+    background: linear-gradient(135deg, #0a1628, #1a2a4a, #0d1b3e);
+    color: #fff;
+    padding: 18px 20px 14px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 3px solid #f5a623
+  }
+  .quiz-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 50%, rgba(245, 166, 35, 0.05) 0%, transparent 70%);
+    pointer-events: none
+  }
+  .sat-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 1
+  }
+  .sat-icon {
+    font-size: 1.6rem
+  }
+  .sat-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #fff, #f5a623);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text
+  }
+  .sat-badge {
+    background: rgba(245, 166, 35, 0.2);
+    border: 1px solid rgba(245, 166, 35, 0.4);
+    color: #f5a623;
+    font-size: .6rem;
+    font-weight: 700;
+    padding: 2px 12px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    -webkit-text-fill-color: #f5a623
+  }
+  .sat-sub {
+    font-size: .7rem;
+    opacity: .5;
+    letter-spacing: 4px;
+    margin-top: 4px;
+    font-weight: 300;
+    position: relative;
+    z-index: 1
+  }
+  .language-switcher {
+    margin-top: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    z-index: 2;
+    font-size: .75rem;
+  }
+  .language-switcher label { opacity: .75; }
+  .language-switcher select {
+    padding: 7px 28px 7px 12px;
+    border: 1px solid rgba(255,255,255,.35);
+    border-radius: 18px;
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .language-switcher select option { color: #111; background: #fff; }
+
+  /* ===== 설정 영역 ===== */
+  .setup-area {
+    padding: 40px 30px;
+    margin: 20px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+    background: #fff
+  }
+  .cards-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 680px;
+    margin: 0 auto
+  }
+  .card {
+    border-radius: 18px;
+    padding: 28px 22px;
+    transition: all .3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center
+  }
+  .card-new {
+    background: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08)
+  }
+  .card-new:hover {
+    border-color: #f5a623;
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px)
+  }
+  .card-resume {
+    background: #fff;
+    border: 2px solid #ffd700;
+    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.15);
+    cursor: pointer;
+    justify-content: center;
+    min-height: 220px
+  }
+  .card-resume:hover {
+    border-color: #f5a623;
+    box-shadow: 0 6px 30px rgba(255, 215, 0, 0.25);
+    transform: translateY(-2px)
+  }
+  .card-icon {
+    font-size: 2.4rem
+  }
+  .card-title {
+    font-weight: 700;
+    font-size: 1.3rem;
+    letter-spacing: .5px;
+    margin-top: 4px
+  }
+  .card-title-new {
+    color: #2c3e50
+  }
+  .card-title-resume {
+    color: #f5a623
+  }
+  .card-sub {
+    font-size: .95rem;
+    color: #666;
+    margin-top: 2px;
+    font-weight: 400
+  }
+  .card-sub-resume {
+    color: #888
+  }
+  .input-wrapper {
+    width: 100%;
+    margin-top: 12px
+  }
+  .input-wrapper input {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 18px;
+    font-weight: 600;
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    text-align: center;
+    background: #f8f9fa;
+    outline: none;
+    transition: all .3s;
+    color: #1a1a2e
+  }
+  .input-wrapper input:focus {
+    border-color: #f5a623;
+    box-shadow: 0 0 20px rgba(245, 166, 35, 0.15);
+    background: #fff
+  }
+  .input-wrapper input::placeholder {
+    color: #aaa;
+    font-weight: 400
+  }
+  .input-wrapper select {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 16px;
+    font-weight: 600;
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    text-align: center;
+    background: #f8f9fa;
+    outline: none;
+    transition: all .3s;
+    color: #1a1a2e;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center
+  }
+  .input-wrapper select:focus {
+    border-color: #f5a623;
+    box-shadow: 0 0 20px rgba(245, 166, 35, 0.15);
+    background: #fff
+  }
+  .btn-start {
+    width: 100%;
+    padding: 15px;
+    margin-top: 12px;
+    font-size: 18px;
+    font-weight: 700;
+    background: #f5a623;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all .3s;
+    letter-spacing: .5px;
+    box-shadow: 0 2px 10px rgba(245, 166, 35, 0.25)
+  }
+  .btn-start:hover {
+    background: #e0941a;
+    transform: scale(1.02);
+    box-shadow: 0 4px 20px rgba(245, 166, 35, 0.35)
+  }
+  #savedBadgeContainer {
+    width: 100%;
+    margin-top: 10px
+  }
+  .resume-badge {
+    background: #fef9e7;
+    border-radius: 12px;
+    padding: 16px 14px;
+    border: 2px solid #ffd700;
+    cursor: pointer;
+    transition: all .3s;
+    width: 100%;
+    text-align: center
+  }
+  .resume-badge:hover {
+    background: #fef3d0;
+    border-color: #f5a623;
+    transform: scale(1.01)
+  }
+  .resume-badge .count {
+    font-weight: 700;
+    color: #2c3e50;
+    font-size: 1.1rem
+  }
+  .resume-badge .time {
+    font-size: .8rem;
+    color: #888;
+    margin-top: 2px
+  }
+  .resume-badge .hint {
+    font-size: .75rem;
+    color: #f5a623;
+    margin-top: 6px;
+    font-weight: 500
+  }
+  .no-session {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 16px 12px;
+    border: 2px dashed #ddd;
+    width: 100%;
+    text-align: center;
+    font-size: .85rem;
+    color: #aaa
+  }
+  .no-session small {
+    display: block;
+    font-size: .7rem;
+    color: #ccc;
+    margin-top: 2px
+  }
+  .card-hint {
+    font-size: .75rem;
+    color: #aaa;
+    margin-top: 8px;
+    font-weight: 400
+  }
+  .bottom-hint {
+    margin-top: 22px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: .85rem;
+    letter-spacing: .3px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    padding-top: 16px;
+    font-weight: 400
+  }
+
+  /* ===== 퀴즈 본문 ===== */
+  .quiz-main {
+    padding: 10px 20px 20px;
+    display: none
+  }
+  .progress-area {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    align-items: center;
+    display: none
+  }
+  .progress-count {
+    background: #fff;
+    padding: 5px 12px;
+    border-radius: 30px;
+    font-weight: 700;
+    border: 1px solid #3498db
+  }
+  .progress-bar-container {
+    width: 100%;
+    background: #ddd;
+    border-radius: 10px;
+    height: 7px;
+    margin-top: 5px
+  }
+  .progress-bar {
+    width: 0%;
+    background: #27ae60;
+    border-radius: 10px;
+    height: 7px;
+    transition: width .3s
+  }
+  .account-identity {
+    width: 100%;
+    margin-top: 3px;
+    text-align: right;
+    color: #2c3e50;
+    font-size: .78rem;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  #setSelector option {
+    text-align: left;
+  }
+  .review-banner {
+    background: #e67e22;
+    color: #fff;
+    padding: 12px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    font-weight: 700;
+    display: none
+  }
+  .exit-review-btn {
+    background: #fff;
+    color: #e67e22;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 700
+  }
+  .question-card {
+    background: #fff;
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    padding: 22px;
+    margin-bottom: 20px
+  }
+  .q-num {
+    display: inline-block;
+    background: #2c3e50;
+    color: #fff;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 15px
+  }
+  .question-text {
+    font-size: 1.1rem;
+    line-height: 1.5;
+    margin: 15px 0 25px;
+    font-weight: 600
+  }
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 12px
+  }
+  .choice {
+    display: flex;
+    align-items: center;
+    padding: 14px 18px;
+    background: #fff;
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all .2s
+  }
+  .choice:hover:not(.disabled) {
+    background: #f0f7ff;
+    border-color: #3498db;
+    transform: translateX(5px)
+  }
+  .choice-letter {
+    width: 32px;
+    height: 32px;
+    background: #3498db;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    margin-right: 15px;
+    flex-shrink: 0
+  }
+  .choice.correct {
+    background: #e9f7ef;
+    border-color: #27ae60
+  }
+  .choice.correct .choice-letter {
+    background: #27ae60
+  }
+  .choice.incorrect {
+    background: #fde8e8;
+    border-color: #e74c3c
+  }
+  .choice.incorrect .choice-letter {
+    background: #e74c3c
+  }
+  .choice.disabled {
+    cursor: default
+  }
+  .explanation {
+    margin-top: 20px;
+    padding: 18px;
+    background: #e8f4fc;
+    border-radius: 12px;
+    border-left: 5px solid #3498db;
+    display: none
+  }
+  .explanation.show {
+    display: block
+  }
+  .nav-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 20px
+  }
+  .nav-btn {
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all .2s;
+    flex: 1;
+    min-width: 80px
+  }
+  .nav-btn:disabled {
+    opacity: .4;
+    cursor: not-allowed
+  }
+  .btn-prev {
+    background: #3498db;
+    color: #fff
+  }
+  .btn-prev:hover:not(:disabled) {
+    background: #2980b9;
+    transform: scale(1.02)
+  }
+  .btn-next {
+    background: #2ecc71;
+    color: #fff
+  }
+  .btn-next:hover:not(:disabled) {
+    background: #27ae60;
+    transform: scale(1.02)
+  }
+  .btn-skip {
+    background: #f39c12;
+    color: #fff
+  }
+  .btn-skip:hover:not(:disabled) {
+    background: #e67e22;
+    transform: scale(1.02)
+  }
+  .btn-submit {
+    background: #27ae60;
+    color: #fff
+  }
+  .btn-submit:hover:not(:disabled) {
+    background: #1e8449;
+    transform: scale(1.02)
+  }
+  .btn-quit {
+    background: #e74c3c;
+    color: #fff
+  }
+  .btn-quit:hover {
+    background: #c0392b;
+    transform: scale(1.02)
+  }
+  .btn-warning {
+    background: #e67e22;
+    color: #fff
+  }
+  .btn-warning:hover {
+    background: #d35400;
+    transform: scale(1.02)
+  }
+
+  /* ===== 주관식 입력창 (버튼과 통일) ===== */
+  .subjective-input-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .subjective-input-group input {
+    flex: 1;
+    min-width: 200px;
+    padding: 14px 18px;
+    font-size: 16px;
+    font-weight: 500;
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    background: #f8f9fa;
+    outline: none;
+    transition: all .3s;
+    min-height: 54px;
+    color: #1a1a2e;
+    box-sizing: border-box;
+  }
+  .subjective-input-group input:focus {
+    border-color: #f5a623;
+    box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.15);
+    background: #fff;
+  }
+  .subjective-input-group input::placeholder {
+    color: #aaa;
+    font-weight: 400;
+  }
+  .subjective-input-group button {
+    padding: 14px 28px;
+    background: #f5a623;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+    box-shadow: 0 2px 10px rgba(245, 166, 35, 0.2);
+    min-height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .subjective-input-group button:hover {
+    background: #e0941a;
+    transform: scale(1.02);
+    box-shadow: 0 4px 16px rgba(245, 166, 35, 0.3);
+  }
+
+  /* ===== 모달 ===== */
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 999;
+    justify-content: center;
+    align-items: center;
+    padding: 20px
+  }
+  .modal-content {
+    background: #fff;
+    max-width: 700px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: 24px;
+    padding: 30px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    position: relative
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin: 20px 0
+  }
+  .stat-card {
+    text-align: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 12px
+  }
+  .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #2c3e50
+  }
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 6px;
+    margin: 15px 0;
+    max-height: 250px;
+    overflow-y: auto;
+    padding: 5px
+  }
+  .result-item {
+    text-align: center;
+    padding: 6px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid #ddd
+  }
+  .result-item.correct {
+    background: #d4edda;
+    color: #0d4620
+  }
+  .result-item.incorrect {
+    background: #f8d7da;
+    color: #5a1414
+  }
+  .result-item.skipped {
+    background: #fff3cd;
+    color: #856404
+  }
+  .result-item.unanswered {
+    background: #e9ceef;
+    color: #6c757d
+  }
+  .wrong-list {
+    max-height: 450px;
+    overflow-y: auto
+  }
+  .wrong-item {
+    background: #fff;
+    border: 2px solid #eee;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 18px
+  }
+  .button-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 20px
+  }
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 8px
+  }
+  .status-wrong {
+    background: #e74c3c;
+    color: #fff
+  }
+  .status-skipped {
+    background: #f39c12;
+    color: #fff
+  }
+  .status-unanswered {
+    background: #6c757d;
+    color: #fff
+  }
+
+  /* ===== 스플래시 ===== */
+  #splashOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    transition: opacity .8s
+  }
+  #splashOverlay .icon {
+    font-size: 4rem;
+    margin-bottom: 16px
+  }
+  #splashOverlay .title {
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -1px
+  }
+  #splashOverlay .title span {
+    color: #f5a623
+  }
+  #splashOverlay .subtitle {
+    font-size: 1rem;
+    opacity: .6;
+    margin-top: 4px;
+    letter-spacing: 4px;
+    font-weight: 300
+  }
+  #splashOverlay .bar-track {
+    width: 280px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 30px
+  }
+  #splashOverlay .bar-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #f5a623, #e94560);
+    border-radius: 4px;
+    transition: width .5s ease
+  }
+  #splashOverlay .status-text {
+    font-size: .85rem;
+    opacity: .5;
+    margin-top: 14px;
+    font-weight: 300;
+    letter-spacing: 1px
+  }
+  #splashOverlay .error-msg {
+    color: #ff6b6b;
+    font-size: .9rem;
+    margin-top: 15px;
+    display: none
+  }
+  #splashOverlay .retry-btn {
+    margin-top: 20px;
+    padding: 12px 40px;
+    font-size: 16px;
+    font-weight: 700;
+    background: #f5a623;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    display: none;
+    transition: all .3s
+  }
+  #splashOverlay .retry-btn:hover {
+    background: #e0941a;
+    transform: scale(1.03)
+  }
+
+  /* ===== 타이머 ===== */
+  .timer-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(26, 26, 46, 0.95);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 12px;
+    z-index: 1000;
+    font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    min-width: 140px;
+    text-align: center
+  }
+  .timer-display {
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    font-variant-numeric: tabular-nums;
+    color: #f5a623
+  }
+  .timer-display.warning {
+    color: #e74c3c;
+    animation: timerPulse 1s ease-in-out infinite
+  }
+  @keyframes timerPulse {
+    0%,
+    100% {
+      opacity: 1
+    }
+    50% {
+      opacity: .3
+    }
+  }
+  .timer-label {
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    opacity: .5;
+    margin-top: 2px
+  }
+  .timer-controls {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 6px
+  }
+  .timer-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #fff;
+    padding: 4px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: .7rem;
+    font-weight: 600;
+    transition: all .2s;
+    letter-spacing: .5px
+  }
+  .timer-btn:hover {
+    background: rgba(245, 166, 35, 0.3);
+    border-color: #f5a623
+  }
+  .timer-btn.reset-btn {
+    color: #e74c3c
+  }
+  .timer-btn.reset-btn:hover {
+    background: rgba(231, 76, 60, 0.3);
+    border-color: #e74c3c
+  }
+
+  /* ===== 반응형 ===== */
+  @media(max-width:600px) {
+    .timer-container {
+      top: 10px;
+      right: 10px;
+      padding: 8px 14px;
+      min-width: 100px
+    }
+    .timer-display {
+      font-size: 1.3rem
+    }
+    .timer-btn {
+      padding: 3px 10px;
+      font-size: .6rem
+    }
+    .sat-title {
+      font-size: 1.3rem
+    }
+    .sat-icon {
+      font-size: 1.2rem
+    }
+    .sat-badge {
+      font-size: .5rem;
+      padding: 1px 8px
+    }
+    .sat-sub {
+      font-size: .6rem;
+      letter-spacing: 2px
+    }
+    .cards-container {
+      grid-template-columns: 1fr;
+      gap: 14px
+    }
+    .card-resume {
+      min-height: auto
+    }
+    .nav-btn {
+      padding: 12px;
+      font-size: .9rem
+    }
+    .choice {
+      padding: 12px
+    }
+    .result-grid {
+      grid-template-columns: repeat(5, 1fr)
+    }
+    #splashOverlay .title {
+      font-size: 1.8rem
+    }
+    #splashOverlay .icon {
+      font-size: 3rem
+    }
+    #splashOverlay .bar-track {
+      width: 200px
+    }
+    .setup-area {
+      padding: 25px 16px
+    }
+    .input-wrapper input {
+      font-size: 16px;
+      padding: 12px
+    }
+    .btn-start {
+      font-size: 16px;
+      padding: 13px
+    }
+    .card-title {
+      font-size: 1.1rem
+    }
+    .card-sub {
+      font-size: .85rem
+    }
+    .bottom-hint {
+      font-size: .75rem
+    }
+    /* 주관식 입력창 반응형 */
+    .subjective-input-group {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .subjective-input-group button {
+      width: 100%;
+    }
+  }
+
+/* ===== 복사 방지: 일반 회원만 적용 / admin은 복사 허용 ===== */
+html:not(.admin-user) body * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+html:not(.admin-user) body ::selection {
+  background: transparent !important;
+}
+
+/* 관리자 계정: 텍스트 선택·복사 허용 */
+html.admin-user body,
+html.admin-user body * {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+html.admin-user body ::selection {
+  background: Highlight !important;
+  color: HighlightText !important;
+}
+
+html:not(.admin-user) .admin-preview-toggle,
+html:not(.admin-user) .admin-preview-panel {
+  display: none !important;
+}
+.admin-preview-toggle {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 1001;
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 16px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 8px 26px rgba(15,23,42,.28);
+  cursor: pointer;
+}
+.admin-preview-toggle:hover {
+  background: #1d4ed8;
+}
+.admin-preview-panel {
+  position: fixed;
+  inset: 20px;
+  z-index: 1100;
+  overflow: auto;
+  padding: 18px;
+  background: #f8fafc;
+  border: 2px solid #2563eb;
+  border-radius: 14px;
+  box-shadow: 0 22px 70px rgba(15,23,42,.45);
+  color: #172033;
+}
+.admin-preview-panel[hidden] {
+  display: none !important;
+}
+.admin-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.admin-preview-head > div {
+  display: grid;
+  gap: 3px;
+}
+.admin-preview-head small {
+  color: #64748b;
+}
+.admin-preview-head button {
+  margin-left: auto;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 8px;
+  background: #e2e8f0;
+  font-size: 22px;
+  cursor: pointer;
+}
+.admin-preview-grid {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  gap: 16px;
+}
+.admin-preview-card {
+  min-width: 0;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+.admin-preview-card h3 {
+  margin: 0 0 10px;
+}
+.admin-preview-card textarea {
+  width: 100%;
+  min-height: 190px;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid #94a3b8;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font: 13px/1.55 Consolas, "Courier New", monospace;
+  tab-size: 2;
+}
+.admin-preview-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+.admin-preview-actions button {
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 13px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 750;
+  cursor: pointer;
+}
+.admin-preview-actions button:last-child {
+  background: #64748b;
+}
+.admin-preview-status {
+  min-height: 20px;
+  margin: 7px 0;
+  color: #64748b;
+  font-size: 13px;
+}
+.admin-preview-status.success {
+  color: #15803d;
+  font-weight: 700;
+}
+.admin-preview-status.error {
+  color: #b91c1c;
+  font-weight: 700;
+}
+.admin-preview-output {
+  min-height: 220px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px dashed #94a3b8;
+  border-radius: 8px;
+  background: #fff;
+}
+.admin-preview-empty {
+  display: grid;
+  min-height: 180px;
+  place-items: center;
+  color: #94a3b8;
+  text-align: center;
+}
+@media(max-width:850px) {
+  .admin-preview-panel {
+    inset: 8px;
+    padding: 11px;
+  }
+  .admin-preview-grid {
+    grid-template-columns: 1fr;
+  }
+  .admin-preview-toggle {
+    right: 8px;
+    bottom: 8px;
+  }
+  .admin-preview-card textarea {
+    min-height: 150px;
+  }
+}
+
+  /* v7.1.1 bilingual display */
+  .bilingual-block{display:flex;flex-direction:column;gap:10px}
+  .language-line-en{color:#172033}
+  .language-line-ko{color:#27364d;padding-top:10px;margin-top:2px;border-top:1px dashed #cfd7e3;font-family:'Malgun Gothic','Noto Sans KR',sans-serif}
+  .question-text.bilingual-block{margin-top:18px}
+  .question-text .language-line-en,.question-text .language-line-ko{font-size:17px;line-height:1.75;font-weight:600}
+  .passage-language-card{background:#f8f9fa;padding:16px;border-radius:10px;margin:14px 0;border:1px solid #dee2e6}
+  .passage-language-content .language-line-en,.passage-language-content .language-line-ko{white-space:pre-wrap;font-size:15px;line-height:1.75}
+  .choice-language-content{flex:1;min-width:0}
+  .choice-language-content .language-line-en{font-size:15px;line-height:1.5}
+  .choice-language-content .language-line-ko{font-size:14px;line-height:1.55;color:#56657a}
+  .explanation-language-content{margin-top:14px}
+  .explanation-language-content .language-line-en,.explanation-language-content .language-line-ko{font-size:15px;line-height:1.7}
+
+
+  /* ============================================================
+     SAT v8.0B — MODES
+     Stable quiz behavior remains unchanged.
+     ============================================================ */
+  .set-separator {
+    color:#f5a623;
+    -webkit-text-fill-color:#f5a623;
+  }
+
+  .learning-mode-panel {
+    max-width:620px;
+    margin:14px auto 0;
+    position:relative;
+    z-index:2;
+  }
+
+  .mode-buttons {
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:6px;
+    padding:4px;
+    border-radius:16px;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.14);
+  }
+
+  .mode-btn {
+    border:1px solid transparent;
+    border-radius:12px;
+    padding:6px 8px;
+    font-size:14px;
+    font-weight:800;
+    color:#fff;
+    cursor:pointer;
+    background:rgba(255,255,255,.08);
+    transition:transform .18s ease, background .18s ease, box-shadow .18s ease;
+  }
+
+  .mode-btn:hover {
+    transform:translateY(-1px);
+    background:rgba(255,255,255,.15);
+  }
+
+  .mode-btn.active {
+    background:#fff;
+    color:#172033;
+    box-shadow:0 5px 18px rgba(0,0,0,.22);
+  }
+
+  .mode-description {
+    padding-top:8px;
+    color:rgba(255,255,255,.78);
+    font-size:12px;
+    line-height:1.4;
+  }
+  .bible-passage-controls {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:7px;
+    margin:8px auto 0;
+  }
+  .bible-passage-controls label {
+    position:absolute;
+    width:1px;
+    height:1px;
+    padding:0;
+    margin:-1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+    white-space:nowrap;
+    border:0;
+  }
+  .bible-passage-toggle,
+  .bible-quiz-toggle,
+  #biblePrimaryTextSelector,
+  #bibleSecondaryTextSelector {
+    min-height:32px;
+    border:1px solid #cbd5e1;
+    border-radius:9px;
+    background:#fff;
+    color:#1e293b;
+    padding:5px 8px;
+    font-weight:700;
+  }
+  #biblePrimaryTextSelector,
+  #bibleSecondaryTextSelector {
+    width:min(178px, 22vw);
+  }
+  .bible-passage-toggle,
+  .bible-quiz-toggle {
+    cursor:pointer;
+    justify-self:center;
+  }
+  .bible-passage-toggle.is-on,
+  .bible-quiz-toggle.is-on {
+    border-color:#16a34a;
+    background:#ecfdf5;
+    color:#166534;
+  }
+  .bible-passage-toggle:disabled {
+    cursor:not-allowed;
+    opacity:.58;
+  }
+  html.bible-reading-only #modeButtons,
+  html.bible-reading-only #modeDescription,
+  html.bible-reading-only .sat-tutor-panel {
+    display:none !important;
+  }
+  .bible-reading-card {
+    min-height:240px;
+  }
+  .bible-passage-version {
+    margin-bottom:10px;
+  }
+  .bible-passage-version:last-child {
+    margin-bottom:0;
+  }
+  .bible-version-label {
+    display:inline-block;
+    margin-bottom:5px;
+    border-radius:999px;
+    background:#e2e8f0;
+    color:#334155;
+    padding:2px 8px;
+    font-size:11px;
+    font-weight:800;
+  }
+  .legacy-language-switcher {
+    display:none !important;
+  }
+  #adminPreviewToggle,
+  #superGraphicStudioLink {
+    display:none !important;
+  }
+  .bible-passage-reference {
+    display:inline-block;
+    margin:0 0 5px 7px;
+    color:#64748b;
+    font-size:11px;
+    font-weight:800;
+  }
+  @media (max-width:600px) {
+    .bible-passage-controls {
+      justify-content:center;
+    }
+    #biblePrimaryTextSelector,
+    #bibleSecondaryTextSelector {
+      width:calc(50% - 4px);
+      min-width:0;
+    }
+  }
+
+  .sat-tutor-panel {
+    width:min(900px, calc(100% - 24px));
+    margin:-2px auto 22px;
+    padding:20px;
+    background:#fff;
+    border:1px solid #e1e6ec;
+    border-top:3px solid #f5a623;
+    border-radius:0 0 16px 16px;
+    box-shadow:0 9px 24px rgba(0,0,0,.08);
+  }
+
+  .sat-tutor-heading {
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:15px;
+  }
+
+  .sat-tutor-heading h3 {
+    margin:0;
+    color:#1a1a2e;
+    font-size:19px;
+  }
+
+  .sat-tutor-subtitle {
+    margin-top:3px;
+    color:#7b8796;
+    font-size:12px;
+  }
+
+  .sat-tutor-badge {
+    padding:7px 11px;
+    border-radius:20px;
+    background:#fff8eb;
+    color:#b87500;
+    border:1px solid #f5d28b;
+    font-size:12px;
+    font-weight:700;
+    white-space:nowrap;
+  }
+
+  @media (max-width:640px) {
+    .mode-btn {
+      font-size:12px;
+      padding:9px 5px;
+    }
+    .sat-tutor-heading {
+      flex-direction:column;
+    }
+  }
+
+
+  /* SAT v8.0B mode engine */
+  html[data-study-mode="learn"] .quiz-header { border-bottom-color:#27ae60; }
+  html[data-study-mode="study"] .quiz-header { border-bottom-color:#3498db; }
+  html[data-study-mode="exam"] .quiz-header { border-bottom-color:#e74c3c; }
+
+  .choice.selected {
+    border-color:#3498db !important;
+    background:#eaf4fd !important;
+    box-shadow:0 0 0 2px rgba(52,152,219,.12);
+  }
+
+  .learn-panel {
+    margin-top:18px;
+    padding:17px;
+    border-radius:13px;
+    background:#eefaf3;
+    border:1px solid #bfe8cf;
+    text-align:center;
+  }
+
+  .learn-reveal-btn {
+    padding:13px 22px;
+    border:0;
+    border-radius:10px;
+    background:#27ae60;
+    color:#fff;
+    font-size:15px;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 5px 16px rgba(39,174,96,.22);
+  }
+
+  .learn-reveal-btn:hover { background:#219150; }
+
+  .learn-panel-note {
+    margin-top:9px;
+    color:#587063;
+    font-size:13px;
+  }
+
+  .learn-correct-answer {
+    display:inline-block;
+    margin-bottom:12px;
+    padding:9px 16px;
+    border-radius:30px;
+    background:#27ae60;
+    color:#fff;
+    font-weight:800;
+  }
+
+  .learn-completion-message {
+    padding:28px;
+    border-radius:14px;
+    background:#eefaf3;
+    border:1px solid #bfe8cf;
+    line-height:1.8;
+    text-align:center;
+  }
+
+
+  /* SAT v8.0B1 interaction fixes */
+  html[data-study-mode="learn"] .choice.learn-choice:not(.disabled) {
+    cursor:pointer;
+    border-color:#c8e8d3;
+    background:#fbfffc;
+  }
+
+  html[data-study-mode="learn"] .choice.learn-choice:not(.disabled):hover {
+    border-color:#27ae60;
+    background:#eefaf3;
+    transform:translateY(-1px);
+  }
+
+  .learn-panel.revealed {
+    border-color:#8dd2a8;
+  }
+
+
+  /* SAT v8.0B2 — Learn auto-answer */
+  html[data-study-mode="learn"] .learn-reveal-btn {
+    display:none !important;
+  }
+
+  html[data-study-mode="learn"] .choice.learn-choice {
+    cursor:default !important;
+  }
+
+  html[data-study-mode="learn"] .choice.learn-choice:hover {
+    transform:none !important;
+  }
+
+  html[data-study-mode="learn"] .learn-panel.revealed {
+    margin-top:18px;
+    background:#eefaf3;
+    border-color:#8dd2a8;
+  }
+
+
+  /* v8.0B3: remove duplicate Learn answer panel */
+  html[data-study-mode="learn"] .learn-panel:empty {
+    display:none !important;
+  }
+
+  .quiz-tools{position:absolute;top:16px;right:18px;display:flex;gap:8px;z-index:35}.quiz-tool-toggle{width:42px;height:42px;border:1px solid rgba(255,255,255,.3);border-radius:10px;background:rgba(255,255,255,.12);color:#fff;font-size:21px;cursor:pointer;display:grid;place-items:center;transition:.18s}.quiz-tool-toggle:hover,.quiz-tool-toggle[aria-expanded="true"]{background:#fff;color:#111;transform:translateY(-1px)}.quiz-tool-toggle:focus-visible,.quiz-tool-panel button:focus-visible,.quiz-tool-panel input:focus-visible{outline:3px solid #68b5ff;outline-offset:2px}.quiz-tool-panel{position:absolute;z-index:50;top:66px;right:18px;width:min(430px,calc(100vw - 32px));box-sizing:border-box;border:1px solid #cbd5e1;border-radius:16px;background:#f8fafc;color:#111827;box-shadow:0 18px 50px rgba(0,0,0,.32);padding:14px}.quiz-tool-panel[hidden]{display:none!important}.tool-panel-head{display:flex;align-items:center;gap:10px;font-weight:800;margin-bottom:10px}.tool-panel-head>span:first-child{margin-right:auto}.tool-close{width:32px;height:32px;border:0;border-radius:8px;background:#e2e8f0;font-size:22px;cursor:pointer}.calculator-timer-mirror{font:700 15px ui-monospace,Consolas,monospace;color:#2563eb}.calculator-expression{min-height:20px;text-align:right;color:#64748b;font:13px ui-monospace,Consolas,monospace;overflow:hidden}.calculator-display{width:100%;height:55px;box-sizing:border-box;border:2px solid #94a3b8;border-radius:10px;background:#fff;padding:8px 12px;text-align:right;font:700 25px ui-monospace,Consolas,monospace}.calculator-toolbar,.calculator-grid{display:grid;gap:6px;margin-top:9px}.calculator-toolbar{grid-template-columns:repeat(5,1fr)}.calculator-grid{grid-template-columns:repeat(6,1fr)}.calculator-toolbar button,.calculator-grid button{min-height:39px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#172033;font-weight:700;cursor:pointer}.calculator-grid button:hover,.calculator-toolbar button:hover{background:#e0ecff}.calculator-grid .calc-operator{background:#e8eef7}.calculator-grid .calc-danger{background:#fee2e2;color:#b91c1c}.calculator-grid .calc-equals{background:#2563eb;color:#fff}.timer-tool-panel{width:min(360px,calc(100vw - 32px))}.timer-tool-panel .timer-display{font:800 42px ui-monospace,Consolas,monospace;text-align:center;color:#111827}.timer-tool-panel .timer-display.warning{color:#dc2626}.timer-tool-panel .timer-label{text-align:center;color:#64748b;margin-bottom:12px}.timer-setting{display:flex;align-items:end;justify-content:center;gap:5px;padding:10px 0}.timer-setting label{display:grid;gap:3px;text-align:center;font-size:10px;color:#64748b}.timer-setting input{width:54px;box-sizing:border-box;border:1px solid #94a3b8;border-radius:7px;padding:8px 4px;text-align:center;font-weight:700}.timer-set-btn,.timer-controls .timer-btn{border:0;border-radius:8px;padding:10px 13px;font-weight:800;cursor:pointer}.timer-set-btn{background:#334155;color:#fff}.timer-controls{display:flex;gap:8px}.timer-controls .timer-btn{flex:1;background:#2563eb;color:#fff}.timer-controls .reset-btn{background:#e2e8f0;color:#334155}@media(max-width:820px){.quiz-header{padding-top:68px}.quiz-tools{top:12px;right:12px}.quiz-tool-panel{position:fixed;top:auto;right:8px;bottom:8px;left:8px;width:auto;max-height:calc(100vh - 16px);overflow:auto}.calculator-grid{gap:5px}.calculator-toolbar button,.calculator-grid button{min-height:38px;font-size:12px}}@media(max-width:420px){.quiz-tool-toggle{width:40px;height:40px}.quiz-tool-panel{padding:10px}.calculator-grid{grid-template-columns:repeat(4,1fr)}.timer-setting input{width:48px}}
+  .quiz-tools{align-items:center}.quiz-timer-toggle{width:auto;min-width:126px;padding:0 11px;display:flex;gap:7px}.header-timer-display{font:800 15px ui-monospace,Consolas,monospace;letter-spacing:.4px;font-variant-numeric:tabular-nums}@media(max-width:420px){.quiz-timer-toggle{min-width:112px;padding:0 8px}.header-timer-display{font-size:13px}}
+  #calculatorToggle,#calculatorPanel,.quiz-tools{display:none!important}#timerToggle{display:flex!important;visibility:visible!important;opacity:1!important}.persistent-timer-toggle{position:fixed;top:12px;right:max(12px,calc((100vw - 900px)/2 + 18px));z-index:100}@media(min-width:821px){#timerPanel{position:fixed;top:62px;right:max(12px,calc((100vw - 900px)/2 + 18px));left:auto;bottom:auto}}@media(max-width:820px){.persistent-timer-toggle{top:12px;right:12px}}
+</style>
+
+<!-- ============================================================ -->
+<!-- BLOCK 07: JavaScript 로드 및 실행 -->
+<!-- ============================================================ -->
+
+<!-- 1. MathJax -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.js"></script>
+
+<!-- 2. GitHub main.js 불러오기 + 초기화 -->
+<style>
+  .bible-people-toggle{display:flex!important;width:auto!important;min-width:66px;padding:0 9px!important;font-size:13px!important;font-weight:800}
+  .persistent-people-toggle{position:fixed;top:12px;right:max(134px,calc((100vw - 900px)/2 + 140px));z-index:101;height:34px!important}
+  .bible-explore-toggle{display:flex!important;width:auto!important;min-width:60px;padding:0 9px!important;font-size:13px!important;font-weight:800}
+  .persistent-explore-toggle{position:fixed;top:12px;right:max(205px,calc((100vw - 900px)/2 + 211px));z-index:101;height:34px!important}
+  .persistent-timer-toggle{height:34px!important;min-width:112px!important}
+  .bible-people-panel{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.72);padding:24px;overflow:auto}
+  .bible-people-panel[hidden]{display:none!important}
+  .bible-people-dialog{width:min(1280px,100%);min-height:min(720px,calc(100vh - 48px));margin:0 auto;background:#f8fafc;border-radius:22px;box-shadow:0 28px 80px rgba(0,0,0,.35);overflow:hidden;color:#172033}
+  .bible-people-head{display:flex;align-items:center;justify-content:space-between;padding:22px 26px;background:#17233d;color:#fff}
+  .bible-people-head h2{margin:2px 0 0;font-size:28px}.bible-people-kicker{font-size:11px;font-weight:800;letter-spacing:1.8px;color:#fbbf24}
+  .bible-people-close{width:42px;height:42px;border:1px solid rgba(255,255,255,.3);border-radius:10px;background:rgba(255,255,255,.12);color:#fff;font-size:28px;cursor:pointer}
+  .bible-people-search{padding:20px 26px 10px}.bible-people-search label{display:block;margin-bottom:7px;font-size:12px;font-weight:800;color:#475569}
+  .bible-people-search>div{display:flex;gap:9px}.bible-people-search input{flex:1;min-width:0;border:2px solid #cbd5e1;border-radius:11px;padding:13px 15px;font-size:16px;background:#fff}
+  .bible-people-search button{border:0;border-radius:11px;padding:0 23px;background:#f59e0b;color:#172033;font-weight:900;cursor:pointer}
+  .bible-people-status{min-height:22px;padding:0 26px 12px;color:#64748b;font-size:13px}.bible-people-status.is-error{color:#b91c1c}
+  .bible-people-layout{display:grid;grid-template-columns:172px minmax(0,1fr);gap:16px;padding:0 26px 26px}
+  .bible-people-results,.bible-people-detail{border:1px solid #dbe3ee;border-radius:15px;background:#fff;min-height:500px;overflow:auto}
+  .bible-person-result{display:block;width:100%;border:0;border-bottom:1px solid #e2e8f0;background:#fff;padding:14px;text-align:left;cursor:pointer}
+  .bible-person-result:hover,.bible-person-result.is-active{background:#eff6ff}.bible-person-result strong,.bible-person-result span{display:block}
+  .bible-person-result strong{font-size:15px;color:#172033}.bible-person-result span{margin-top:3px;font-size:12px;color:#64748b}
+  .bible-people-empty{min-height:500px;display:grid;place-content:center;gap:7px;text-align:center;padding:30px;color:#64748b}.bible-people-empty strong{font-size:20px;color:#334155}
+  .bible-person-card{padding:24px}.bible-person-title{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;border-bottom:1px solid #e2e8f0;padding-bottom:17px}
+  .bible-person-title h3{font-size:28px;margin:0}.bible-person-title p{margin:4px 0 0;color:#64748b}.bible-person-id{font:700 11px ui-monospace,Consolas,monospace;color:#64748b;background:#f1f5f9;border-radius:8px;padding:7px 9px}
+  .bible-person-description{margin:18px 0;line-height:1.65;color:#334155}.bible-person-meta{display:flex;flex-wrap:wrap;gap:7px;margin:13px 0}
+  .bible-person-chip{display:inline-flex;padding:6px 9px;border-radius:999px;background:#e0ecff;color:#1e40af;font-size:12px;font-weight:800}
+  .bible-person-section{margin-top:24px}.bible-person-section h4{margin-bottom:10px;font-size:16px}.bible-person-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+  .bible-reference,.bible-relationship{border:1px solid #e2e8f0;border-radius:9px;padding:9px 10px;background:#f8fafc;font-size:12px;color:#334155}
+  .bible-relationship strong{display:block;color:#172033;margin-bottom:3px}.bible-reference-more{margin-top:10px;color:#64748b;font-size:12px}
+  .bible-person-graph{min-height:390px;margin-top:12px;border:1px solid #dbe3ee;border-radius:12px;overflow:hidden}
+  .bible-explore-tabs{display:flex;gap:8px;padding:16px 26px 6px}.bible-explore-tabs button{border:1px solid #cbd5e1;border-radius:999px;background:#fff;color:#334155;padding:9px 17px;font-weight:800;cursor:pointer}.bible-explore-tabs button.is-active{background:#17233d;color:#fff;border-color:#17233d}
+  .bible-explore-view{display:none}.bible-explore-view.is-active{display:block}.bible-explore-toolbar{display:flex;padding:10px 26px 14px}.bible-explore-toolbar input,.bible-explore-toolbar select{width:100%;border:2px solid #cbd5e1;border-radius:11px;padding:12px 14px;background:#fff;font-size:15px}
+  .bible-explore-layout{padding-top:0}.bible-explore-output{margin:0 26px 26px;min-height:480px;border:1px solid #dbe3ee;border-radius:15px;background:#fff;padding:16px;overflow:auto}.bible-place-card{padding:22px}.bible-place-card h3{font-size:26px;margin-bottom:5px}.bible-place-card p{line-height:1.6;color:#475569}.bible-place-map{width:100%;margin-top:16px;border:1px solid #dbe3ee;border-radius:12px;overflow:hidden}
+  .bible-nearby-place{border:1px solid #bfdbfe;border-radius:999px;background:#eff6ff;color:#1e40af;padding:6px 9px;font-size:12px;font-weight:800;cursor:pointer}.bible-nearby-place:hover{background:#dbeafe}
+  body.bible-people-open{overflow:hidden}
+  @media(max-width:760px){.persistent-people-toggle{right:134px}.persistent-explore-toggle{right:205px}.bible-people-panel{padding:0}.bible-people-dialog{min-height:100vh;border-radius:0}.bible-people-layout{grid-template-columns:1fr}.bible-people-results{min-height:0;max-height:210px}.bible-people-detail{min-height:430px}.bible-person-title{display:block}.bible-person-id{display:inline-block;margin-top:10px}.bible-explore-tabs{padding-left:14px;padding-right:14px}.bible-explore-toolbar{padding-left:14px;padding-right:14px}.bible-explore-output{margin-left:14px;margin-right:14px}}
+</style>
+
+<script src="./supabase-config.js?v=1"></script>
+<script src="./supabase-provider.js?v=1"></script>
+<script type="module">
+import { initialize } from './main.js?v=8.39-supabase-preview1';
+
+document.addEventListener('DOMContentLoaded', () => {
+  initialize();
+});
+</script>
+
+
+
+<script>
+(function() {
+  const MODE_TEXT = {
+    learn: '🟢 Learn · Answers and explanations are shown automatically.',
+    study: '🔵 Study · Choose a mode before or during the set.',
+    exam: '🔴 Exam · Feedback stays hidden until you submit the set.'
+  };
+
+  function updateSetTitleFromStart(startNumber) {
+    const title = document.getElementById('currentSetTitle');
+    if (!title) return;
+
+    const start = Math.max(1, Number(startNumber) || 1);
+    title.textContent = String(Math.ceil(start / 120));
+  }
+
+  function bindSetTitleUI() {
+    const setSelector = document.getElementById('setSelector');
+    const startInput = document.getElementById('startNumber');
+    const startButton = document.getElementById('startQuizBtn');
+
+    if (setSelector) {
+      setSelector.addEventListener('change', function() {
+        const setNumber = Math.max(1, Number(this.value) || 1);
+        updateSetTitleFromStart(((setNumber - 1) * 120) + 1);
+      });
+    }
+
+    if (startInput) {
+      startInput.addEventListener('input', function() {
+        updateSetTitleFromStart(this.value);
+      });
+    }
+
+    if (startButton) {
+      startButton.addEventListener('click', function() {
+        updateSetTitleFromStart(startInput ? startInput.value : 1);
+      });
+    }
+
+    updateSetTitleFromStart(startInput ? startInput.value : 1);
+  }
+
+  function bindModePreviewUI() {
+    // v8.0B1: main.js exclusively controls mode state and behavior.
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    bindSetTitleUI();
+  });
+})();
+</script>
+
+<!-- ============================================================ -->
+<!-- BLOCK 08: AI Tutor (Full English, Enter Key, Auto-detect) -->
+<!-- ============================================================ -->
+<div id="satTutorPanel" class="sat-tutor-panel">
+  <div class="sat-tutor-heading">
+    <div>
+      <h3>💬 AI TUTOR</h3>
+      <div class="sat-tutor-subtitle">Ask about the current question · mode-aware tutor</div>
+    </div>
+    <div class="sat-tutor-badge">Integrated Tutor</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <input 
+        id="chatbotQuestion" 
+        placeholder="Ask about this question..." 
+        style="flex:1;min-width:200px;padding:14px 18px;border:2px solid #ddd;border-radius:30px;font-size:16px;outline:none;transition:all .3s;"
+        onkeypress="if(event.key==='Enter') sendChatbotMessage()"
+      >
+      <button 
+        onclick="sendChatbotMessage()" 
+        style="padding:14px 28px;background:#f5a623;color:#fff;border:none;border-radius:30px;font-weight:700;cursor:pointer;font-size:16px;transition:all .3s;white-space:nowrap;"
+        onmouseover="this.style.background='#e0941a'"
+        onmouseout="this.style.background='#f5a623'"
+      >
+        ⏎ Send
+      </button>
+    </div>
+    <div 
+      id="chatbotResponse" 
+      style="margin-top:10px;padding:18px;background:#f8f9fa;border-radius:16px;min-height:70px;white-space:pre-wrap;border-left:4px solid #f5a623;font-size:15px;line-height:1.6;color:#1a1a2e;"
+    >
+      💡 Ask anything about this SAT question.
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // AI Tutor - sendChatbotMessage()
+  // ============================================================
+  const SAT_BOT_API_URL =
+    'https://sat-bot-07020143.vercel.app/api/chat';
+
+  async function checkSatBotStatus() {
+    const responseBox = document.getElementById('chatbotResponse');
+    try {
+      const response = await fetch(SAT_BOT_API_URL, {
+        method: 'GET',
+        cache: 'no-store'
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'AI Tutor API unavailable');
+      }
+
+      console.log('✅ AI Tutor API ready:', data);
+    } catch (error) {
+      console.warn('⚠️ AI Tutor API status check failed:', error);
+      if (responseBox && !responseBox.textContent.trim()) {
+        responseBox.innerHTML =
+          '⚠️ AI Tutor is temporarily unavailable.<br>' +
+          '<small>Please check the Vercel deployment and environment variables.</small>';
+      }
+    }
+  }
+
+  async function sendChatbotMessage() {
+    const questionInput = document.getElementById('chatbotQuestion');
+    const responseDiv = document.getElementById('chatbotResponse');
+    const question = questionInput.value.trim();
+
+    if (!question) {
+      responseDiv.innerHTML = '⚠️ Please enter a question.';
+      return;
+    }
+
+    let problemNumber = '1';
+    const qNumElement = document.querySelector('.q-num');
+    if (qNumElement) {
+      const match = qNumElement.textContent.match(/\(Original #(\d+)\)/);
+      if (match) problemNumber = match[1];
+    }
+
+    responseDiv.innerHTML = '⏳ Processing...';
+    questionInput.disabled = true;
+
+    try {
+      const res = await fetch(SAT_BOT_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          problemNumber: problemNumber,
+          question: question,
+          context: (typeof window.getCurrentQuestionContext === 'function')
+            ? window.getCurrentQuestionContext()
+            : null,
+          schemaVersion: 'SAT_MULTILANG_V2'
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        responseDiv.innerHTML = '🤖 ' + (data.message || data.response || 'No response.');
+      } else {
+        responseDiv.innerHTML =
+          '❌ Error: ' + (data.error || data.message || 'Unknown error') +
+          '<br><small>HTTP ' + res.status + ' · SAT_MULTILANG_V2</small>';
+      }
+    } catch (e) {
+      responseDiv.innerHTML = '❌ Network error: Could not reach server.';
+      console.error('Chatbot error:', e);
+    } finally {
+      questionInput.disabled = false;
+      questionInput.value = '';
+      questionInput.focus();
+    }
+  }
+
+  // ============================================================
+  // START 버튼 중복 클릭 방지 + 로딩 피드백
+  // ============================================================
+  (function() {
+    const startBtn = document.getElementById('startQuizBtn');
+
+    if (startBtn) {
+      startBtn.addEventListener('click', function(e) {
+        if (this.disabled) return;
+
+        this.disabled = true;
+        this.textContent = '⏳ Loading...';
+        this.style.opacity = '0.6';
+        this.style.cursor = 'wait';
+
+        setTimeout(() => {
+          if (this.disabled) {
+            this.disabled = false;
+            this.textContent = '▶ START';
+            this.style.opacity = '1';
+            this.style.cursor = 'pointer';
+          }
+        }, 15000);
+      });
+
+      const origStart = window.startQuizWithNumber;
+      if (origStart) {
+        window.startQuizWithNumber = function(...args) {
+          const result = origStart.apply(this, args);
+          setTimeout(() => {
+            if (startBtn) {
+              startBtn.disabled = false;
+              startBtn.textContent = '▶ START';
+              startBtn.style.opacity = '1';
+              startBtn.style.cursor = 'pointer';
+            }
+          }, 500);
+          return result;
+        };
+      }
+    }
+  })();
+
+
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(checkSatBotStatus, 1200);
+  });
+
+</script>

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GongBoo Ready JSON Template Gallery</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, system-ui, sans-serif; color: #172033; background: #f3f7fb; }
+    * { box-sizing: border-box; } body { margin: 0; }
+    header { padding: 24px clamp(18px, 4vw, 58px); color: #f8fbff; background: #09182b; border-bottom: 3px solid #f5a700; }
+    h1 { margin: 0; font-size: clamp(21px, 3vw, 32px); } header p { margin: 7px 0 0; opacity: .82; }
+    main { max-width: 1440px; margin: 0 auto; padding: 22px clamp(14px, 3vw, 36px) 45px; }
+    .notice { background: #e9f2ff; border: 1px solid #bed5f4; padding: 14px 16px; border-radius: 10px; line-height: 1.5; }
+    .filters { display: grid; grid-template-columns: 1.5fr repeat(2, minmax(160px, .7fr)); gap: 10px; margin: 18px 0 12px; }
+    input, select, button { font: inherit; border-radius: 8px; } input, select { min-width: 0; padding: 10px 11px; border: 1px solid #b8c8dc; background: #fff; }
+    .summary { display: flex; flex-wrap: wrap; gap: 9px; margin: 13px 0 15px; } .pill { padding: 6px 10px; border-radius: 999px; background: #e7edf6; font-size: 13px; } .pill.ready { background: #ddf6e9; color: #08643a; }
+    #results { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    article { display: flex; flex-direction: column; gap: 10px; min-height: 195px; padding: 15px; background: #fff; border: 1px solid #d7e0eb; border-radius: 12px; box-shadow: 0 2px 7px #1734570b; }
+    article h2 { margin: 0; font-size: 16px; line-height: 1.3; } .meta { color: #536276; font-size: 13px; line-height: 1.45; } code { overflow-wrap: anywhere; color: #495668; font-size: 12px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; } .tag { padding: 3px 7px; border-radius: 5px; background: #edf2f8; font-size: 12px; }
+    button { padding: 8px 10px; cursor: pointer; color: #fff; background: #1558d6; border: 0; align-self: flex-start; } button:hover { background: #0c43ae; }
+    #empty { display: none; padding: 34px; text-align: center; color: #5d6a7d; background: #fff; border: 1px dashed #bdc9d7; border-radius: 12px; }
+    .footnote { margin-top: 16px; color: #5f6c7e; font-size: 13px; line-height: 1.45; }
+    @media (max-width: 760px) { .filters { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>GongBoo Ready JSON Template Gallery</h1>
+    <p>Only validated, directly usable JSXGraph and Three.js JSON templates.</p>
+  </header>
+  <main>
+    <div class="notice"><strong>Ready templates only:</strong> this gallery contains the 43 validated JSON templates that can be copied into a question now. XML, HTML, screenshots, and raw source examples are intentionally hidden; they are not templates.</div>
+    <section class="filters" aria-label="template filters">
+      <input id="search" type="search" placeholder="Search result, name, category, template ID">
+      <select id="dimension"><option value="all">2D + 3D</option><option value="2d">2D</option><option value="3d">3D</option></select>
+      <select id="category"><option value="all">All categories</option></select>
+    </section>
+    <div id="summary" class="summary" aria-live="polite"></div>
+    <div id="results"></div>
+    <div id="empty">No templates match this filter.</div>
+    <p class="footnote">A template's visible name is managed separately from its stable template ID. Add a new reusable JSON only after it renders correctly in the quiz.</p>
+  </main>
+  <script type="module" src="./template-library.js"></script>
+</body>
+</html>

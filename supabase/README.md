@@ -10,6 +10,14 @@ Initial migration scope:
 - places, events, and journeys
 - protected quiz catalog and question-bank tables
 
+Directory layout:
+
+- `migrations/`: production database schema managed by the Supabase GitHub integration
+- `app/`: isolated GitHub Pages preview copied from the current Bible web app
+
+The repository-root web app remains the Google Sheets/GAS production version.
+Only `supabase/app/` is changed for the Supabase data-provider transition.
+
 Safety:
 
 - Google Sheets and Apps Script remain unchanged as the rollback source.
