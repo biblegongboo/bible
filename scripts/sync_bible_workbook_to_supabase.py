@@ -11,6 +11,7 @@ import csv
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -28,6 +29,14 @@ DEFAULT_WORKBOOK = Path(
 DEFAULT_BIBLE_ROOT = Path(r"C:\Users\daeca\Desktop\gongboo.org\BIBLE")
 DEFAULT_ENV_FILE = DEFAULT_BIBLE_ROOT / "config" / ".env.supabase.local"
 DEFAULT_REPORT = REPO_ROOT / "supabase" / "workbook-migration-report.json"
+
+
+def safe_print(message: str) -> None:
+    try:
+        print(message, flush=True)
+    except OSError:
+        # Long-running desktop jobs can outlive the invoking console pipe.
+        pass
 
 
 def load_local_env(path: Path) -> None:
@@ -441,15 +450,24 @@ def request_json(
         headers["Content-Type"] = "application/json;charset=utf-8"
     if prefer:
         headers["Prefer"] = prefer
-    request = urllib.request.Request(url, data=body, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(request, timeout=90) as response:
-            raw = response.read()
-            parsed = json.loads(raw) if raw else None
-            return parsed, dict(response.headers.items())
-    except urllib.error.HTTPError as error:
-        detail = error.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"{method} {url} failed: HTTP {error.code} {detail}") from error
+    for attempt in range(1, 6):
+        request = urllib.request.Request(url, data=body, headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(request, timeout=90) as response:
+                raw = response.read()
+                parsed = json.loads(raw) if raw else None
+                return parsed, dict(response.headers.items())
+        except urllib.error.HTTPError as error:
+            detail = error.read().decode("utf-8", errors="replace")
+            if error.code not in (408, 429, 500, 502, 503, 504) or attempt == 5:
+                raise RuntimeError(
+                    f"{method} {url} failed: HTTP {error.code} {detail}"
+                ) from error
+        except (urllib.error.URLError, ConnectionError, TimeoutError, OSError):
+            if attempt == 5:
+                raise
+        time.sleep(min(2 ** (attempt - 1), 12))
+    raise RuntimeError(f"{method} {url} failed after retries")
 
 
 def upsert_table(
@@ -472,7 +490,7 @@ def upsert_table(
             "resolution=merge-duplicates,return=minimal",
         )
         completed += len(batch)
-        print(f"{table}: {completed}/{len(rows)}", flush=True)
+        safe_print(f"{table}: {completed}/{len(rows)}")
 
 
 def remote_count(supabase_url: str, key: str, table: str) -> int:
@@ -555,7 +573,7 @@ def main() -> int:
         args.report.write_text(
             json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
         )
-        print(json.dumps(report, ensure_ascii=False, indent=2))
+        safe_print(json.dumps(report, ensure_ascii=False, indent=2))
         return 2
 
     if not args.dry_run:
@@ -593,7 +611,7 @@ def main() -> int:
     args.report.write_text(
         json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    print(json.dumps(report, ensure_ascii=False, indent=2))
+    safe_print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if not report["errors"] else 3
 
 
