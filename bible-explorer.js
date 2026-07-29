@@ -1,4 +1,4 @@
-import { renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.28-atlas-zoom1';
+import { renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.29-atlas-labels1';
 
 let initialized = false;
 let dataPromise = null;
@@ -20,9 +20,9 @@ function setStatus(message, isError = false) {
 function loadData() {
   if (dataPromise) return dataPromise;
   dataPromise = Promise.all([
-    fetch('./content/places.json?v=8.28-atlas-zoom1').then(checkResponse),
-    fetch('./content/journeys.json?v=8.28-atlas-zoom1').then(checkResponse),
-    fetch('./content/timelines.json?v=8.28-atlas-zoom1').then(checkResponse)
+    fetch('./content/places.json?v=8.29-atlas-labels1').then(checkResponse),
+    fetch('./content/journeys.json?v=8.29-atlas-labels1').then(checkResponse),
+    fetch('./content/timelines.json?v=8.29-atlas-labels1').then(checkResponse)
   ]).then(([places, journeys, timelines]) => {
     data = { places, journeys, timelines };
     return data;
@@ -61,15 +61,26 @@ function placeMapPayload(selected, nearby) {
     board: { boundingbox: [minLon - lonPad, maxLat + latPad, maxLon + lonPad, minLat - latPad], axis: true, grid: true },
     objects: nearby.map((place, index) => {
       const isSelected = place.id === selected.id;
+      const angle = (Math.PI * 2 * index / Math.max(1, nearby.length)) - Math.PI / 2;
+      const ring = index % 3;
+      const offsetDistance = isSelected ? 12 : 25 + ring * 17;
       return {
         id: `place_${index}`,
         type: 'point',
         coords: [Number(place.lon), Number(place.lat)],
-        name: isSelected ? place.name : '',
+        name: place.name,
         attributes: {
           size: isSelected ? 5 : 2.5,
           strokeColor: isSelected ? '#991b1b' : '#1d4ed8',
-          fillColor: isSelected ? '#f87171' : '#fbbf24'
+          fillColor: isSelected ? '#f87171' : '#fbbf24',
+          label: {
+            offset: [
+              Math.round(Math.cos(angle) * offsetDistance),
+              Math.round(Math.sin(angle) * offsetDistance)
+            ],
+            fontSize: isSelected ? 12 : 10,
+            color: isSelected ? '#991b1b' : '#172033'
+          }
         }
       };
     })
