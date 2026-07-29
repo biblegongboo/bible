@@ -12,7 +12,9 @@ function engineOf(payload) {
 }
 
 function assetUrl(fileName) {
-  return new URL(fileName, import.meta.url).href;
+  const url = new URL(fileName, import.meta.url);
+  url.searchParams.set('v', '8.26-people-graph2');
+  return url.href;
 }
 
 function loadStyleOnce() {
