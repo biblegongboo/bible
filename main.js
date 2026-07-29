@@ -8,8 +8,8 @@
 
 // Super graphics are isolated from the Legacy SAT renderer.  The router only
 // activates for an explicit engine:"super" JSON payload.
-import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.35-atlas-square1';
-import './bible-explorer.js?v=8.35-atlas-square1';
+import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.36-family-tree1';
+import './bible-explorer.js?v=8.36-family-tree1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -6338,6 +6338,26 @@ var biblePeopleExplorerInitialized = false;
 var biblePeopleSelectedId = '';
 var biblePeopleSearchTimer = null;
 var biblePeopleDirectoryLoaded = false;
+var biblePeopleNameIndex = {};
+var biblePeopleNameIndexPromise = null;
+
+function biblePeopleLoadNameIndex_() {
+  if (biblePeopleNameIndexPromise) return biblePeopleNameIndexPromise;
+  biblePeopleNameIndexPromise = fetch('./content/people-index.json?v=8.36-family-tree1')
+    .then(function(response) {
+      if (!response.ok) throw new Error('Bible person names could not be loaded.');
+      return response.json();
+    })
+    .then(function(index) {
+      biblePeopleNameIndex = index || {};
+      return biblePeopleNameIndex;
+    })
+    .catch(function(error) {
+      console.warn(error.message);
+      return {};
+    });
+  return biblePeopleNameIndexPromise;
+}
 
 async function biblePeopleApi_(action, values) {
   var params = new URLSearchParams();
@@ -6417,51 +6437,101 @@ function biblePeopleRenderResults_(people) {
 
 function biblePeopleRelationshipName_(relationship, personId) {
   if (relationship.RELATED_NAME_EN) return relationship.RELATED_NAME_EN;
-  return relationship.FROM_ID === personId ? relationship.TO_ID : relationship.FROM_ID;
+  var relatedId = relationship.RELATED_ID ||
+    (relationship.FROM_ID === personId ? relationship.TO_ID : relationship.FROM_ID);
+  return biblePeopleNameIndex[relatedId] && biblePeopleNameIndex[relatedId].name
+    ? biblePeopleNameIndex[relatedId].name
+    : relatedId;
+}
+
+function biblePeopleRelationshipType_(relationship, personId) {
+  var type = String(relationship.RELATIONSHIP_TYPE || 'related').toLowerCase();
+  var fromSelected = relationship.FROM_ID === personId;
+  if (fromSelected) {
+    if (type === 'father' || type === 'mother') return 'parent';
+    return type;
+  }
+  if (type === 'child') return 'parent';
+  if (type === 'father' || type === 'mother') return 'child';
+  return type;
+}
+
+function biblePeopleUniqueRelationships_(relationships, personId) {
+  var unique = new Map();
+  (relationships || []).forEach(function(relationship) {
+    var relatedId = relationship.RELATED_ID ||
+      (relationship.FROM_ID === personId ? relationship.TO_ID : relationship.FROM_ID);
+    if (!relatedId || relatedId === personId) return;
+    var type = biblePeopleRelationshipType_(relationship, personId);
+    var key = relatedId + '|' + type;
+    if (!unique.has(key)) {
+      unique.set(key, Object.assign({}, relationship, {
+        RELATED_ID: relatedId,
+        DISPLAY_TYPE: type
+      }));
+    }
+  });
+  return Array.from(unique.values());
 }
 
 function biblePeopleGraphPayload_(person, relationships) {
-  var related = (relationships || []).slice(0, 18);
+  var related = biblePeopleUniqueRelationships_(relationships, person.PERSON_ID).slice(0, 28);
+  var groups = { parent: [], partner: [], sibling: [], child: [], other: [] };
+  related.forEach(function(relationship) {
+    var type = relationship.DISPLAY_TYPE;
+    if (groups[type]) groups[type].push(relationship);
+    else groups.other.push(relationship);
+  });
   var objects = [{
     id: 'center',
     type: 'point',
     coords: [0, 0],
     name: person.NAME_EN || person.PERSON_ID,
-    attributes: { size: 5, strokeColor: '#b45309', fillColor: '#fbbf24' }
+    attributes: { size: 6, strokeColor: '#92400e', fillColor: '#fbbf24', label: { fontSize: 14, color: '#78350f', offset: [10, 10] } }
   }];
-  var radius = related.length > 10 ? 8 : 6.5;
-  related.forEach(function(relationship, index) {
-    var angle = (Math.PI * 2 * index / Math.max(1, related.length)) - Math.PI / 2;
-    var coords = [radius * Math.cos(angle), radius * Math.sin(angle)];
-    var id = 'related_' + index;
-    var relatedName = biblePeopleRelationshipName_(relationship, person.PERSON_ID);
+
+  function addGroup(groupName, y, color, title) {
+    var members = groups[groupName];
+    if (!members.length) return;
+    var spacing = Math.min(5.2, 20 / Math.max(1, members.length));
+    var startX = -((members.length - 1) * spacing) / 2;
     objects.push({
-      id: id,
-      type: 'point',
-      coords: coords,
-      name: relatedName,
-      attributes: { size: 3, strokeColor: '#1d4ed8', fillColor: '#60a5fa' }
-    });
-    objects.push({
-      id: 'line_' + index,
-      type: 'segment',
-      from: [0, 0],
-      to: coords,
-      attributes: { strokeColor: '#94a3b8', strokeWidth: 1.5 }
-    });
-    objects.push({
-      id: 'label_' + index,
+      id: 'title_' + groupName,
       type: 'text',
-      position: [coords[0] * .54, coords[1] * .54],
-      value: relationship.RELATIONSHIP_TYPE || 'related',
-      attributes: { color: '#475569', fontSize: 10 }
+      position: [-10.5, y + (y >= 0 ? 1.25 : -1.25)],
+      value: title,
+      attributes: { color: '#64748b', fontSize: 11 }
     });
-  });
+    members.forEach(function(relationship, index) {
+      var coords = [startX + index * spacing, y];
+      var id = groupName + '_' + index;
+      objects.push({
+        id: id,
+        type: 'point',
+        coords: coords,
+        name: biblePeopleRelationshipName_(relationship, person.PERSON_ID),
+        attributes: { size: 4, strokeColor: color.stroke, fillColor: color.fill, label: { fontSize: 12, color: color.text, offset: [8, 8] } }
+      });
+      objects.push({
+        id: 'line_' + id,
+        type: 'segment',
+        from: [0, 0],
+        to: coords,
+        attributes: { strokeColor: color.line, strokeWidth: 1.8 }
+      });
+    });
+  }
+
+  addGroup('parent', 7, { stroke: '#6d28d9', fill: '#c4b5fd', text: '#4c1d95', line: '#a78bfa' }, 'PARENTS');
+  addGroup('partner', 3.7, { stroke: '#be185d', fill: '#f9a8d4', text: '#831843', line: '#f472b6' }, 'SPOUSE / PARTNER');
+  addGroup('sibling', -3.7, { stroke: '#1d4ed8', fill: '#93c5fd', text: '#1e3a8a', line: '#60a5fa' }, 'SIBLINGS');
+  addGroup('child', -7, { stroke: '#047857', fill: '#6ee7b7', text: '#064e3b', line: '#34d399' }, 'CHILDREN');
+  addGroup('other', -9.5, { stroke: '#475569', fill: '#cbd5e1', text: '#334155', line: '#94a3b8' }, 'OTHER');
   return {
     schemaVersion: '1.1',
     engine: 'jsxgraph',
     type: 'bible.people.relationships',
-    board: { boundingbox: [-11, 10, 11, -10], axis: false, grid: false },
+    board: { boundingbox: [-12, 10, 12, -11], axis: false, grid: false },
     objects: objects
   };
 }
@@ -6472,7 +6542,10 @@ function biblePeopleRenderDetail_(detail) {
   var person = detail.person;
   var aliases = Array.isArray(detail.aliases) ? detail.aliases : [];
   var references = Array.isArray(detail.references) ? detail.references : [];
-  var relationships = Array.isArray(detail.relationships) ? detail.relationships : [];
+  var relationships = biblePeopleUniqueRelationships_(
+    Array.isArray(detail.relationships) ? detail.relationships : [],
+    person.PERSON_ID
+  );
   var roles = String(person.ROLES || '').split('|').filter(Boolean);
   var description = person.DESCRIPTION_EN || person.DESCRIPTION_KO || 'No source description is available.';
   var referenceLimit = 24;
@@ -6502,7 +6575,7 @@ function biblePeopleRenderDetail_(detail) {
     '<div class="bible-person-grid">' + relationships.slice(0, relationshipLimit).map(function(relationship) {
       return '<div class="bible-relationship"><strong>' +
         escapeHtml(biblePeopleRelationshipName_(relationship, person.PERSON_ID)) +
-        '</strong>' + escapeHtml(relationship.RELATIONSHIP_TYPE || 'related') + '</div>';
+        '</strong>' + escapeHtml(relationship.DISPLAY_TYPE || relationship.RELATIONSHIP_TYPE || 'related') + '</div>';
     }).join('') + '</div></section>' +
     '<section class="bible-person-section"><h4>Relationship graph</h4><div class="bible-person-graph">' + graphHtml + '</div></section>' +
     '</article>';
@@ -6518,7 +6591,11 @@ async function biblePeopleLoadDetail_(personId) {
     button.classList.toggle('is-active', button.getAttribute('data-person-id') === personId);
   });
   try {
-    var detail = await biblePeopleApi_('person_detail', { person_id: personId });
+    var results = await Promise.all([
+      biblePeopleApi_('person_detail', { person_id: personId }),
+      biblePeopleLoadNameIndex_()
+    ]);
+    var detail = results[0];
     biblePeopleRenderDetail_(detail);
     biblePeopleSetStatus_('Loaded ' + (detail.person.NAME_EN || personId) + '.');
   } catch (error) {

@@ -40,7 +40,7 @@ function mountScene(host, scene) {
   host.innerHTML = '<div id="' + boardId + '" class="jxgbox gongboo-jxg-board" style="' + boardStyle + '"></div>';
   const board = window.JXG.JSXGraph.initBoard(boardId, {
     boundingbox: [xRange[0], yRange[1], xRange[1], yRange[0]],
-    axis: true, grid: !!coord.grid, showCopyright: false, showNavigation: false,
+    axis: coord.axis !== false, grid: !!coord.grid, showCopyright: false, showNavigation: false,
     // Mathematical figures must preserve equal x/y units: circles stay circles.
     keepaspectratio: true
   });
@@ -164,7 +164,7 @@ function jsxGraphScene(payload) {
     return { type: 'unsupported', id };
   });
   return {
-    coordinateSystem: { xRange: [boundingbox[0], boundingbox[2]], yRange: [boundingbox[3], boundingbox[1]], grid: !!board.grid },
+    coordinateSystem: { xRange: [boundingbox[0], boundingbox[2]], yRange: [boundingbox[3], boundingbox[1]], grid: !!board.grid, axis: board.axis !== false },
     square: board.square === true,
     items
   };

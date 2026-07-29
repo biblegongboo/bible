@@ -1,4 +1,4 @@
-import { renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.35-atlas-square1';
+import { renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.36-family-tree1';
 
 let initialized = false;
 let dataPromise = null;
@@ -20,9 +20,9 @@ function setStatus(message, isError = false) {
 function loadData() {
   if (dataPromise) return dataPromise;
   dataPromise = Promise.all([
-    fetch('./content/places.json?v=8.35-atlas-square1').then(checkResponse),
-    fetch('./content/journeys.json?v=8.35-atlas-square1').then(checkResponse),
-    fetch('./content/timelines.json?v=8.35-atlas-square1').then(checkResponse)
+    fetch('./content/places.json?v=8.36-family-tree1').then(checkResponse),
+    fetch('./content/journeys.json?v=8.36-family-tree1').then(checkResponse),
+    fetch('./content/timelines.json?v=8.36-family-tree1').then(checkResponse)
   ]).then(([places, journeys, timelines]) => {
     data = { places, journeys, timelines };
     return data;

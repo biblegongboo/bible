@@ -30,14 +30,24 @@ const places = readJsonLines(path.join(sourceRoot, 'normalized', 'places.jsonl')
 
 const journeys = readJsonLines(path.join(sourceRoot, 'graphics', 'paul-journey-graphics.jsonl'));
 const timelines = readJsonLines(path.join(sourceRoot, 'graphics', 'timeline-by-book.jsonl'));
+const peopleIndex = Object.fromEntries(
+  readJsonLines(path.join(sourceRoot, 'normalized', 'people.jsonl'))
+    .map((person) => [person.person_id, {
+      name: person.canonical_name_en || person.person_id,
+      name_ko: person.canonical_name_ko || '',
+      gender: person.gender || ''
+    }])
+);
 
 fs.mkdirSync(outputRoot, { recursive: true });
 fs.writeFileSync(path.join(outputRoot, 'places.json'), JSON.stringify(places));
 fs.writeFileSync(path.join(outputRoot, 'journeys.json'), JSON.stringify(journeys));
 fs.writeFileSync(path.join(outputRoot, 'timelines.json'), JSON.stringify(timelines));
+fs.writeFileSync(path.join(outputRoot, 'people-index.json'), JSON.stringify(peopleIndex));
 
 console.log(JSON.stringify({
   places: places.length,
   journeys: journeys.length,
-  timelines: timelines.length
+  timelines: timelines.length,
+  people: Object.keys(peopleIndex).length
 }));
