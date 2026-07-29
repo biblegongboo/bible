@@ -21,7 +21,10 @@ function readEnv(filePath) {
 }
 
 const env = readEnv(envPath);
-const url = env.SUPABASE_URL;
+const rawUrl = env.SUPABASE_URL;
+const url = rawUrl
+  ?.replace(/\/+$/, '')
+  .replace(/\/(?:rest|auth|functions)\/v1$/i, '');
 const publishableKey =
   env.SUPABASE_PUBLISHABLE_KEY ||
   (env.SUPABASE_SECRET_KEY?.startsWith('sb_publishable_')
