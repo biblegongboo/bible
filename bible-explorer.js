@@ -1,4 +1,4 @@
-import { renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.27-atlas1';
+import { renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.28-atlas-zoom1';
 
 let initialized = false;
 let dataPromise = null;
@@ -20,9 +20,9 @@ function setStatus(message, isError = false) {
 function loadData() {
   if (dataPromise) return dataPromise;
   dataPromise = Promise.all([
-    fetch('./content/places.json?v=8.27-atlas1').then(checkResponse),
-    fetch('./content/journeys.json?v=8.27-atlas1').then(checkResponse),
-    fetch('./content/timelines.json?v=8.27-atlas1').then(checkResponse)
+    fetch('./content/places.json?v=8.28-atlas-zoom1').then(checkResponse),
+    fetch('./content/journeys.json?v=8.28-atlas-zoom1').then(checkResponse),
+    fetch('./content/timelines.json?v=8.28-atlas-zoom1').then(checkResponse)
   ]).then(([places, journeys, timelines]) => {
     data = { places, journeys, timelines };
     return data;
@@ -35,30 +35,37 @@ function checkResponse(response) {
   return response.json();
 }
 
-function placeMapPayload(selected) {
+function nearbyPlaces(selected) {
   const lat = Number(selected.lat);
   const lon = Number(selected.lon);
-  const nearby = data.places.filter((place) =>
-    Math.abs(Number(place.lat) - lat) <= 3.5 &&
-    Math.abs(Number(place.lon) - lon) <= 4.5
-  ).sort((left, right) => {
-    const leftDistance = Math.abs(Number(left.lat) - lat) + Math.abs(Number(left.lon) - lon);
-    const rightDistance = Math.abs(Number(right.lat) - lat) + Math.abs(Number(right.lon) - lon);
+  return data.places.slice().sort((left, right) => {
+    const leftDistance = Math.hypot(Number(left.lat) - lat, Number(left.lon) - lon);
+    const rightDistance = Math.hypot(Number(right.lat) - lat, Number(right.lon) - lon);
     return leftDistance - rightDistance;
-  }).slice(0, 36);
+  }).slice(0, 24);
+}
 
+function placeMapPayload(selected, nearby) {
+  const latitudes = nearby.map((place) => Number(place.lat));
+  const longitudes = nearby.map((place) => Number(place.lon));
+  const minLat = Math.min(...latitudes);
+  const maxLat = Math.max(...latitudes);
+  const minLon = Math.min(...longitudes);
+  const maxLon = Math.max(...longitudes);
+  const lonPad = Math.max(0.18, (maxLon - minLon) * 0.16);
+  const latPad = Math.max(0.18, (maxLat - minLat) * 0.16);
   return {
     schemaVersion: '1.1',
     engine: 'jsxgraph',
     type: 'bible.map.places',
-    board: { boundingbox: [lon - 4.7, lat + 3.7, lon + 4.7, lat - 3.7], axis: true, grid: true },
+    board: { boundingbox: [minLon - lonPad, maxLat + latPad, maxLon + lonPad, minLat - latPad], axis: true, grid: true },
     objects: nearby.map((place, index) => {
       const isSelected = place.id === selected.id;
       return {
         id: `place_${index}`,
         type: 'point',
         coords: [Number(place.lon), Number(place.lat)],
-        name: place.name,
+        name: isSelected ? place.name : '',
         attributes: {
           size: isSelected ? 5 : 2.5,
           strokeColor: isSelected ? '#991b1b' : '#1d4ed8',
@@ -72,6 +79,7 @@ function placeMapPayload(selected) {
 function renderPlaceDetail(place) {
   const host = document.getElementById('biblePlaceDetail');
   if (!host || !place) return;
+  const nearby = nearbyPlaces(place);
   host.innerHTML = `<article class="bible-place-card">
     <h3>${escapeHtml(place.name)}</h3>
     <div class="bible-person-meta">
@@ -80,10 +88,20 @@ function renderPlaceDetail(place) {
       ${place.source ? `<span class="bible-person-chip">${escapeHtml(place.source)}</span>` : ''}
     </div>
     <p>${escapeHtml(place.description || 'No source description is available.')}</p>
-    <div class="bible-place-map">${renderSuperGraphicPayload(placeMapPayload(place))}</div>
+    <div class="bible-place-map">${renderSuperGraphicPayload(placeMapPayload(place, nearby))}</div>
+    <section class="bible-person-section"><h4>Nearby places</h4>
+      <div class="bible-person-meta">${nearby.filter((item) => item.id !== place.id).map((item) =>
+        `<button type="button" class="bible-nearby-place" data-nearby-place-id="${escapeHtml(item.id)}">${escapeHtml(item.name)}</button>`
+      ).join('')}</div>
+    </section>
   </article>`;
   document.querySelectorAll('[data-bible-place-id]').forEach((button) => {
     button.classList.toggle('is-active', button.dataset.biblePlaceId === place.id);
+  });
+  host.querySelectorAll('[data-nearby-place-id]').forEach((button) => {
+    button.addEventListener('click', () => {
+      renderPlaceDetail(data.places.find((item) => item.id === button.dataset.nearbyPlaceId));
+    });
   });
 }
 
