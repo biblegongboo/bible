@@ -157,11 +157,17 @@ function renderPlaceResults(query = '') {
   if (places.length && !document.querySelector('.bible-place-card')) renderPlaceDetail(places[0]);
 }
 
-function renderJourney(index = 0) {
+function renderJourney(index = '') {
   const output = document.getElementById('bibleJourneyOutput');
+  if (!output) return;
+  if (index === '' || index === null || index === undefined) {
+    output.innerHTML = '<div class="bible-people-empty"><strong>Select a journey</strong><span>Choose a route from the list above.</span></div>';
+    setStatus('Select a journey to view its route.');
+    return;
+  }
   const journeyIndex = Number(index) || 0;
   const journey = data.journeys[journeyIndex];
-  if (!output || !journey) return;
+  if (!journey) return;
   const graphic = structuredClone(journey.graphic);
   if (journeyIndex === 0 && Array.isArray(graphic?.board?.boundingbox) && graphic.board.boundingbox.length === 4) {
     const [left, top, right, bottom] = graphic.board.boundingbox.map(Number);
@@ -196,9 +202,16 @@ function renderTimeline(index = 0) {
 function populate() {
   const journeySelector = document.getElementById('bibleJourneySelector');
   const timelineSelector = document.getElementById('bibleTimelineSelector');
-  journeySelector.innerHTML = data.journeys.map((journey, index) =>
+  const selectedJourney = journeySelector.value;
+  journeySelector.innerHTML = '<option value="">Select a journey...</option>' + data.journeys.map((journey, index) =>
     `<option value="${index}">${escapeHtml(journey.title_en || journey.journey_id)}</option>`
   ).join('');
+  if (selectedJourney !== '' &&
+      Number.isInteger(Number(selectedJourney)) &&
+      Number(selectedJourney) >= 0 &&
+      Number(selectedJourney) < data.journeys.length) {
+    journeySelector.value = selectedJourney;
+  }
   timelineSelector.innerHTML = data.timelines.map((timeline, index) =>
     `<option value="${index}">${escapeHtml(timeline.book_code.replace(/^(OT|NT)-/, ''))} (${timeline.event_count} events)</option>`
   ).join('');

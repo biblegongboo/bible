@@ -9,7 +9,7 @@
 // Super graphics are isolated from the Legacy SAT renderer.  The router only
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
-import './bible-explorer.js?v=8.38-family-roles1';
+import './bible-explorer.js?v=8.41-google-ui-context1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -308,12 +308,11 @@ function applySubjectConfig() {
 
 function updateSubjectTitle(setNumber) {
   var title = document.querySelector('.sat-title');
-  var subtitle = document.querySelector('.sat-sub');
   var englishName = currentSubject === 'BIBLE_OT'
     ? 'Old Testament'
     : (currentSubject === 'BIBLE_NT' ? 'New Testament' : String(subjectConfig.NAME || currentSubject));
-  if (title) title.textContent = englishName + (IS_TRIAL_USER ? ' · Sample' : ' · Set ' + (setNumber || 1));
-  if (subtitle) subtitle.textContent = IS_TRIAL_USER ? 'Questions 1-20' : 'Bible';
+  if (title) title.textContent = 'BIBLE · ' + englishName +
+    (IS_TRIAL_USER ? ' · Sample' : ' · Set ' + (setNumber || 1));
 }
 
 // ========================================================================
@@ -6767,6 +6766,6 @@ document.addEventListener('change', function(event) {
   currentStartNumber = start;
   if (DOM.startNumberInput) DOM.startNumberInput.value = String(start);
   var title = document.querySelector('.sat-title');
-  if (title) title.textContent = option.textContent;
+  if (title) title.textContent = 'BIBLE · ' + option.textContent;
   console.log('Bible chapter selected:', option.dataset.code, 'start', start, 'count', limit);
 }, true);
