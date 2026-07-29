@@ -26,7 +26,7 @@ DEFAULT_WORKBOOK = Path(
     r"C:\Users\daeca\Desktop\gongboo.org\BIBLE\import\Bible Quiz.xlsx"
 )
 DEFAULT_BIBLE_ROOT = Path(r"C:\Users\daeca\Desktop\gongboo.org\BIBLE")
-DEFAULT_ENV_FILE = REPO_ROOT / ".env.supabase.local"
+DEFAULT_ENV_FILE = DEFAULT_BIBLE_ROOT / "config" / ".env.supabase.local"
 DEFAULT_REPORT = REPO_ROOT / "supabase" / "workbook-migration-report.json"
 
 
