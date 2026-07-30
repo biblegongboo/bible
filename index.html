@@ -279,7 +279,7 @@
 <section id="bibleExplorePanel" class="bible-people-panel bible-explore-panel" aria-label="Bible Atlas" hidden>
   <div class="bible-people-dialog bible-explore-dialog" role="dialog" aria-modal="true" aria-labelledby="bibleExploreTitle">
     <header class="bible-people-head">
-      <div><span class="bible-people-kicker">BIBLE CONTEXT</span><h2 id="bibleExploreTitle">Atlas, Journeys &amp; Timeline</h2></div>
+      <div><span class="bible-people-kicker">BIBLE CONTEXT</span><h2 id="bibleExploreTitle">Atlas &amp; Bible Study</h2></div>
       <button type="button" id="bibleExploreClose" class="bible-people-close" aria-label="Close Bible Atlas">&times;</button>
     </header>
     <nav class="bible-explore-tabs" aria-label="Bible context sections">
@@ -287,6 +287,7 @@
       <button type="button" data-bible-explore-tab="journeys">Journeys</button>
       <button type="button" data-bible-explore-tab="timeline">Timeline</button>
       <button type="button" data-bible-explore-tab="patristic">Early Church</button>
+      <button type="button" data-bible-explore-tab="knowledge">Study</button>
     </nav>
     <div id="bibleExploreStatus" class="bible-people-status" aria-live="polite">Loading Bible context data...</div>
     <section class="bible-explore-view is-active" data-bible-explore-view="places">
@@ -310,6 +311,49 @@
         <aside id="biblePatristicResults" class="bible-people-results" aria-label="Early Church works"></aside>
         <main id="biblePatristicDetail" class="bible-people-detail"></main>
       </div>
+    </section>
+    <section class="bible-explore-view" data-bible-explore-view="knowledge">
+      <nav class="bible-knowledge-sections" aria-label="Bible study sections">
+        <button type="button" class="is-active" data-knowledge-section="entities">Verse Topics</button>
+        <button type="button" data-knowledge-section="words">Words</button>
+        <button type="button" data-knowledge-section="dictionary">Dictionary</button>
+        <button type="button" data-knowledge-section="topics">Topics</button>
+        <button type="button" data-knowledge-section="books">Books</button>
+      </nav>
+      <section class="bible-knowledge-view is-active" data-knowledge-view="entities">
+        <div class="bible-explore-toolbar"><input id="bibleKnowledgeEntitySearch" type="search" autocomplete="off" placeholder="Search key terms, plants, animals, objects..."></div>
+        <div class="bible-people-layout bible-explore-layout">
+          <aside id="bibleKnowledgeEntityResults" class="bible-people-results" aria-label="Verse topic results"></aside>
+          <main id="bibleKnowledgeEntityDetail" class="bible-people-detail"></main>
+        </div>
+      </section>
+      <section class="bible-knowledge-view" data-knowledge-view="words">
+        <div class="bible-explore-toolbar"><input id="bibleWordSearch" type="search" autocomplete="off" placeholder="Search an English Bible word..."></div>
+        <div class="bible-people-layout bible-explore-layout">
+          <aside id="bibleWordResults" class="bible-people-results" aria-label="Word results"></aside>
+          <main id="bibleWordDetail" class="bible-people-detail"></main>
+        </div>
+      </section>
+      <section class="bible-knowledge-view" data-knowledge-view="dictionary">
+        <div class="bible-explore-toolbar"><input id="bibleDictionarySearch" type="search" autocomplete="off" placeholder="Search the Bible dictionary..."></div>
+        <div class="bible-people-layout bible-explore-layout">
+          <aside id="bibleDictionaryResults" class="bible-people-results" aria-label="Dictionary results"></aside>
+          <main id="bibleDictionaryDetail" class="bible-people-detail"></main>
+        </div>
+      </section>
+      <section class="bible-knowledge-view" data-knowledge-view="topics">
+        <div class="bible-people-layout bible-explore-layout">
+          <aside id="bibleTopicResults" class="bible-people-results" aria-label="Topic results"></aside>
+          <main id="bibleTopicDetail" class="bible-people-detail"></main>
+        </div>
+      </section>
+      <section class="bible-knowledge-view" data-knowledge-view="books">
+        <div class="bible-explore-toolbar"><input id="bibleBookSearch" type="search" autocomplete="off" placeholder="Search a Bible book..."></div>
+        <div class="bible-people-layout bible-explore-layout">
+          <aside id="bibleBookResults" class="bible-people-results" aria-label="Bible book results"></aside>
+          <main id="bibleBookDetail" class="bible-people-detail"></main>
+        </div>
+      </section>
     </section>
   </div>
 </section>
@@ -1833,7 +1877,7 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-reference,.bible-relationship{border:1px solid #e2e8f0;border-radius:9px;padding:9px 10px;background:#f8fafc;font-size:12px;color:#334155}
   .bible-relationship strong{display:block;color:#172033;margin-bottom:3px}.bible-reference-more{margin-top:10px;color:#64748b;font-size:12px}
   .bible-person-graph{min-height:390px;margin-top:12px;border:1px solid #dbe3ee;border-radius:12px;overflow:hidden}
-  .bible-explore-tabs{display:flex;gap:8px;padding:16px 26px 6px}.bible-explore-tabs button{border:1px solid #cbd5e1;border-radius:999px;background:#fff;color:#334155;padding:9px 17px;font-weight:800;cursor:pointer}.bible-explore-tabs button.is-active{background:#17233d;color:#fff;border-color:#17233d}
+  .bible-explore-tabs{display:flex;flex-wrap:wrap;gap:8px;padding:16px 26px 6px}.bible-explore-tabs button{border:1px solid #cbd5e1;border-radius:999px;background:#fff;color:#334155;padding:9px 17px;font-weight:800;cursor:pointer}.bible-explore-tabs button.is-active{background:#17233d;color:#fff;border-color:#17233d}
   .bible-explore-view{display:none}.bible-explore-view.is-active{display:block}.bible-explore-toolbar{display:flex;padding:10px 26px 14px}.bible-explore-toolbar input,.bible-explore-toolbar select{width:100%;border:2px solid #cbd5e1;border-radius:11px;padding:12px 14px;background:#fff;font-size:15px}
   .bible-explore-layout{padding-top:0}.bible-explore-output{margin:0 26px 26px;min-height:480px;border:1px solid #dbe3ee;border-radius:15px;background:#fff;padding:16px;overflow:auto}.bible-place-card{padding:22px}.bible-place-card h3{font-size:26px;margin-bottom:5px}.bible-place-card p{line-height:1.6;color:#475569}.bible-place-map{width:100%;margin-top:16px;border:1px solid #dbe3ee;border-radius:12px;overflow:hidden}
   .bible-place-map25d{background:#f7fbff}.bible-map25d-toolbar{display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid #dbe3ee;background:#fff}.bible-map25d-toolbar strong{font-size:13px}.bible-map25d-toolbar span{flex:1;color:#64748b;font-size:11px}.bible-map25d-toolbar button{border:1px solid #bfdbfe;border-radius:8px;background:#eff6ff;color:#1e40af;padding:6px 9px;font-weight:800;cursor:pointer}.bible-map25d-host{width:100%;height:min(68vh,720px);min-height:520px}.bible-map25d-host svg{display:block;width:100%;height:100%;cursor:grab;touch-action:none;user-select:none}.bible-map25d-host svg.is-dragging{cursor:grabbing}.bible-map25d-host .map25d-sea{fill:#f7fbff}.bible-map25d-host .map25d-grid{fill:none;stroke:#dce7f1;stroke-width:1;vector-effect:non-scaling-stroke}.bible-map25d-host .map25d-point{fill:#fbbf24;stroke:#1d4ed8;stroke-width:1.5;vector-effect:non-scaling-stroke;cursor:pointer}.bible-map25d-host .map25d-point:hover,.bible-map25d-host .map25d-point:focus,.bible-map25d-host .map25d-point.is-selected{fill:#fb7185;stroke:#991b1b;outline:none}.bible-map25d-host .map25d-label{fill:#172033;paint-order:stroke;stroke:rgba(255,255,255,.96);stroke-width:4px;stroke-linejoin:round;font-weight:650;pointer-events:none}.bible-map25d-host .map25d-label.is-selected{fill:#991b1b;font-weight:850}.bible-map25d-status{min-height:34px;padding:9px 12px;border-top:1px solid #dbe3ee;background:#fff;color:#64748b;font-size:12px}
@@ -1843,14 +1887,15 @@ html:not(.admin-user) .admin-preview-panel {
   .vector-scene25d-host{width:100%;height:min(62vh,620px);min-height:390px;border:1px solid #bfdbfe;border-radius:12px;overflow:hidden;background:#f8fbff}.vector-scene25d-host svg{display:block;width:100%;height:100%;cursor:grab;touch-action:none;user-select:none}.vector-scene25d-host svg.is-dragging{cursor:grabbing}.scene25d-bg{fill:#fbfdff}.scene25d-grid{fill:none;stroke:#dbe5ef;stroke-width:1;vector-effect:non-scaling-stroke}.scene25d-edge{stroke-linecap:round;stroke-linejoin:round}.scene25d-node{cursor:pointer;vector-effect:non-scaling-stroke}.scene25d-node:hover{filter:brightness(.9);stroke-width:2.5}.scene25d-label,.scene25d-section-label{fill:#172033;paint-order:stroke;stroke:rgba(255,255,255,.97);stroke-width:4px;stroke-linejoin:round;font-weight:700;pointer-events:none}.scene25d-section-label{fill:#64748b;font-weight:800;letter-spacing:.5px}.bible-timeline-selection{margin-top:10px;border:1px solid #dbe3ee;border-radius:9px;padding:10px 12px;background:#f8fafc;color:#334155;font-size:12px}.bible-relationship-25d{height:430px}.bible-journey-25d{height:min(62vh,640px)}.bible-timeline-25d{height:460px}
   .bible-single-person{min-height:360px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;background:radial-gradient(circle at center,#eff6ff 0,#f8fbff 48%,#fff 76%);color:#172033}.bible-single-person-icon{display:grid;place-items:center;width:94px;height:94px;margin-bottom:7px;border:2px solid #93c5fd;border-radius:50%;background:linear-gradient(145deg,#fff,#dbeafe);box-shadow:0 14px 32px rgba(37,99,235,.16);font-size:47px}.bible-single-person strong{font-size:23px}.bible-single-person span{color:#475569;font-size:14px}.bible-single-person small{margin-top:10px;color:#64748b;font-size:12px}
   .bible-context-list{display:grid;gap:8px;margin-bottom:12px}.bible-context-event-row{padding:8px;border:1px solid #dbeafe;border-radius:10px;background:#f8fbff}.bible-context-event-row .bible-context-item{border:0;background:transparent;padding:4px}.bible-context-event-places{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:6px;padding-top:7px;border-top:1px dashed #bfdbfe}.bible-context-event-places>span{color:#64748b;font-size:11px;font-weight:800}.bible-context-event-places .bible-person-chip{font:inherit;cursor:pointer}.bible-context-item{display:flex;justify-content:space-between;gap:14px;padding:10px 12px;border:1px solid #dbeafe;border-radius:10px;background:#f8fbff}.bible-context-item strong{color:#172033}.bible-context-item span{color:#64748b;text-align:right;font-size:12px}.bible-context-empty{padding:12px;border-radius:10px;background:#f8fafc;color:#64748b}.bible-context-more{margin-top:12px;color:#475569}.bible-context-more summary{cursor:pointer;font-weight:800}
-  .bible-secondary-notice{margin:18px 0;padding:14px 16px;border-left:4px solid #f59e0b;border-radius:8px;background:#fffbeb;color:#78350f}.bible-secondary-notice strong{display:block;margin-bottom:4px}.bible-verse-places-button{margin:10px 0 14px;border:1px solid #60a5fa;border-radius:999px;background:#eff6ff;color:#1d4ed8;padding:7px 12px;font-weight:850;cursor:pointer}.bible-context-item:is(button),.bible-person-meta button.bible-person-chip{font:inherit;cursor:pointer}.bible-context-item:is(button){width:100%;text-align:left}
+  .bible-secondary-notice{margin:18px 0;padding:14px 16px;border-left:4px solid #f59e0b;border-radius:8px;background:#fffbeb;color:#78350f}.bible-secondary-notice strong{display:block;margin-bottom:4px}.bible-verse-places-button,.bible-verse-knowledge-button{margin:10px 6px 14px 0;border:1px solid #60a5fa;border-radius:999px;background:#eff6ff;color:#1d4ed8;padding:7px 12px;font-weight:850;cursor:pointer}.bible-verse-knowledge-button{border-color:#a78bfa;background:#f5f3ff;color:#6d28d9}.bible-context-item:is(button),.bible-person-meta button.bible-person-chip{font:inherit;cursor:pointer}.bible-context-item:is(button){width:100%;text-align:left}
+  .bible-knowledge-sections{display:flex;flex-wrap:wrap;gap:7px;padding:10px 26px}.bible-knowledge-sections button{border:1px solid #d8b4fe;border-radius:999px;background:#faf5ff;color:#6b21a8;padding:8px 13px;font-weight:800;cursor:pointer}.bible-knowledge-sections button.is-active{background:#7e22ce;color:#fff;border-color:#7e22ce}.bible-knowledge-view{display:none}.bible-knowledge-view.is-active{display:block}.bible-modern-context{margin-top:18px}.bible-modern-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;margin:10px 0 16px}.bible-modern-card{display:flex;flex-direction:column;gap:4px;padding:12px;border:1px solid #dbeafe;border-radius:12px;background:#f8fbff}.bible-modern-card small{color:#64748b}.bible-source-images{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}.bible-source-images figure{margin:0;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#fff}.bible-source-images img{display:block;width:100%;height:150px;object-fit:cover;background:#f1f5f9}.bible-source-images figcaption{padding:9px;font-size:12px;line-height:1.5;color:#475569}.bible-source-images a{display:inline-block;margin-left:5px;color:#1d4ed8;font-weight:800}.bible-topic-source{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.65}.bible-book-chapters{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px}.bible-book-chapters>span{display:flex;flex-direction:column;padding:9px;border:1px solid #e2e8f0;border-radius:9px}.bible-book-chapters small{color:#64748b}
   .bible-patristic-read-button{margin:14px 0;border:0;border-radius:10px;background:#1d4ed8;color:#fff;padding:11px 18px;font-weight:850;cursor:pointer}.bible-patristic-reader{margin-top:14px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;padding:18px}.bible-patristic-reader-header,.bible-patristic-reader-nav{display:flex;align-items:center;justify-content:space-between;gap:12px}.bible-patristic-reader-header{padding-bottom:12px;border-bottom:1px solid #e2e8f0}.bible-patristic-reader-text{font-family:Georgia,'Times New Roman',serif;line-height:1.75;color:#1e293b}.bible-patristic-reader-text p{margin:16px 0}.bible-patristic-reader-text h4{margin:24px 0 10px;font-size:20px}.bible-patristic-reader-nav{padding-top:14px;border-top:1px solid #e2e8f0}.bible-patristic-reader-nav button{border:1px solid #93c5fd;border-radius:9px;background:#eff6ff;color:#1d4ed8;padding:8px 14px;font-weight:800;cursor:pointer}.bible-patristic-reader-nav button:disabled{opacity:.4;cursor:not-allowed}
   body.bible-people-open{overflow:hidden}
-  @media(max-width:760px){.persistent-people-toggle{right:52px}.persistent-explore-toggle{right:124px}.bible-people-panel{padding:0}.bible-people-dialog{min-height:100vh;border-radius:0}.bible-people-layout{grid-template-columns:1fr}.bible-people-results{min-height:0;max-height:210px}.bible-people-detail{min-height:430px}.bible-person-title{display:block}.bible-person-id{display:inline-block;margin-top:10px}.bible-explore-tabs{padding-left:14px;padding-right:14px}.bible-explore-toolbar{padding-left:14px;padding-right:14px}.bible-explore-output{margin-left:14px;margin-right:14px}}
+  @media(max-width:760px){.persistent-people-toggle{right:52px}.persistent-explore-toggle{right:124px}.bible-people-panel{padding:0}.bible-people-dialog{min-height:100vh;border-radius:0}.bible-people-layout{grid-template-columns:1fr}.bible-people-results{min-height:0;max-height:210px}.bible-people-detail{min-height:430px}.bible-person-title{display:block}.bible-person-id{display:inline-block;margin-top:10px}.bible-explore-tabs,.bible-knowledge-sections{padding-left:14px;padding-right:14px}.bible-explore-toolbar{padding-left:14px;padding-right:14px}.bible-explore-output{margin-left:14px;margin-right:14px}.bible-source-images{grid-template-columns:1fr}}
 </style>
 
 <script type="module">
-import { initialize } from './main.js?v=8.52-context-click1';
+import { initialize } from './main.js?v=8.53-knowledge-ui1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

@@ -19,6 +19,7 @@ let activePlaceMap = null;
 let activeJourneyScene = null;
 let activeTimelineScene = null;
 const patristicReaderCache = new Map();
+const knowledgeCache = new Map();
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (character) => ({
@@ -68,6 +69,19 @@ function loadData() {
 function checkResponse(response) {
   if (!response.ok) throw new Error(`Bible context data could not be loaded (${response.status}).`);
   return response.json();
+}
+
+function loadKnowledge(relativePath) {
+  if (!knowledgeCache.has(relativePath)) {
+    knowledgeCache.set(relativePath,
+      fetch(`./content/knowledge/${relativePath}?v=8.53-knowledge-ui1`).then(checkResponse));
+  }
+  return knowledgeCache.get(relativePath);
+}
+
+function knowledgeEmpty(title, text = '') {
+  return `<div class="bible-people-empty"><strong>${escapeHtml(title)}</strong>
+    ${text ? `<span>${escapeHtml(text)}</span>` : ''}</div>`;
 }
 
 function nearbyPlaces(selected) {
@@ -169,6 +183,9 @@ function renderPlaceDetail(place) {
       ${place.source ? `<span class="bible-person-chip">${escapeHtml(place.source)}</span>` : ''}
     </div>
     <p>${escapeHtml(place.description || 'No source description is available.')}</p>
+    <section class="bible-modern-context" data-modern-place-context>
+      ${knowledgeEmpty('Loading ancient and modern location context...')}
+    </section>
     <section class="bible-person-section"><h4>Related people</h4>
       <div class="bible-person-meta">${relatedPeople.length
         ? relatedPeople.map((person) =>
@@ -213,6 +230,7 @@ function renderPlaceDetail(place) {
       const rightDistance = Math.hypot(Number(right.latitude) - selectedLat, Number(right.longitude) - selectedLon);
       return leftDistance - rightDistance;
     })[0];
+  renderModernPlaceContext(place, vectorPlace, host.querySelector('[data-modern-place-context]'));
   if (mapHost && data.map25dPlaces.length) {
     activePlaceMap = new VectorMap25D(mapHost, {
       minimumZoom: 1,
@@ -264,6 +282,273 @@ function renderPlaceDetail(place) {
       });
     });
   });
+}
+
+async function renderModernPlaceContext(place, vectorPlace, host) {
+  if (!host) return;
+  try {
+    const [modernPayload, imagePayload] = await Promise.all([
+      loadKnowledge('geography/modern-places.json'),
+      loadKnowledge('images/licensed-manifest.json')
+    ]);
+    const ancientId = vectorPlace?.id || '';
+    const normalizedName = String(place.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+    const matches = (modernPayload.records || []).filter((modern) =>
+      (modern.ancient_associations || []).some((association) =>
+        association.ancient_id === ancientId ||
+        String(association.ancient_name_en || '').toLowerCase().replace(/[^a-z0-9]+/g, '') === normalizedName
+      )
+    ).sort((left, right) => {
+      const leftScore = Math.max(...left.ancient_associations.map((item) => item.confidence_score || 0));
+      const rightScore = Math.max(...right.ancient_associations.map((item) => item.confidence_score || 0));
+      return rightScore - leftScore;
+    }).slice(0, 6);
+    if (!matches.length) {
+      host.innerHTML = knowledgeEmpty('No source-linked modern location',
+        'The source dataset does not provide an ancient-to-modern identification for this place.');
+      return;
+    }
+    const modernIds = new Set(matches.map((item) => item.modern_id));
+    const images = (imagePayload.records || []).filter((image) =>
+      (image.modern_ids || []).some((id) => modernIds.has(id))
+    ).slice(0, 8);
+    host.innerHTML = `<section class="bible-person-section">
+      <h4>Ancient and modern location</h4>
+      <div class="bible-modern-grid">${matches.map((modern) => {
+        const association = (modern.ancient_associations || []).find((item) =>
+          item.ancient_id === ancientId) || modern.ancient_associations[0] || {};
+        return `<article class="bible-modern-card">
+          <strong>${escapeHtml(modern.name_en)}</strong>
+          <span>${escapeHtml(modern.type || modern.class || 'Modern location')}</span>
+          <small>Source confidence: ${escapeHtml(association.confidence_score || 0)}</small>
+          <small>${escapeHtml(modern.latitude)}, ${escapeHtml(modern.longitude)}</small>
+        </article>`;
+      }).join('')}</div>
+      ${images.length ? `<div class="bible-source-images">${images.map((image) => {
+        const thumbnail = String(image.thumbnail_url_pattern || '').replace('####', '480');
+        return `<figure>
+          <img src="${escapeHtml(thumbnail || image.file_url)}" alt="${escapeHtml(Object.values(image.descriptions || {})[0] || place.name)}" loading="lazy">
+          <figcaption>${escapeHtml(image.credit || image.author || 'Source contributor')} ·
+            ${escapeHtml(image.license)}
+            <a href="${escapeHtml(image.source_page_url || image.credit_url)}" target="_blank" rel="noopener">Source</a>
+          </figcaption>
+        </figure>`;
+      }).join('')}</div>` : ''}
+    </section>`;
+  } catch (error) {
+    host.innerHTML = knowledgeEmpty('Modern location context unavailable', error.message);
+  }
+}
+
+async function loadSemanticRecords() {
+  const manifest = await loadKnowledge('semantic/manifest.json');
+  const payloads = await Promise.all(Object.values(manifest.categories || {})
+    .map((entry) => loadKnowledge(entry.file.replace(/^knowledge\//, ''))));
+  return payloads.flatMap((payload) => payload.records || []);
+}
+
+function showKnowledgeSection(section) {
+  document.querySelectorAll('[data-knowledge-section]').forEach((button) =>
+    button.classList.toggle('is-active', button.dataset.knowledgeSection === section));
+  document.querySelectorAll('[data-knowledge-view]').forEach((view) =>
+    view.classList.toggle('is-active', view.dataset.knowledgeView === section));
+}
+
+function renderEntityDetail(record, host) {
+  host.innerHTML = `<article class="bible-person-card">
+    <div class="bible-person-title"><div><h3>${escapeHtml(record.name_en)}</h3>
+    <p>${escapeHtml(record.category)}${record.subtype ? ` · ${escapeHtml(record.subtype)}` : ''}</p></div>
+    <span class="bible-person-id">${escapeHtml(record.entity_id)}</span></div>
+    ${record.aliases_en?.length ? `<div class="bible-person-meta">${record.aliases_en.map((alias) =>
+      `<span class="bible-person-chip">${escapeHtml(alias)}</span>`).join('')}</div>` : ''}
+    <p>${escapeHtml(record.description_en || 'No source description is available.')}</p>
+    <section class="bible-person-section"><h4>Scripture references (${record.source_codes.length})</h4>
+      <div class="bible-reference-grid">${record.source_codes.slice(0, 60).map((code) =>
+        `<span class="bible-reference">${escapeHtml(code)}</span>`).join('')}</div>
+      ${record.source_codes.length > 60 ? `<p>Showing the first 60 of ${record.source_codes.length} references.</p>` : ''}
+    </section>
+  </article>`;
+}
+
+async function renderSemanticKnowledge(query = '', sourceCode = '') {
+  const results = document.getElementById('bibleKnowledgeEntityResults');
+  const detail = document.getElementById('bibleKnowledgeEntityDetail');
+  results.innerHTML = knowledgeEmpty('Loading Scripture-linked entities...');
+  try {
+    let ids = null;
+    if (sourceCode) {
+      const index = await loadKnowledge('semantic/by-source.json');
+      ids = new Set(index.source_to_entities?.[sourceCode] || []);
+    }
+    const needle = String(query).trim().toLowerCase();
+    const records = (await loadSemanticRecords()).filter((record) =>
+      (!ids || ids.has(record.entity_id)) &&
+      (!needle || `${record.name_en} ${(record.aliases_en || []).join(' ')} ${record.description_en}`
+        .toLowerCase().includes(needle))
+    ).slice(0, 100);
+    results.innerHTML = records.map((record, index) =>
+      `<button type="button" class="bible-person-result" data-entity-index="${index}">
+        <strong>${escapeHtml(record.name_en)}</strong>
+        <span>${escapeHtml(record.category)}${record.subtype ? ` · ${escapeHtml(record.subtype)}` : ''}</span>
+      </button>`).join('') || knowledgeEmpty('No matching entity');
+    results.querySelectorAll('[data-entity-index]').forEach((button) =>
+      button.addEventListener('click', () => renderEntityDetail(records[Number(button.dataset.entityIndex)], detail)));
+    if (records.length) renderEntityDetail(records[0], detail);
+    else detail.innerHTML = '';
+    setStatus(sourceCode
+      ? `${records.length} key term, living thing, object, or group record(s) linked to ${sourceCode}.`
+      : `${records.length} semantic Bible record(s) shown.`);
+  } catch (error) {
+    results.innerHTML = knowledgeEmpty('Unable to load semantic records', error.message);
+  }
+}
+
+async function renderWordSearch(query = '') {
+  const results = document.getElementById('bibleWordResults');
+  const detail = document.getElementById('bibleWordDetail');
+  const needle = String(query).trim().toLowerCase();
+  const manifest = await loadKnowledge('concordance/manifest.json');
+  const words = (manifest.all_words || []).filter((entry) =>
+    !needle || entry.word.includes(needle)).slice(0, 120);
+  results.innerHTML = words.map((entry, index) =>
+    `<button type="button" class="bible-person-result" data-word-index="${index}">
+      <strong>${escapeHtml(entry.word)}</strong><span>${entry.count.toLocaleString()} occurrences · ${entry.book_numbers.length} book(s)</span>
+    </button>`).join('') || knowledgeEmpty('No word found');
+  const showWord = async (entry) => {
+    detail.innerHTML = knowledgeEmpty(`Loading “${entry.word}” across Scripture...`);
+    const bookPayloads = await Promise.all(entry.book_numbers.map((bookNumber) => {
+      const book = manifest.books.find((item) => item.book_number === bookNumber);
+      return loadKnowledge(book.file.replace(/^knowledge\//, ''));
+    }));
+    const matches = bookPayloads.map((payload) => ({
+      book: payload.book,
+      record: (payload.records || []).find((item) => item.word.toLowerCase() === entry.word)
+    })).filter((item) => item.record);
+    const references = matches.flatMap((item) => item.record.source_codes);
+    detail.innerHTML = `<article class="bible-person-card"><div class="bible-person-title">
+      <div><h3>${escapeHtml(matches[0]?.record.word || entry.word)}</h3>
+      <p>${entry.count.toLocaleString()} occurrences in ${matches.length} books</p></div></div>
+      <section class="bible-person-section"><h4>Books</h4>
+        <div class="bible-person-meta">${matches.map((item) =>
+          `<span class="bible-person-chip">${escapeHtml(item.book)} · ${item.record.count}</span>`).join('')}</div>
+      </section>
+      <section class="bible-person-section"><h4>Verse locations (${references.length})</h4>
+        <div class="bible-reference-grid">${references.slice(0, 240).map((code) =>
+          `<span class="bible-reference">${escapeHtml(code)}</span>`).join('')}</div>
+        ${references.length > 240 ? `<p>Showing the first 240 of ${references.length} verse locations.</p>` : ''}
+      </section></article>`;
+  };
+  results.querySelectorAll('[data-word-index]').forEach((button) =>
+    button.addEventListener('click', () => showWord(words[Number(button.dataset.wordIndex)])));
+  if (needle && words.length) showWord(words[0]);
+  setStatus(`${words.length} concordance result(s) shown.`);
+}
+
+async function renderDictionary(query = '') {
+  const results = document.getElementById('bibleDictionaryResults');
+  const detail = document.getElementById('bibleDictionaryDetail');
+  const payload = await loadKnowledge('reference/easton.json');
+  const needle = String(query).trim().toLowerCase();
+  const records = (payload.records || []).filter((record) =>
+    !needle || `${record.term_en} ${record.text_en}`.toLowerCase().includes(needle)).slice(0, 100);
+  const show = (record) => {
+    detail.innerHTML = `<article class="bible-person-card"><div class="bible-person-title">
+      <div><h3>${escapeHtml(record.term_en)}</h3><p>Easton Bible Dictionary</p></div></div>
+      <p>${escapeHtml(record.text_en || 'No entry text.')}</p></article>`;
+  };
+  results.innerHTML = records.map((record, index) =>
+    `<button type="button" class="bible-person-result" data-dictionary-index="${index}">
+      <strong>${escapeHtml(record.term_en)}</strong><span>${escapeHtml(record.match_type || 'Dictionary')}</span>
+    </button>`).join('') || knowledgeEmpty('No dictionary entry found');
+  results.querySelectorAll('[data-dictionary-index]').forEach((button) =>
+    button.addEventListener('click', () => show(records[Number(button.dataset.dictionaryIndex)])));
+  if (records.length) show(records[0]);
+  setStatus(`${records.length} dictionary result(s) shown.`);
+}
+
+async function renderTopics() {
+  const payload = await loadKnowledge('reference/topics.json');
+  const results = document.getElementById('bibleTopicResults');
+  const detail = document.getElementById('bibleTopicDetail');
+  const records = payload.records || [];
+  const show = (record) => {
+    detail.innerHTML = `<article class="bible-person-card"><div class="bible-person-title">
+      <div><h3>${escapeHtml(record.topic)}</h3><p>BibleData topic list</p></div></div>
+      <pre class="bible-topic-source">${escapeHtml(record.source_markdown)}</pre></article>`;
+  };
+  results.innerHTML = records.map((record, index) =>
+    `<button type="button" class="bible-person-result" data-topic-index="${index}">
+      <strong>${escapeHtml(record.topic)}</strong><span>Topic index</span>
+    </button>`).join('');
+  results.querySelectorAll('[data-topic-index]').forEach((button) =>
+    button.addEventListener('click', () => show(records[Number(button.dataset.topicIndex)])));
+  if (records.length) show(records[0]);
+  setStatus(`${records.length} Bible topic lists loaded.`);
+}
+
+async function renderBooks(query = '') {
+  const [bookPayload, chapterPayload] = await Promise.all([
+    loadKnowledge('reference/books.json'),
+    loadKnowledge('reference/chapters.json')
+  ]);
+  const results = document.getElementById('bibleBookResults');
+  const detail = document.getElementById('bibleBookDetail');
+  const needle = String(query).trim().toLowerCase();
+  const books = (bookPayload.records || []).filter((book) =>
+    !needle || `${book.name_en} ${book.division} ${book.testament}`.toLowerCase().includes(needle));
+  const show = (book) => {
+    const chapters = (chapterPayload.records || []).filter((chapter) =>
+      (chapter.book_ids || []).includes(book.source_id) ||
+      chapter.osis_ref.startsWith(`${book.osis_name}.`));
+    detail.innerHTML = `<article class="bible-person-card"><div class="bible-person-title">
+      <div><h3>${escapeHtml(book.name_en)}</h3><p>${escapeHtml(book.division)} · ${escapeHtml(book.testament)}</p></div>
+      <span class="bible-person-id">${escapeHtml(book.osis_name)}</span></div>
+      <div class="bible-modern-grid">
+        <article class="bible-modern-card"><strong>${book.chapter_count}</strong><span>chapters</span></article>
+        <article class="bible-modern-card"><strong>${book.verse_count}</strong><span>verses</span></article>
+        <article class="bible-modern-card"><strong>${book.people_count}</strong><span>people</span></article>
+        <article class="bible-modern-card"><strong>${book.place_count}</strong><span>places</span></article>
+      </div>
+      <section class="bible-person-section"><h4>Chapter overview</h4>
+        <div class="bible-book-chapters">${chapters.sort((a, b) => a.chapter_number - b.chapter_number).map((chapter) =>
+          `<span><strong>${chapter.chapter_number}</strong><small>${chapter.people_count} people · ${chapter.place_count} places</small></span>`
+        ).join('')}</div>
+      </section></article>`;
+  };
+  results.innerHTML = books.map((book, index) =>
+    `<button type="button" class="bible-person-result" data-book-index="${index}">
+      <strong>${escapeHtml(book.name_en)}</strong><span>${escapeHtml(book.division)}</span>
+    </button>`).join('') || knowledgeEmpty('No Bible book found');
+  results.querySelectorAll('[data-book-index]').forEach((button) =>
+    button.addEventListener('click', () => show(books[Number(button.dataset.bookIndex)])));
+  if (books.length) show(books[0]);
+  setStatus(`${books.length} Bible book record(s) shown.`);
+}
+
+async function renderKnowledge(options = {}) {
+  const section = options.section || 'entities';
+  showKnowledgeSection(section);
+  try {
+    if (section === 'entities') {
+      const search = document.getElementById('bibleKnowledgeEntitySearch');
+      if (options.sourceCode) {
+        search.value = '';
+        search.dataset.sourceCode = options.sourceCode;
+      }
+      await renderSemanticKnowledge(search.value, search.dataset.sourceCode || '');
+    }
+    if (section === 'words') await renderWordSearch(document.getElementById('bibleWordSearch').value);
+    if (section === 'dictionary') await renderDictionary(document.getElementById('bibleDictionarySearch').value);
+    if (section === 'topics') await renderTopics();
+    if (section === 'books') await renderBooks(document.getElementById('bibleBookSearch').value);
+  } catch (error) {
+    setStatus(error.message || 'Bible study data could not be loaded.', true);
+    const activeDetail = document.querySelector('[data-knowledge-view].is-active .bible-people-detail');
+    if (activeDetail) {
+      activeDetail.innerHTML = knowledgeEmpty('Bible study data is temporarily unavailable',
+        'Please retry this section.');
+    }
+  }
 }
 
 function renderPlaceResults(query = '') {
@@ -517,12 +802,16 @@ async function openContext(options = {}) {
     renderJourney(document.getElementById('bibleJourneySelector').value);
   } else if (tab === 'patristic') {
     renderPatristic(options.query || '');
+  } else if (tab === 'knowledge') {
+    renderKnowledge(options);
   }
 }
 
 window.openBibleContext = openContext;
 window.openBiblePlacesForSource = (sourceCode) =>
   openContext({ tab: 'places', sourceCode });
+window.openBibleKnowledgeForSource = (sourceCode) =>
+  openContext({ tab: 'knowledge', section: 'entities', sourceCode });
 
 function populate() {
   const journeySelector = document.getElementById('bibleJourneySelector');
@@ -547,6 +836,7 @@ function populate() {
   if (activeTab === 'journeys') requestAnimationFrame(() => renderJourney(journeySelector.value));
   if (activeTab === 'timeline') requestAnimationFrame(() => renderTimeline(timelineSelector.value));
   if (activeTab === 'patristic') requestAnimationFrame(() => renderPatristic());
+  if (activeTab === 'knowledge') requestAnimationFrame(() => renderKnowledge());
 }
 
 function open() {
@@ -555,7 +845,7 @@ function open() {
   panel.hidden = false;
   document.body.classList.add('bible-people-open');
   toggle.setAttribute('aria-expanded', 'true');
-  setStatus('Loading 1,274 places, journeys, and timelines...');
+  setStatus('Loading Bible atlas and study tools...');
   loadData().then(populate).catch((error) => setStatus(error.message, true));
 }
 
@@ -585,11 +875,13 @@ function init() {
       if (selectedTab === 'journeys') document.getElementById('bibleJourneyOutput').innerHTML = '<div class="bible-people-empty"><strong>Loading journey...</strong></div>';
       if (selectedTab === 'timeline') document.getElementById('bibleTimelineOutput').innerHTML = '<div class="bible-people-empty"><strong>Loading timeline...</strong></div>';
       if (selectedTab === 'patristic') document.getElementById('biblePatristicDetail').innerHTML = '<div class="bible-people-empty"><strong>Loading Early Church works...</strong></div>';
+      if (selectedTab === 'knowledge') document.getElementById('bibleKnowledgeEntityDetail').innerHTML = '<div class="bible-people-empty"><strong>Loading Bible study data...</strong></div>';
       loadData().then(() => requestAnimationFrame(() => {
         if (selectedTab === 'places') renderPlaceResults(document.getElementById('biblePlaceSearch').value);
         if (selectedTab === 'journeys') renderJourney(document.getElementById('bibleJourneySelector').value);
         if (selectedTab === 'timeline') renderTimeline(document.getElementById('bibleTimelineSelector').value);
         if (selectedTab === 'patristic') renderPatristic(document.getElementById('biblePatristicSearch').value);
+        if (selectedTab === 'knowledge') renderKnowledge();
       })).catch((error) => setStatus(error.message, true));
     });
   });
@@ -597,6 +889,16 @@ function init() {
   document.getElementById('bibleJourneySelector').addEventListener('change', (event) => renderJourney(event.target.value));
   document.getElementById('bibleTimelineSelector').addEventListener('change', (event) => renderTimeline(event.target.value));
   document.getElementById('biblePatristicSearch').addEventListener('input', (event) => renderPatristic(event.target.value));
+  document.querySelectorAll('[data-knowledge-section]').forEach((button) => {
+    button.addEventListener('click', () => renderKnowledge({ section: button.dataset.knowledgeSection }));
+  });
+  document.getElementById('bibleKnowledgeEntitySearch').addEventListener('input', (event) => {
+    event.target.dataset.sourceCode = '';
+    renderSemanticKnowledge(event.target.value);
+  });
+  document.getElementById('bibleWordSearch').addEventListener('input', (event) => renderWordSearch(event.target.value));
+  document.getElementById('bibleDictionarySearch').addEventListener('input', (event) => renderDictionary(event.target.value));
+  document.getElementById('bibleBookSearch').addEventListener('input', (event) => renderBooks(event.target.value));
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !panel.hidden) close(); });
 }
 

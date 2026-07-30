@@ -16,7 +16,8 @@ const stages = [
   'build_bible_geography_layers.mjs',
   'build_bible_entity_context.mjs',
   'build_patristic_deep_content.mjs',
-  'build_patristic_reader_content.mjs'
+  'build_patristic_reader_content.mjs',
+  'build_bible_knowledge_extensions.mjs'
 ];
 
 function run(script) {
@@ -52,6 +53,7 @@ function validate() {
   const timelines = readJson('content/timelines.json');
   const patristic = readJson('content/patristic-deep-index.json');
   const readers = readJson('content/patristic-reader-manifest.json');
+  const extensions = readJson('content/knowledge/manifest.json');
   const checks = {
     map_places: (map.places || []).length,
     ancient_roads: (roads.roads || []).length,
@@ -65,7 +67,13 @@ function validate() {
     journeys: journeys.length,
     timelines: timelines.length,
     patristic_public: (patristic.records || []).filter((record) => record.public_allowed).length,
-    patristic_readers: (readers.records || []).length
+    patristic_readers: (readers.records || []).length,
+    semantic_entities: extensions.counts?.semantic_entities || 0,
+    concordance_rows: extensions.counts?.concordance_rows || 0,
+    concordance_books: extensions.counts?.concordance_books || 0,
+    dictionary_entries: extensions.counts?.easton_entries || 0,
+    modern_places: extensions.counts?.modern_places || 0,
+    licensed_images: extensions.counts?.licensed_images || 0
   };
   const failures = [];
   if (!checks.map_places) failures.push('map_places');
@@ -78,6 +86,14 @@ function validate() {
   }
   if (checks.patristic_public !== checks.patristic_readers) {
     failures.push('patristic_reader_coverage');
+  }
+  if (checks.semantic_entities !== 1800 ||
+      checks.concordance_rows !== 790685 ||
+      checks.concordance_books !== 66 ||
+      !checks.dictionary_entries ||
+      !checks.modern_places ||
+      !checks.licensed_images) {
+    failures.push('knowledge_extensions');
   }
   return { checks, failures };
 }

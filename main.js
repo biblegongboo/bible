@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
-import './bible-explorer.js?v=8.52-context-click1';
+import './bible-explorer.js?v=8.53-knowledge-ui1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -5114,6 +5114,19 @@ function attachBiblePlacesButton_(q) {
   });
   var number = card.querySelector('.q-num');
   if (number) number.insertAdjacentElement('afterend', button);
+  if (!card.querySelector('[data-bible-verse-knowledge]')) {
+    var knowledgeButton = document.createElement('button');
+    knowledgeButton.type = 'button';
+    knowledgeButton.className = 'bible-verse-knowledge-button';
+    knowledgeButton.setAttribute('data-bible-verse-knowledge', sourceCode);
+    knowledgeButton.textContent = 'Topics in this passage';
+    knowledgeButton.addEventListener('click', function() {
+      if (typeof window.openBibleKnowledgeForSource === 'function') {
+        window.openBibleKnowledgeForSource(sourceCode);
+      }
+    });
+    button.insertAdjacentElement('afterend', knowledgeButton);
+  }
 }
 
 function renderCurrentQuestion() {
