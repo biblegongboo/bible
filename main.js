@@ -252,7 +252,9 @@ function throwQuizApiError_(data, fallbackMessage) {
   if (code.indexOf('AUTH_') === 0) {
     clearAuthAndRedirect(code);
   }
-  throw new Error(data && data.message ? data.message : fallbackMessage);
+  var error = new Error(data && data.message ? data.message : fallbackMessage);
+  error.code = code;
+  throw error;
 }
 
 function isTrialProgressSafe(saved) {
@@ -291,9 +293,16 @@ function applySubjectConfig() {
   CURRENT_SUBJECT = currentSubject;
   DATA_SHEET = String(subjectConfig.SHEET).trim();
   var sheetAliases = {
-    REAL_ESTATE: 'realestate'
+    REAL_ESTATE: 'realestate',
+    BIBLE_OT: 'bible-ot',
+    'BIBLE-OT': 'bible-ot',
+    BIBLE_NT: 'bible-nt',
+    'BIBLE-NT': 'bible-nt'
   };
-  DATA_SHEET = sheetAliases[DATA_SHEET.toUpperCase()] || DATA_SHEET.toLowerCase();
+  DATA_SHEET =
+    sheetAliases[currentSubject] ||
+    sheetAliases[DATA_SHEET.toUpperCase()] ||
+    DATA_SHEET.toLowerCase();
   QUESTIONS_PER_SET = Math.max(1, parseInt(subjectConfig.SET_SIZE, 10) || 120);
   TOTAL_QUESTIONS = Math.max(0, parseInt(subjectConfig.QUESTION_COUNT, 10) || 0);
   var keyPart = currentSubject.replace(/[^A-Z0-9_-]/g, '_');
@@ -1578,6 +1587,25 @@ async function detectTotalQuestions() {
 // ========================================================================
 let currentAbortController = null;
 
+function isRetryableQuestionLoadError_(error) {
+    var code = String(error && error.code || '').toUpperCase();
+    if ([
+        'SHEET_NOT_ALLOWED',
+        'SHEET_NOT_FOUND',
+        'CATALOG_NOT_FOUND',
+        'AUTH_REQUIRED',
+        'AUTH_INVALID',
+        'AUTH_EXPIRED'
+    ].indexOf(code) !== -1) {
+        return false;
+    }
+    var message = String(error && error.message || '');
+    if (/^HTTP 4\d\d\b/.test(message) && !/^HTTP (408|429)\b/.test(message)) {
+        return false;
+    }
+    return true;
+}
+
 async function load50Questions(uiStartNumber, retryCount = 0) {
     const MAX_RETRIES = 3;
     if (TOTAL_QUESTIONS === 0) await detectTotalQuestions();
@@ -1808,6 +1836,10 @@ async function load50Questions(uiStartNumber, retryCount = 0) {
                 return load50Questions(uiStartNumber, retryCount + 1);
             }
             throw new Error('Timeout after retries');
+        }
+        if (!isRetryableQuestionLoadError_(err)) {
+            console.error('❌ Non-retryable question request:', err);
+            throw err;
         }
         if (retryCount < MAX_RETRIES) {
             const delay = Math.pow(2, retryCount) * 1000;
@@ -6071,30 +6103,30 @@ function initBibleSpeechControls() {
   var wrap = document.createElement('div');
   wrap.id = 'bibleSpeechControls';
   wrap.hidden = true;
-  wrap.style.cssText = 'position:relative;z-index:4;display:none;flex-wrap:wrap;justify-content:center;gap:7px;width:fit-content;max-width:100%;margin:10px auto 3px;padding:7px;background:rgba(15,23,42,.72);border:1px solid rgba(255,255,255,.16);border-radius:12px';
+  wrap.style.cssText = 'position:relative;z-index:4;display:none;flex-wrap:wrap;justify-content:center;gap:5px;width:fit-content;max-width:100%;margin:6px auto 2px;padding:5px;background:rgba(15,23,42,.72);border:1px solid rgba(255,255,255,.16);border-radius:10px';
 
   var readButton = document.createElement('button');
   readButton.type = 'button';
   readButton.textContent = '▶ Play';
   readButton.title = 'Read the current Bible lesson';
-  readButton.style.cssText = 'border:0;border-radius:9px;padding:10px 13px;background:#f5a623;color:#fff;font-weight:800;cursor:pointer';
+  readButton.style.cssText = 'border:0;border-radius:8px;padding:7px 10px;background:#f5a623;color:#fff;font-size:13px;font-weight:800;cursor:pointer';
 
   var replayButton = document.createElement('button');
   replayButton.type = 'button';
   replayButton.textContent = '↻ Replay';
   replayButton.title = 'Read the current item again without moving to the next item';
-  replayButton.style.cssText = 'border:0;border-radius:9px;padding:10px 12px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer';
+  replayButton.style.cssText = 'border:0;border-radius:8px;padding:7px 10px;background:#2563eb;color:#fff;font-size:13px;font-weight:800;cursor:pointer';
 
   var stopButton = document.createElement('button');
   stopButton.type = 'button';
   stopButton.textContent = '■ Stop';
   stopButton.title = 'Stop reading';
-  stopButton.style.cssText = 'border:0;border-radius:9px;padding:10px 13px;background:#475569;color:#fff;font-weight:800;cursor:pointer';
+  stopButton.style.cssText = 'border:0;border-radius:8px;padding:7px 10px;background:#475569;color:#fff;font-size:13px;font-weight:800;cursor:pointer';
 
   var speedSelect = document.createElement('select');
   speedSelect.title = 'Reading speed';
   speedSelect.setAttribute('aria-label', 'Reading speed');
-  speedSelect.style.cssText = 'border:0;border-radius:9px;padding:9px 8px;background:#fff;color:#0f172a;font-weight:800;cursor:pointer';
+  speedSelect.style.cssText = 'border:0;border-radius:8px;padding:6px 7px;background:#fff;color:#0f172a;font-size:13px;font-weight:800;cursor:pointer';
   [
     { value: '0.5', label: 'Speed 0.5×' },
     { value: '0.75', label: 'Speed 0.75×' },
@@ -6111,7 +6143,7 @@ function initBibleSpeechControls() {
   var autoNextButton = document.createElement('button');
   autoNextButton.type = 'button';
   autoNextButton.title = 'Automatically move to the next item after reading';
-  autoNextButton.style.cssText = 'border:0;border-radius:9px;padding:10px 12px;color:#fff;font-weight:800;cursor:pointer';
+  autoNextButton.style.cssText = 'border:0;border-radius:8px;padding:7px 10px;color:#fff;font-size:13px;font-weight:800;cursor:pointer';
 
   var speechSpeedKey = 'bibleSpeechSpeed';
   var speechAutoNextKey = 'bibleSpeechAutoNext';
