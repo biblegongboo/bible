@@ -6576,7 +6576,12 @@ function biblePeopleRenderDetail_(detail) {
   var relationshipGraphic = relationships.length ? biblePeopleGraphPayload_(person, relationships) : null;
   var graphHtml = relationships.length
     ? '<div class="vector-scene25d-host bible-relationship-25d"></div>'
-    : '<div class="bible-people-empty"><span>No source-provided relationships are available.</span></div>';
+    : '<div class="bible-single-person">' +
+        '<div class="bible-single-person-icon" aria-hidden="true">👤</div>' +
+        '<strong>' + escapeHtml(person.NAME_EN || person.PERSON_ID) + '</strong>' +
+        (person.NAME_KO ? '<span>' + escapeHtml(person.NAME_KO) + '</span>' : '') +
+        '<small>No family relationships are recorded for this person.</small>' +
+      '</div>';
 
   host.innerHTML = '<article class="bible-person-card">' +
     '<div class="bible-person-title"><div><h3>' + escapeHtml(person.NAME_EN || person.PERSON_ID) + '</h3>' +
