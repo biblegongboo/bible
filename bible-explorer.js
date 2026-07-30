@@ -1,9 +1,16 @@
-import { VectorMap25D } from './graphics/map25d/vector-map25d.js?v=8.45-context-update1';
+import { VectorMap25D } from './graphics/map25d/vector-map25d.js?v=8.47-geography1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
 
 let initialized = false;
 let dataPromise = null;
-let data = { places: [], journeys: [], timelines: [], map25dPlaces: [], ancientRoads: [] };
+let data = {
+  places: [],
+  journeys: [],
+  timelines: [],
+  map25dPlaces: [],
+  ancientRoads: [],
+  geography: []
+};
 let activePlaceMap = null;
 let activeJourneyScene = null;
 let activeTimelineScene = null;
@@ -28,14 +35,16 @@ function loadData() {
     fetch('./content/journeys.json?v=8.42-estimated-journeys1').then(checkResponse),
     fetch('./content/timelines.json?v=8.38-family-roles1').then(checkResponse),
     fetch('./content/bible-map25d.json?v=8.43-map25d-live1').then(checkResponse),
-    fetch('./content/ancient-roads25d.json?v=8.45-context-update1').then(checkResponse)
-  ]).then(([places, journeys, timelines, map25d, ancientRoads]) => {
+    fetch('./content/ancient-roads25d.json?v=8.45-context-update1').then(checkResponse),
+    fetch('./content/bible-geography25d.json?v=8.47-geography1').then(checkResponse)
+  ]).then(([places, journeys, timelines, map25d, ancientRoads, geography]) => {
     data = {
       places,
       journeys,
       timelines,
       map25dPlaces: map25d.places || [],
-      ancientRoads: ancientRoads.roads || []
+      ancientRoads: ancientRoads.roads || [],
+      geography: geography.features || []
     };
     return data;
   });
@@ -167,8 +176,9 @@ function renderPlaceDetail(place) {
       labelFontSize: 12,
       pointRadius: 3
     });
-  activePlaceMap.setPlaces(data.map25dPlaces);
-  activePlaceMap.setRoads(data.ancientRoads);
+    activePlaceMap.setPlaces(data.map25dPlaces);
+    activePlaceMap.setGeography(data.geography);
+    activePlaceMap.setRoads(data.ancientRoads);
     if (vectorPlace) activePlaceMap.focusOnPlace(vectorPlace.id, 7);
     mapHost.addEventListener('map25d:render', (event) => {
       if (!mapStatus) return;

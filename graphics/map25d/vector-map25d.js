@@ -52,6 +52,7 @@ export class VectorMap25D {
     this.places = [];
     this.projectedPlaces = [];
     this.roads = [];
+    this.geography = [];
     this.selectedId = null;
     this.drag = null;
     this.frame = null;
@@ -69,10 +70,19 @@ export class VectorMap25D {
       tabindex: '0'
     });
     this.backgroundLayer = svgElement('g', { class: 'map25d-background' });
+    this.regionLayer = svgElement('g', { class: 'map25d-regions' });
+    this.waterLayer = svgElement('g', { class: 'map25d-waters' });
     this.roadLayer = svgElement('g', { class: 'map25d-roads' });
     this.pointLayer = svgElement('g', { class: 'map25d-points' });
     this.labelLayer = svgElement('g', { class: 'map25d-labels' });
-    this.svg.append(this.backgroundLayer, this.roadLayer, this.pointLayer, this.labelLayer);
+    this.svg.append(
+      this.backgroundLayer,
+      this.regionLayer,
+      this.waterLayer,
+      this.roadLayer,
+      this.pointLayer,
+      this.labelLayer
+    );
     this.host.replaceChildren(this.svg);
   }
 
@@ -93,6 +103,19 @@ export class VectorMap25D {
       ...road,
       projectedLines: (road.lines || []).map((line) =>
         line.map((point) => mercator(point[0], point[1]))
+      )
+    }));
+    this.scheduleRender();
+  }
+
+  setGeography(features) {
+    this.geography = (Array.isArray(features) ? features : []).map((feature) => ({
+      ...feature,
+      projectedLines: (feature.lines || []).map((line) =>
+        line.map((point) => mercator(point[0], point[1]))
+      ),
+      projectedPolygons: (feature.polygons || []).map((ring) =>
+        ring.map((point) => mercator(point[0], point[1]))
       )
     }));
     this.scheduleRender();
@@ -283,11 +306,75 @@ export class VectorMap25D {
     this.host.dataset.visibleRoads = String(visibleCount);
   }
 
+  isVisibleShape(points, width, height) {
+    if (!points.length) return false;
+    const xs = points.map((point) => point.x);
+    const ys = points.map((point) => point.y);
+    return !(
+      Math.max(...xs) < -30 ||
+      Math.min(...xs) > width + 30 ||
+      Math.max(...ys) < -30 ||
+      Math.min(...ys) > height + 30
+    );
+  }
+
+  renderGeography(width, height) {
+    this.regionLayer.replaceChildren();
+    this.waterLayer.replaceChildren();
+    let visibleCount = 0;
+    for (const feature of this.geography) {
+      const target =
+        feature.land_or_water === 'water' ? this.waterLayer : this.regionLayer;
+      const shapeClass =
+        feature.land_or_water === 'water'
+          ? 'map25d-water-shape'
+          : 'map25d-region-shape';
+      for (const ring of feature.projectedPolygons) {
+        const points = ring.map((point) => this.worldToScreen(point));
+        if (!this.isVisibleShape(points, width, height)) continue;
+        const polygon = svgElement('polygon', {
+          points: points
+            .map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`)
+            .join(' '),
+          class: shapeClass,
+          'data-geography-id': feature.id
+        });
+        const title = svgElement('title');
+        title.textContent = `${feature.name} · ${feature.kind}`;
+        polygon.appendChild(title);
+        target.appendChild(polygon);
+        visibleCount += 1;
+      }
+      for (const line of feature.projectedLines) {
+        const points = line.map((point) => this.worldToScreen(point));
+        if (!this.isVisibleShape(points, width, height)) continue;
+        const polyline = svgElement('polyline', {
+          points: points
+            .map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`)
+            .join(' '),
+          class:
+            feature.land_or_water === 'water'
+              ? 'map25d-water-path'
+              : 'map25d-region-path',
+          fill: 'none',
+          'data-geography-id': feature.id
+        });
+        const title = svgElement('title');
+        title.textContent = `${feature.name} · ${feature.kind}`;
+        polyline.appendChild(title);
+        target.appendChild(polyline);
+        visibleCount += 1;
+      }
+    }
+    this.host.dataset.visibleGeography = String(visibleCount);
+  }
+
   render() {
     const width = Math.max(1, this.host.clientWidth);
     const height = Math.max(1, this.host.clientHeight);
     this.svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
     this.renderGrid(width, height);
+    this.renderGeography(width, height);
     this.renderRoads(width, height);
     this.pointLayer.replaceChildren();
     this.labelLayer.replaceChildren();
@@ -371,7 +458,8 @@ export class VectorMap25D {
           zoom: this.camera.zoom,
           visiblePlaces: visible.length,
           visibleLabels: labelBoxes.length,
-          visibleRoads: Number(this.host.dataset.visibleRoads || 0)
+          visibleRoads: Number(this.host.dataset.visibleRoads || 0),
+          visibleGeography: Number(this.host.dataset.visibleGeography || 0)
         }
       })
     );

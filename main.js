@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
-import './bible-explorer.js?v=8.45-context-update1';
+import './bible-explorer.js?v=8.47-geography1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -6340,6 +6340,8 @@ var biblePeopleSearchTimer = null;
 var biblePeopleDirectoryLoaded = false;
 var biblePeopleNameIndex = {};
 var biblePeopleNameIndexPromise = null;
+var bibleContextLinks = null;
+var bibleContextLinksPromise = null;
 var biblePeopleRelationshipScene = null;
 
 function biblePeopleLoadNameIndex_() {
@@ -6358,6 +6360,24 @@ function biblePeopleLoadNameIndex_() {
       return {};
     });
   return biblePeopleNameIndexPromise;
+}
+
+function biblePeopleLoadContextLinks_() {
+  if (bibleContextLinksPromise) return bibleContextLinksPromise;
+  bibleContextLinksPromise = fetch('./content/bible-context-links.json?v=8.48-entity-context1')
+    .then(function(response) {
+      if (!response.ok) throw new Error('Bible context links could not be loaded.');
+      return response.json();
+    })
+    .then(function(value) {
+      bibleContextLinks = value || {};
+      return bibleContextLinks;
+    })
+    .catch(function(error) {
+      console.warn(error.message);
+      return {};
+    });
+  return bibleContextLinksPromise;
 }
 
 async function biblePeopleApi_(action, values) {
@@ -6573,6 +6593,12 @@ function biblePeopleRenderDetail_(detail) {
   var description = person.DESCRIPTION_EN || person.DESCRIPTION_KO || 'No source description is available.';
   var referenceLimit = 24;
   var relationshipLimit = 30;
+  var context = detail.context || {};
+  var contextEvents = Array.isArray(context.events) ? context.events : [];
+  var contextPlaces = Array.isArray(context.places) ? context.places : [];
+  var scripturePlaces = Array.isArray(context.scripture_places)
+    ? context.scripture_places
+    : [];
   var relationshipGraphic = relationships.length ? biblePeopleGraphPayload_(person, relationships) : null;
   var graphHtml = relationships.length
     ? '<div class="vector-scene25d-host bible-relationship-25d"></div>'
@@ -6600,6 +6626,26 @@ function biblePeopleRenderDetail_(detail) {
         (reference.IS_KEY === 'TRUE' || reference.IS_KEY === 'true' ? ' · Key' : '') + '</div>';
     }).join('') + '</div>' +
     (references.length > referenceLimit ? '<div class="bible-reference-more">Showing the first ' + referenceLimit + ' of ' + references.length + ' references.</div>' : '') +
+    '</section><section class="bible-person-section"><h4>People · Places · Events</h4>' +
+    (contextEvents.length
+      ? '<div class="bible-context-list">' + contextEvents.slice(0, 12).map(function(event) {
+          return '<div class="bible-context-item"><strong>' + escapeHtml(event.title) +
+            '</strong><span>' + escapeHtml((event.place_names || []).join(', ') ||
+              (event.source_codes || []).slice(0, 2).join(', ')) + '</span></div>';
+        }).join('') + '</div>'
+      : '<div class="bible-context-empty">No source event is directly linked to this person.</div>') +
+    (contextPlaces.length
+      ? '<div class="bible-person-meta">' + contextPlaces.slice(0, 16).map(function(place) {
+          return '<span class="bible-person-chip">📍 ' + escapeHtml(place.name) + '</span>';
+        }).join('') + '</div>'
+      : '') +
+    (scripturePlaces.length
+      ? '<details class="bible-context-more"><summary>Additional places appearing in the same Scripture passages (' +
+          scripturePlaces.length + ')</summary><div class="bible-person-meta">' +
+          scripturePlaces.slice(0, 30).map(function(place) {
+            return '<span class="bible-person-chip">' + escapeHtml(place.name) + '</span>';
+          }).join('') + '</div></details>'
+      : '') +
     '</section><section class="bible-person-section"><h4>Relationships (' + relationships.length + ')</h4>' +
     '<div class="bible-person-grid">' + relationships.slice(0, relationshipLimit).map(function(relationship) {
       return '<div class="bible-relationship"><strong>' +
@@ -6630,9 +6676,31 @@ async function biblePeopleLoadDetail_(personId) {
   try {
     var results = await Promise.all([
       biblePeopleApi_('person_detail', { person_id: personId }),
-      biblePeopleLoadNameIndex_()
+      biblePeopleLoadNameIndex_(),
+      biblePeopleLoadContextLinks_()
     ]);
     var detail = results[0];
+    var contextData = results[2] || {};
+    var personContext = contextData.person_contexts &&
+      contextData.person_contexts[personId] || {};
+    detail.context = {
+      events: (personContext.event_ids || []).map(function(eventId) {
+        var event = contextData.events && contextData.events[eventId];
+        if (!event) return null;
+        return Object.assign({}, event, {
+          place_names: (event.place_ids || []).map(function(placeId) {
+            return contextData.places && contextData.places[placeId] &&
+              contextData.places[placeId].name;
+          }).filter(Boolean)
+        });
+      }).filter(Boolean),
+      places: (personContext.place_ids || []).map(function(placeId) {
+        return contextData.places && contextData.places[placeId];
+      }).filter(Boolean),
+      scripture_places: (personContext.scripture_place_ids || []).map(function(placeId) {
+        return contextData.geocoding_places && contextData.geocoding_places[placeId];
+      }).filter(Boolean)
+    };
     biblePeopleRenderDetail_(detail);
     biblePeopleSetStatus_('Loaded ' + (detail.person.NAME_EN || personId) + '.');
   } catch (error) {
