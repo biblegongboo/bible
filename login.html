@@ -423,12 +423,16 @@
           { CODE: 'BIBLE_OT', NAME: 'Old Testament · 구약', CATEGORY: 'BIBLE', SHEET: 'BIBLE-OT', SET_SIZE: 120, FORMAT: 'BIBLE_EN_KO', ACTIVE: 'Y', VERSION: '1.0' },
           { CODE: 'BIBLE_NT', NAME: 'New Testament · 신약', CATEGORY: 'BIBLE', SHEET: 'BIBLE-NT', SET_SIZE: 120, FORMAT: 'BIBLE_EN_KO', ACTIVE: 'Y', VERSION: '1.0' }
         ];
-                    const serverSubjects = Array.isArray(data.subjects)
-                        ? data.subjects.filter(subject =>
-                            subject && subject.CODE && subject.SHEET
-                        )
+                    const hasServerSubjects = Array.isArray(data.subjects);
+                    const serverSubjects = hasServerSubjects
+                        ? data.subjects.filter(subject => {
+                            if (!subject || !subject.CODE || !subject.SHEET) return false;
+                            const code = String(subject.CODE).trim().toUpperCase();
+                            const category = String(subject.CATEGORY || '').trim().toUpperCase();
+                            return category === 'BIBLE' || code.indexOf('BIBLE_') === 0 || code.indexOf('BIBLE-') === 0;
+                        })
                         : [];
-                    if (serverSubjects.length) {
+                    if (hasServerSubjects) {
                         subjects = serverSubjects;
                     } else {
                         subjects = subjects.map(subject =>
@@ -515,7 +519,7 @@
                         JSON.stringify(subject)
                     );
 
-                    window.location.href = './index.html?v=8.56-member-count1';
+                    window.location.href = './index.html?v=8.59-bible-subjects1';
                 });
 
                 list.appendChild(button);
