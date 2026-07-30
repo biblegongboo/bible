@@ -419,10 +419,22 @@
                         trial_limit: Number(data.trial_limit ?? (data.user && data.user.trial_limit) ?? 20),
                         session_token: data.session_token ?? (data.user && data.user.session_token) ?? ''
                     });
-                    const subjects = [
+                    let subjects = [
           { CODE: 'BIBLE_OT', NAME: 'Old Testament · 구약', CATEGORY: 'BIBLE', SHEET: 'BIBLE-OT', SET_SIZE: 120, FORMAT: 'BIBLE_EN_KO', ACTIVE: 'Y', VERSION: '1.0' },
           { CODE: 'BIBLE_NT', NAME: 'New Testament · 신약', CATEGORY: 'BIBLE', SHEET: 'BIBLE-NT', SET_SIZE: 120, FORMAT: 'BIBLE_EN_KO', ACTIVE: 'Y', VERSION: '1.0' }
         ];
+                    const serverSubjects = Array.isArray(data.subjects)
+                        ? data.subjects.filter(subject =>
+                            subject && subject.CODE && subject.SHEET
+                        )
+                        : [];
+                    if (serverSubjects.length) {
+                        subjects = serverSubjects;
+                    } else {
+                        subjects = subjects.map(subject =>
+                            Object.assign({ QUESTION_COUNT: 0 }, subject)
+                        );
+                    }
                     localStorage.removeItem('quiz_current_subject_v1');
                     localStorage.setItem('quiz_current_user_v1', JSON.stringify(user));
                     localStorage.setItem('quiz_available_subjects_v1', JSON.stringify(subjects));
@@ -503,7 +515,7 @@
                         JSON.stringify(subject)
                     );
 
-                    window.location.href = './index.html?v=8.0D';
+                    window.location.href = './index.html?v=8.56-member-count1';
                 });
 
                 list.appendChild(button);

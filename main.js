@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
-import './bible-explorer.js?v=8.55-images-clean1';
+import './bible-explorer.js?v=8.56-member-count1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -189,7 +189,7 @@ function clearAuthAndRedirect(reason) {
   localStorage.removeItem('quiz_current_subject_v1');
   var rawReason = String(reason || '').replace(/[^A-Z0-9_\-]/gi, '').slice(0, 40);
   var authReason = rawReason.indexOf('AUTH_') === 0 ? 'LOGIN_REQUIRED' : rawReason;
-  window.location.replace('./login.html?v=8.0D' + (authReason ? '&auth_error=' + encodeURIComponent(authReason) : ''));
+  window.location.replace('./login.html?v=8.56-member-count1' + (authReason ? '&auth_error=' + encodeURIComponent(authReason) : ''));
 }
 
 function applyUserRolePolicy() {
