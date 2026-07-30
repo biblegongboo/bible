@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
-import './bible-explorer.js?v=8.51-patristic-reader1';
+import './bible-explorer.js?v=8.52-context-click1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -6657,10 +6657,20 @@ function biblePeopleRenderDetail_(detail) {
     (contextEvents.length
       ? '<div class="bible-context-list">' + contextEvents.slice(0, 12).map(function(event) {
           var eventReference = (event.source_codes || [])[0] || '';
-          return '<button type="button" class="bible-context-item" data-context-event-reference="' +
-            escapeHtml(eventReference) + '"><strong>' + escapeHtml(event.title) +
-            '</strong><span>' + escapeHtml((event.place_names || []).join(', ') ||
-              (event.source_codes || []).slice(0, 2).join(', ')) + '</span></button>';
+          var eventPlaces = Array.isArray(event.place_names) ? event.place_names : [];
+          return '<div class="bible-context-event-row">' +
+            '<button type="button" class="bible-context-item" data-context-event-reference="' +
+              escapeHtml(eventReference) + '"><strong>Event · ' + escapeHtml(event.title) +
+              '</strong><span>' + escapeHtml((event.source_codes || []).slice(0, 2).join(', ')) +
+              '</span></button>' +
+            (eventPlaces.length
+              ? '<div class="bible-context-event-places"><span>Places:</span>' +
+                  eventPlaces.map(function(placeName) {
+                    return '<button type="button" class="bible-person-chip" data-context-place-name="' +
+                      escapeHtml(placeName) + '">📍 ' + escapeHtml(placeName) + '</button>';
+                  }).join('') + '</div>'
+              : '') +
+          '</div>';
         }).join('') + '</div>'
       : '<div class="bible-context-empty">No source event is directly linked to this person.</div>') +
     (contextPlaces.length
