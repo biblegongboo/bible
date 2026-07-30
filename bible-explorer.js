@@ -1,9 +1,9 @@
-import { VectorMap25D } from './graphics/map25d/vector-map25d.js?v=8.43-map25d-live1';
+import { VectorMap25D } from './graphics/map25d/vector-map25d.js?v=8.45-context-update1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
 
 let initialized = false;
 let dataPromise = null;
-let data = { places: [], journeys: [], timelines: [], map25dPlaces: [] };
+let data = { places: [], journeys: [], timelines: [], map25dPlaces: [], ancientRoads: [] };
 let activePlaceMap = null;
 let activeJourneyScene = null;
 let activeTimelineScene = null;
@@ -27,9 +27,16 @@ function loadData() {
     fetch('./content/places.json?v=8.38-family-roles1').then(checkResponse),
     fetch('./content/journeys.json?v=8.42-estimated-journeys1').then(checkResponse),
     fetch('./content/timelines.json?v=8.38-family-roles1').then(checkResponse),
-    fetch('./content/bible-map25d.json?v=8.43-map25d-live1').then(checkResponse)
-  ]).then(([places, journeys, timelines, map25d]) => {
-    data = { places, journeys, timelines, map25dPlaces: map25d.places || [] };
+    fetch('./content/bible-map25d.json?v=8.43-map25d-live1').then(checkResponse),
+    fetch('./content/ancient-roads25d.json?v=8.45-context-update1').then(checkResponse)
+  ]).then(([places, journeys, timelines, map25d, ancientRoads]) => {
+    data = {
+      places,
+      journeys,
+      timelines,
+      map25dPlaces: map25d.places || [],
+      ancientRoads: ancientRoads.roads || []
+    };
     return data;
   });
   return dataPromise;
@@ -160,11 +167,12 @@ function renderPlaceDetail(place) {
       labelFontSize: 12,
       pointRadius: 3
     });
-    activePlaceMap.setPlaces(data.map25dPlaces);
+  activePlaceMap.setPlaces(data.map25dPlaces);
+  activePlaceMap.setRoads(data.ancientRoads);
     if (vectorPlace) activePlaceMap.focusOnPlace(vectorPlace.id, 7);
     mapHost.addEventListener('map25d:render', (event) => {
       if (!mapStatus) return;
-      mapStatus.textContent = `Zoom ${event.detail.zoom.toFixed(2)} · ${event.detail.visiblePlaces} places · ${event.detail.visibleLabels} labels`;
+      mapStatus.textContent = `Zoom ${event.detail.zoom.toFixed(2)} · ${event.detail.visiblePlaces} places · ${event.detail.visibleLabels} labels · ${event.detail.visibleRoads || 0} ancient roads`;
     });
     mapHost.addEventListener('map25d:select', (event) => {
       if (!mapStatus) return;

@@ -51,6 +51,7 @@ export class VectorMap25D {
     this.camera = { centerX: 0.5, centerY: 0.5, zoom: this.options.initialZoom };
     this.places = [];
     this.projectedPlaces = [];
+    this.roads = [];
     this.selectedId = null;
     this.drag = null;
     this.frame = null;
@@ -68,9 +69,10 @@ export class VectorMap25D {
       tabindex: '0'
     });
     this.backgroundLayer = svgElement('g', { class: 'map25d-background' });
+    this.roadLayer = svgElement('g', { class: 'map25d-roads' });
     this.pointLayer = svgElement('g', { class: 'map25d-points' });
     this.labelLayer = svgElement('g', { class: 'map25d-labels' });
-    this.svg.append(this.backgroundLayer, this.pointLayer, this.labelLayer);
+    this.svg.append(this.backgroundLayer, this.roadLayer, this.pointLayer, this.labelLayer);
     this.host.replaceChildren(this.svg);
   }
 
@@ -83,6 +85,16 @@ export class VectorMap25D {
           Number.isFinite(place.projected.x) && Number.isFinite(place.projected.y)
       );
     this.fitToData();
+    this.scheduleRender();
+  }
+
+  setRoads(roads) {
+    this.roads = (Array.isArray(roads) ? roads : []).map((road) => ({
+      ...road,
+      projectedLines: (road.lines || []).map((line) =>
+        line.map((point) => mercator(point[0], point[1]))
+      )
+    }));
     this.scheduleRender();
   }
 
@@ -236,11 +248,47 @@ export class VectorMap25D {
     );
   }
 
+  renderRoads(width, height) {
+    this.roadLayer.replaceChildren();
+    if (this.camera.zoom < 4 || !this.roads.length) return;
+    const certaintyOrder = { Certain: 0, Conjectured: 1, Hypothetical: 2 };
+    const roads = this.roads.slice().sort((left, right) =>
+      (certaintyOrder[left.certainty] ?? 3) - (certaintyOrder[right.certainty] ?? 3)
+    );
+    let visibleCount = 0;
+    const maximumVisible = 1400;
+    for (const road of roads) {
+      if (visibleCount >= maximumVisible) break;
+      for (const line of road.projectedLines) {
+        const points = line.map((point) => this.worldToScreen(point));
+        if (points.length < 2) continue;
+        const xs = points.map((point) => point.x);
+        const ys = points.map((point) => point.y);
+        if (Math.max(...xs) < -20 || Math.min(...xs) > width + 20 ||
+            Math.max(...ys) < -20 || Math.min(...ys) > height + 20) continue;
+        const roadPath = svgElement('polyline', {
+          points: points.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' '),
+          class: `map25d-road is-${String(road.certainty || 'unknown').toLowerCase()}`,
+          fill: 'none',
+          'data-road-id': road.road_id
+        });
+        const title = svgElement('title');
+        title.textContent = `${road.name || 'Ancient road'} · ${road.certainty || 'Unknown certainty'}`;
+        roadPath.appendChild(title);
+        this.roadLayer.appendChild(roadPath);
+        visibleCount += 1;
+        if (visibleCount >= maximumVisible) break;
+      }
+    }
+    this.host.dataset.visibleRoads = String(visibleCount);
+  }
+
   render() {
     const width = Math.max(1, this.host.clientWidth);
     const height = Math.max(1, this.host.clientHeight);
     this.svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
     this.renderGrid(width, height);
+    this.renderRoads(width, height);
     this.pointLayer.replaceChildren();
     this.labelLayer.replaceChildren();
 
@@ -322,7 +370,8 @@ export class VectorMap25D {
         detail: {
           zoom: this.camera.zoom,
           visiblePlaces: visible.length,
-          visibleLabels: labelBoxes.length
+          visibleLabels: labelBoxes.length,
+          visibleRoads: Number(this.host.dataset.visibleRoads || 0)
         }
       })
     );
