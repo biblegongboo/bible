@@ -1874,7 +1874,9 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-person-description{margin:18px 0;line-height:1.65;color:#334155}.bible-person-meta{display:flex;flex-wrap:wrap;gap:7px;margin:13px 0}
   .bible-person-chip{display:inline-flex;padding:6px 9px;border-radius:999px;background:#e0ecff;color:#1e40af;font-size:12px;font-weight:800}
   .bible-person-section{margin-top:24px}.bible-person-section h4{margin-bottom:10px;font-size:16px}.bible-person-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+  .bible-reference-grid{display:flex;flex-wrap:wrap;align-items:flex-start;gap:7px}
   .bible-reference,.bible-relationship{border:1px solid #e2e8f0;border-radius:9px;padding:9px 10px;background:#f8fafc;font-size:12px;color:#334155}
+  .bible-reference{display:inline-flex;flex:0 0 auto;max-width:100%;white-space:nowrap;line-height:1.2}
   .bible-relationship strong{display:block;color:#172033;margin-bottom:3px}.bible-reference-more{margin-top:10px;color:#64748b;font-size:12px}
   .bible-person-graph{min-height:390px;margin-top:12px;border:1px solid #dbe3ee;border-radius:12px;overflow:hidden}
   .bible-explore-tabs{display:flex;flex-wrap:wrap;gap:8px;padding:16px 26px 6px}.bible-explore-tabs button{border:1px solid #cbd5e1;border-radius:999px;background:#fff;color:#334155;padding:9px 17px;font-weight:800;cursor:pointer}.bible-explore-tabs button.is-active{background:#17233d;color:#fff;border-color:#17233d}
@@ -1895,7 +1897,7 @@ html:not(.admin-user) .admin-preview-panel {
 </style>
 
 <script type="module">
-import { initialize } from './main.js?v=8.53-knowledge-ui1';
+import { initialize } from './main.js?v=8.54-reference-wrap1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
