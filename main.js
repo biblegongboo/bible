@@ -908,6 +908,12 @@ function hideLoadingOverlay() {
   if (overlay) overlay.remove();
 }
 
+function updateQuestionLoadingStatus_(message) {
+  var overlay = document.getElementById('loadingOverlay');
+  var heading = overlay && overlay.querySelector('h3');
+  if (heading) heading.textContent = message || 'Loading questions...';
+}
+
 // ========================================================================
 // BLOCK 0600: 진행 저장/로드 (원본 B006 + 즉시 저장)
 // ========================================================================
@@ -1264,6 +1270,16 @@ function updateModeUI() {
 
   if (DOM.modeDescription) {
     DOM.modeDescription.textContent = info.icon + ' ' + info.label + ' · ' + info.description;
+  }
+  var examMode = currentMode === 'exam';
+  if (DOM.timerToggle) {
+    DOM.timerToggle.hidden = !examMode;
+    DOM.timerToggle.setAttribute('aria-hidden', examMode ? 'false' : 'true');
+    DOM.timerToggle.tabIndex = examMode ? 0 : -1;
+  }
+  if (!examMode && DOM.timerPanel) {
+    DOM.timerPanel.hidden = true;
+    if (DOM.timerToggle) DOM.timerToggle.setAttribute('aria-expanded', 'false');
   }
   updateBiblePassageControls_();
 }
@@ -1787,7 +1803,7 @@ async function load50Questions(uiStartNumber, retryCount = 0) {
             if (retryCount < MAX_RETRIES) {
                 const delay = Math.pow(2, retryCount) * 1000;
                 console.warn(`🔄 재시도 ${retryCount + 1}/${MAX_RETRIES} (${delay}ms 대기)...`);
-                showToast(`데이터 로드 재시도 중... (${retryCount + 1}/${MAX_RETRIES})`, 'warn', 2000);
+                updateQuestionLoadingStatus_('Loading questions...');
                 await new Promise(resolve => setTimeout(resolve, delay));
                 return load50Questions(uiStartNumber, retryCount + 1);
             }
@@ -1796,7 +1812,7 @@ async function load50Questions(uiStartNumber, retryCount = 0) {
         if (retryCount < MAX_RETRIES) {
             const delay = Math.pow(2, retryCount) * 1000;
             console.warn(`🔄 재시도 ${retryCount + 1}/${MAX_RETRIES} (${delay}ms 대기)...`);
-            showToast(`데이터 로드 재시도 중... (${retryCount + 1}/${MAX_RETRIES})`, 'warn', 2000);
+            updateQuestionLoadingStatus_('Loading questions...');
             await new Promise(resolve => setTimeout(resolve, delay));
             return load50Questions(uiStartNumber, retryCount + 1);
         }
@@ -2239,10 +2255,13 @@ function updateTimerDisplay() {
   if (DOM.calculatorTimerMirror) DOM.calculatorTimerMirror.textContent = formatted;
   if (DOM.headerTimerDisplay) DOM.headerTimerDisplay.textContent = formatted;
   if (DOM.timerToggle) {
-    DOM.timerToggle.hidden = false;
-    DOM.timerToggle.style.display = 'flex';
+    var examMode = currentMode === 'exam';
+    DOM.timerToggle.hidden = !examMode;
+    DOM.timerToggle.style.display = examMode ? 'flex' : 'none';
     DOM.timerToggle.style.visibility = 'visible';
     DOM.timerToggle.style.opacity = '1';
+    DOM.timerToggle.setAttribute('aria-hidden', examMode ? 'false' : 'true');
+    DOM.timerToggle.tabIndex = examMode ? 0 : -1;
   }
   if (DOM.timerPauseBtn) DOM.timerPauseBtn.textContent = timerRunning ? '⏸ Pause' : (timerPaused ? '▶ Resume' : '▶ Start');
 }
@@ -5567,7 +5586,7 @@ async function startQuizWithNumber(uiStartNumber) {
     }
   }
   
-  var overlay = showLoadingOverlay('Loading ' + (IS_TRIAL_USER ? TRIAL_LIMIT : QUESTIONS_PER_SET) + ' questions from ' + startNum + '...');
+  var overlay = showLoadingOverlay('Loading questions...');
   try {
     var questions = await load50Questions(startNum);
     if (questions.length === 0) throw new Error('No question data received');
