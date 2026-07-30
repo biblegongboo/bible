@@ -1,10 +1,12 @@
-import { renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorMap25D } from './graphics/map25d/vector-map25d.js?v=8.43-map25d-live1';
+import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
 
 let initialized = false;
 let dataPromise = null;
 let data = { places: [], journeys: [], timelines: [], map25dPlaces: [] };
 let activePlaceMap = null;
+let activeJourneyScene = null;
+let activeTimelineScene = null;
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (character) => ({
@@ -214,24 +216,23 @@ function renderJourney(index = 0) {
   const journeyIndex = Number(index) || 0;
   const journey = data.journeys[journeyIndex];
   if (!output || !journey) return;
-  const graphic = structuredClone(journey.graphic);
-  if (journeyIndex === 0 && Array.isArray(graphic?.board?.boundingbox) && graphic.board.boundingbox.length === 4) {
-    const [left, top, right, bottom] = graphic.board.boundingbox.map(Number);
-    const centerX = (left + right) / 2;
-    const centerY = (top + bottom) / 2;
-    const zoomScale = 0.8;
-    graphic.board.boundingbox = [
-      centerX + (left - centerX) * zoomScale,
-      centerY + (top - centerY) * zoomScale,
-      centerX + (right - centerX) * zoomScale,
-      centerY + (bottom - centerY) * zoomScale
-    ];
-  }
-  output.innerHTML = `<h3>${escapeHtml(journey.title_en || journey.journey_id)}</h3>
-    <p class="bible-reference-more">${journey.status === 'estimated'
-      ? 'Estimated Route · 추정 경로 — reconstructed from source events, Bible references, and source-provided place coordinates.'
-      : 'Source-provided coordinate route. Modern political boundaries are not implied.'}</p>
-    ${renderSuperGraphicPayload(graphic)}`;
+  if (activeJourneyScene) activeJourneyScene.destroy();
+  output.replaceChildren();
+  const title = document.createElement('h3');
+  title.textContent = journey.title_en || journey.journey_id;
+  const note = document.createElement('p');
+  note.className = 'bible-reference-more';
+  note.textContent = journey.status === 'estimated'
+    ? 'Estimated Route — reconstructed from source events, Bible references, and source-provided place coordinates.'
+    : 'Source-provided coordinate route. Modern political boundaries are not implied.';
+  const sceneHost = document.createElement('div');
+  sceneHost.className = 'vector-scene25d-host bible-journey-25d';
+  output.append(title, note, sceneHost);
+  activeJourneyScene = new VectorScene25D(sceneHost, {
+    ariaLabel: 'Interactive Bible journey',
+    labelFontSize: 12
+  });
+  activeJourneyScene.setScene(sceneFromGraphicObjects(journey.graphic));
   setStatus('Journey route loaded.');
 }
 
@@ -243,7 +244,43 @@ function renderTimeline(index = 0) {
     output.innerHTML = '<div class="bible-people-empty"><strong>Loading timeline...</strong></div>';
     return;
   }
-  output.innerHTML = renderSuperGraphicPayload(timeline.graphic);
+  if (activeTimelineScene) activeTimelineScene.destroy();
+  const rows = Array.isArray(timeline.graphic?.rows) ? timeline.graphic.rows : [];
+  const nodes = rows.map((row, rowIndex) => ({
+    id: `event_${rowIndex}`,
+    x: rowIndex,
+    y: rowIndex % 2 ? -1 : 1,
+    label: `${row[0]}. ${row[1]}`,
+    color: rowIndex % 2 ? '#fbbf24' : '#60a5fa',
+    stroke: '#1e3a8a',
+    radius: 4,
+    priority: rows.length - rowIndex,
+    metadata: { reference: row[2], date: row[3] }
+  }));
+  output.innerHTML = `<h3>${escapeHtml(timeline.graphic?.title || timeline.book_code)}</h3>
+    <p class="bible-reference-more">${escapeHtml(timeline.graphic?.caption || '')}</p>
+    <div class="vector-scene25d-host bible-timeline-25d"></div>
+    <div class="bible-timeline-selection">Select an event point to view its reference and source date.</div>`;
+  const timelineHost = output.querySelector('.bible-timeline-25d');
+  activeTimelineScene = new VectorScene25D(timelineHost, {
+    ariaLabel: 'Interactive Bible timeline',
+    labelFontSize: 11
+  });
+  activeTimelineScene.setScene({
+    nodes,
+    edges: nodes.length > 1 ? [{
+      id: 'timeline',
+      points: nodes.map((node) => [node.x, 0]),
+      color: '#64748b',
+      width: 2
+    }] : [],
+    texts: []
+  });
+  timelineHost.addEventListener('scene25d:select', (event) => {
+    const node = event.detail.node;
+    output.querySelector('.bible-timeline-selection').textContent =
+      `${node.label} · ${node.metadata.reference || 'No reference'} · ${node.metadata.date || 'No source date'}`;
+  });
   setStatus(`${timeline.event_count} events loaded in Scripture order.`);
 }
 

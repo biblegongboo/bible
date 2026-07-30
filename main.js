@@ -9,7 +9,8 @@
 // Super graphics are isolated from the Legacy SAT renderer.  The router only
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
-import './bible-explorer.js?v=8.43-map25d-live1';
+import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
+import './bible-explorer.js?v=8.44-map25d-all1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -6339,6 +6340,7 @@ var biblePeopleSearchTimer = null;
 var biblePeopleDirectoryLoaded = false;
 var biblePeopleNameIndex = {};
 var biblePeopleNameIndexPromise = null;
+var biblePeopleRelationshipScene = null;
 
 function biblePeopleLoadNameIndex_() {
   if (biblePeopleNameIndexPromise) return biblePeopleNameIndexPromise;
@@ -6556,6 +6558,10 @@ function biblePeopleGraphPayload_(person, relationships) {
 function biblePeopleRenderDetail_(detail) {
   var host = document.getElementById('biblePeopleDetail');
   if (!host || !detail || !detail.person) return;
+  if (biblePeopleRelationshipScene) {
+    biblePeopleRelationshipScene.destroy();
+    biblePeopleRelationshipScene = null;
+  }
   var person = detail.person;
   var aliases = Array.isArray(detail.aliases) ? detail.aliases : [];
   var references = Array.isArray(detail.references) ? detail.references : [];
@@ -6567,8 +6573,9 @@ function biblePeopleRenderDetail_(detail) {
   var description = person.DESCRIPTION_EN || person.DESCRIPTION_KO || 'No source description is available.';
   var referenceLimit = 24;
   var relationshipLimit = 30;
+  var relationshipGraphic = relationships.length ? biblePeopleGraphPayload_(person, relationships) : null;
   var graphHtml = relationships.length
-    ? renderSuperGraphicPayload(biblePeopleGraphPayload_(person, relationships))
+    ? '<div class="vector-scene25d-host bible-relationship-25d"></div>'
     : '<div class="bible-people-empty"><span>No source-provided relationships are available.</span></div>';
 
   host.innerHTML = '<article class="bible-person-card">' +
@@ -6596,6 +6603,14 @@ function biblePeopleRenderDetail_(detail) {
     }).join('') + '</div></section>' +
     '<section class="bible-person-section"><h4>Relationship graph</h4><div class="bible-person-graph">' + graphHtml + '</div></section>' +
     '</article>';
+  if (relationshipGraphic) {
+    var relationshipHost = host.querySelector('.bible-relationship-25d');
+    biblePeopleRelationshipScene = new VectorScene25D(relationshipHost, {
+      ariaLabel: 'Interactive Bible relationship graph',
+      labelFontSize: 12
+    });
+    biblePeopleRelationshipScene.setScene(sceneFromGraphicObjects(relationshipGraphic));
+  }
 }
 
 async function biblePeopleLoadDetail_(personId) {
