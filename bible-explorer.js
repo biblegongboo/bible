@@ -1,8 +1,10 @@
 import { renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
+import { VectorMap25D } from './graphics/map25d/vector-map25d.js?v=8.43-map25d-live1';
 
 let initialized = false;
 let dataPromise = null;
-let data = { places: [], journeys: [], timelines: [] };
+let data = { places: [], journeys: [], timelines: [], map25dPlaces: [] };
+let activePlaceMap = null;
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (character) => ({
@@ -22,9 +24,10 @@ function loadData() {
   dataPromise = Promise.all([
     fetch('./content/places.json?v=8.38-family-roles1').then(checkResponse),
     fetch('./content/journeys.json?v=8.42-estimated-journeys1').then(checkResponse),
-    fetch('./content/timelines.json?v=8.38-family-roles1').then(checkResponse)
-  ]).then(([places, journeys, timelines]) => {
-    data = { places, journeys, timelines };
+    fetch('./content/timelines.json?v=8.38-family-roles1').then(checkResponse),
+    fetch('./content/bible-map25d.json?v=8.43-map25d-live1').then(checkResponse)
+  ]).then(([places, journeys, timelines, map25d]) => {
+    data = { places, journeys, timelines, map25dPlaces: map25d.places || [] };
     return data;
   });
   return dataPromise;
@@ -108,6 +111,10 @@ function placeMapPayload(selected, nearby) {
 function renderPlaceDetail(place) {
   const host = document.getElementById('biblePlaceDetail');
   if (!host || !place) return;
+  if (activePlaceMap) {
+    activePlaceMap.destroy();
+    activePlaceMap = null;
+  }
   const nearby = nearbyPlaces(place);
   host.innerHTML = `<article class="bible-place-card">
     <h3>${escapeHtml(place.name)}</h3>
@@ -117,13 +124,58 @@ function renderPlaceDetail(place) {
       ${place.source ? `<span class="bible-person-chip">${escapeHtml(place.source)}</span>` : ''}
     </div>
     <p>${escapeHtml(place.description || 'No source description is available.')}</p>
-    <div class="bible-place-map">${renderSuperGraphicPayload(placeMapPayload(place, nearby))}</div>
+    <div class="bible-place-map bible-place-map25d">
+      <div class="bible-map25d-toolbar">
+        <strong>2.5D Vector Bible Map</strong>
+        <span>Wheel to zoom · Drag to move · Select a point</span>
+        <button type="button" data-map25d-fit>Fit all</button>
+      </div>
+      <div class="bible-map25d-host" data-map25d-host></div>
+      <div class="bible-map25d-status" data-map25d-status></div>
+    </div>
     <section class="bible-person-section"><h4>Nearby places</h4>
       <div class="bible-person-meta">${nearby.filter((item) => item.id !== place.id).map((item) =>
         `<button type="button" class="bible-nearby-place" data-nearby-place-id="${escapeHtml(item.id)}">${escapeHtml(item.name)}</button>`
       ).join('')}</div>
     </section>
   </article>`;
+  const mapHost = host.querySelector('[data-map25d-host]');
+  const mapStatus = host.querySelector('[data-map25d-status]');
+  const normalizeName = (value) => String(value || '').trim().toLowerCase().replace(/\s+\d+$/, '');
+  const selectedName = normalizeName(place.name);
+  const selectedLat = Number(place.lat);
+  const selectedLon = Number(place.lon);
+  const vectorPlace = data.map25dPlaces.find((item) => normalizeName(item.name) === selectedName) ||
+    data.map25dPlaces.slice().sort((left, right) => {
+      const leftDistance = Math.hypot(Number(left.latitude) - selectedLat, Number(left.longitude) - selectedLon);
+      const rightDistance = Math.hypot(Number(right.latitude) - selectedLat, Number(right.longitude) - selectedLon);
+      return leftDistance - rightDistance;
+    })[0];
+  if (mapHost && data.map25dPlaces.length) {
+    activePlaceMap = new VectorMap25D(mapHost, {
+      minimumZoom: 1,
+      maximumZoom: 12,
+      labelFontSize: 12,
+      pointRadius: 3
+    });
+    activePlaceMap.setPlaces(data.map25dPlaces);
+    if (vectorPlace) activePlaceMap.focusOnPlace(vectorPlace.id, 7);
+    mapHost.addEventListener('map25d:render', (event) => {
+      if (!mapStatus) return;
+      mapStatus.textContent = `Zoom ${event.detail.zoom.toFixed(2)} · ${event.detail.visiblePlaces} places · ${event.detail.visibleLabels} labels`;
+    });
+    mapHost.addEventListener('map25d:select', (event) => {
+      if (!mapStatus) return;
+      const selected = event.detail.place;
+      mapStatus.textContent = `${selected.name} · ${selected.verse_reference_count || 0} verse references · ${selected.candidate_count || 0} location candidate(s)`;
+    });
+    host.querySelector('[data-map25d-fit]')?.addEventListener('click', () => {
+      activePlaceMap.fitToData();
+      activePlaceMap.scheduleRender();
+    });
+  } else if (mapStatus) {
+    mapStatus.textContent = 'Vector map data is unavailable.';
+  }
   document.querySelectorAll('[data-bible-place-id]').forEach((button) => {
     button.classList.toggle('is-active', button.dataset.biblePlaceId === place.id);
   });
