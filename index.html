@@ -286,6 +286,7 @@
       <button type="button" class="is-active" data-bible-explore-tab="places">Places</button>
       <button type="button" data-bible-explore-tab="journeys">Journeys</button>
       <button type="button" data-bible-explore-tab="timeline">Timeline</button>
+      <button type="button" data-bible-explore-tab="patristic">Early Church</button>
     </nav>
     <div id="bibleExploreStatus" class="bible-people-status" aria-live="polite">Loading Bible context data...</div>
     <section class="bible-explore-view is-active" data-bible-explore-view="places">
@@ -302,6 +303,13 @@
     <section class="bible-explore-view" data-bible-explore-view="timeline">
       <div class="bible-explore-toolbar"><select id="bibleTimelineSelector" aria-label="Select a Bible book"></select></div>
       <div id="bibleTimelineOutput" class="bible-explore-output"></div>
+    </section>
+    <section class="bible-explore-view" data-bible-explore-view="patristic">
+      <div class="bible-explore-toolbar"><input id="biblePatristicSearch" type="search" autocomplete="off" placeholder="Search work, author, or year..."></div>
+      <div class="bible-people-layout bible-explore-layout">
+        <aside id="biblePatristicResults" class="bible-people-results" aria-label="Early Church works"></aside>
+        <main id="biblePatristicDetail" class="bible-people-detail"></main>
+      </div>
     </section>
   </div>
 </section>
@@ -1835,12 +1843,14 @@ html:not(.admin-user) .admin-preview-panel {
   .vector-scene25d-host{width:100%;height:min(62vh,620px);min-height:390px;border:1px solid #bfdbfe;border-radius:12px;overflow:hidden;background:#f8fbff}.vector-scene25d-host svg{display:block;width:100%;height:100%;cursor:grab;touch-action:none;user-select:none}.vector-scene25d-host svg.is-dragging{cursor:grabbing}.scene25d-bg{fill:#fbfdff}.scene25d-grid{fill:none;stroke:#dbe5ef;stroke-width:1;vector-effect:non-scaling-stroke}.scene25d-edge{stroke-linecap:round;stroke-linejoin:round}.scene25d-node{cursor:pointer;vector-effect:non-scaling-stroke}.scene25d-node:hover{filter:brightness(.9);stroke-width:2.5}.scene25d-label,.scene25d-section-label{fill:#172033;paint-order:stroke;stroke:rgba(255,255,255,.97);stroke-width:4px;stroke-linejoin:round;font-weight:700;pointer-events:none}.scene25d-section-label{fill:#64748b;font-weight:800;letter-spacing:.5px}.bible-timeline-selection{margin-top:10px;border:1px solid #dbe3ee;border-radius:9px;padding:10px 12px;background:#f8fafc;color:#334155;font-size:12px}.bible-relationship-25d{height:430px}.bible-journey-25d{height:min(62vh,640px)}.bible-timeline-25d{height:460px}
   .bible-single-person{min-height:360px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;background:radial-gradient(circle at center,#eff6ff 0,#f8fbff 48%,#fff 76%);color:#172033}.bible-single-person-icon{display:grid;place-items:center;width:94px;height:94px;margin-bottom:7px;border:2px solid #93c5fd;border-radius:50%;background:linear-gradient(145deg,#fff,#dbeafe);box-shadow:0 14px 32px rgba(37,99,235,.16);font-size:47px}.bible-single-person strong{font-size:23px}.bible-single-person span{color:#475569;font-size:14px}.bible-single-person small{margin-top:10px;color:#64748b;font-size:12px}
   .bible-context-list{display:grid;gap:8px;margin-bottom:12px}.bible-context-item{display:flex;justify-content:space-between;gap:14px;padding:10px 12px;border:1px solid #dbeafe;border-radius:10px;background:#f8fbff}.bible-context-item strong{color:#172033}.bible-context-item span{color:#64748b;text-align:right;font-size:12px}.bible-context-empty{padding:12px;border-radius:10px;background:#f8fafc;color:#64748b}.bible-context-more{margin-top:12px;color:#475569}.bible-context-more summary{cursor:pointer;font-weight:800}
+  .bible-secondary-notice{margin:18px 0;padding:14px 16px;border-left:4px solid #f59e0b;border-radius:8px;background:#fffbeb;color:#78350f}.bible-secondary-notice strong{display:block;margin-bottom:4px}.bible-verse-places-button{margin:10px 0 14px;border:1px solid #60a5fa;border-radius:999px;background:#eff6ff;color:#1d4ed8;padding:7px 12px;font-weight:850;cursor:pointer}.bible-context-item:is(button),.bible-person-meta button.bible-person-chip{font:inherit;cursor:pointer}.bible-context-item:is(button){width:100%;text-align:left}
+  .bible-patristic-read-button{margin:14px 0;border:0;border-radius:10px;background:#1d4ed8;color:#fff;padding:11px 18px;font-weight:850;cursor:pointer}.bible-patristic-reader{margin-top:14px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;padding:18px}.bible-patristic-reader-header,.bible-patristic-reader-nav{display:flex;align-items:center;justify-content:space-between;gap:12px}.bible-patristic-reader-header{padding-bottom:12px;border-bottom:1px solid #e2e8f0}.bible-patristic-reader-text{font-family:Georgia,'Times New Roman',serif;line-height:1.75;color:#1e293b}.bible-patristic-reader-text p{margin:16px 0}.bible-patristic-reader-text h4{margin:24px 0 10px;font-size:20px}.bible-patristic-reader-nav{padding-top:14px;border-top:1px solid #e2e8f0}.bible-patristic-reader-nav button{border:1px solid #93c5fd;border-radius:9px;background:#eff6ff;color:#1d4ed8;padding:8px 14px;font-weight:800;cursor:pointer}.bible-patristic-reader-nav button:disabled{opacity:.4;cursor:not-allowed}
   body.bible-people-open{overflow:hidden}
   @media(max-width:760px){.persistent-people-toggle{right:52px}.persistent-explore-toggle{right:124px}.bible-people-panel{padding:0}.bible-people-dialog{min-height:100vh;border-radius:0}.bible-people-layout{grid-template-columns:1fr}.bible-people-results{min-height:0;max-height:210px}.bible-people-detail{min-height:430px}.bible-person-title{display:block}.bible-person-id{display:inline-block;margin-top:10px}.bible-explore-tabs{padding-left:14px;padding-right:14px}.bible-explore-toolbar{padding-left:14px;padding-right:14px}.bible-explore-output{margin-left:14px;margin-right:14px}}
 </style>
 
 <script type="module">
-import { initialize } from './main.js?v=8.48-entity-context1';
+import { initialize } from './main.js?v=8.51-patristic-reader1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

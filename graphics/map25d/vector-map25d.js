@@ -322,7 +322,16 @@ export class VectorMap25D {
     this.regionLayer.replaceChildren();
     this.waterLayer.replaceChildren();
     let visibleCount = 0;
-    for (const feature of this.geography) {
+    const maximumVisible =
+      this.camera.zoom < 3 ? 12 :
+      this.camera.zoom < 5 ? 28 :
+      this.camera.zoom < 7 ? 65 :
+      this.camera.zoom < 9 ? 130 : 240;
+    const candidates = this.geography
+      .filter((feature) => this.camera.zoom >= Number(feature.min_zoom || 5))
+      .sort((left, right) => Number(right.priority || 0) - Number(left.priority || 0));
+    for (const feature of candidates) {
+      if (visibleCount >= maximumVisible) break;
       const target =
         feature.land_or_water === 'water' ? this.waterLayer : this.regionLayer;
       const shapeClass =
@@ -344,7 +353,9 @@ export class VectorMap25D {
         polygon.appendChild(title);
         target.appendChild(polygon);
         visibleCount += 1;
+        if (visibleCount >= maximumVisible) break;
       }
+      if (visibleCount >= maximumVisible) break;
       for (const line of feature.projectedLines) {
         const points = line.map((point) => this.worldToScreen(point));
         if (!this.isVisibleShape(points, width, height)) continue;
@@ -364,6 +375,7 @@ export class VectorMap25D {
         polyline.appendChild(title);
         target.appendChild(polyline);
         visibleCount += 1;
+        if (visibleCount >= maximumVisible) break;
       }
     }
     this.host.dataset.visibleGeography = String(visibleCount);

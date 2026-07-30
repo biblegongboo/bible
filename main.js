@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
-import './bible-explorer.js?v=8.47-geography1';
+import './bible-explorer.js?v=8.51-patristic-reader1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -5097,6 +5097,25 @@ function showExplanation(force) {
 // ========================================================================
 // BLOCK 1330: renderCurrentQuestion (수정 - 수식만 LaTeX 처리)
 // ========================================================================
+function attachBiblePlacesButton_(q) {
+  var sourceCode = getBibleSourceCode_(q);
+  if (!/^(OT|NT)-/.test(sourceCode || '')) return;
+  var card = DOM.questionContainer.querySelector('.question-card');
+  if (!card || card.querySelector('[data-bible-verse-places]')) return;
+  var button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'bible-verse-places-button';
+  button.setAttribute('data-bible-verse-places', sourceCode);
+  button.textContent = '📍 Places in this passage';
+  button.addEventListener('click', function() {
+    if (typeof window.openBiblePlacesForSource === 'function') {
+      window.openBiblePlacesForSource(sourceCode);
+    }
+  });
+  var number = card.querySelector('.q-num');
+  if (number) number.insertAdjacentElement('afterend', button);
+}
+
 function renderCurrentQuestion() {
   console.log('🔴 renderCurrentQuestion START');
   updateBiblePassageControls_();
@@ -5153,6 +5172,7 @@ function renderCurrentQuestion() {
       reading.position < reading.indexes.length - 1 ? 'inline-block' : 'none';
     DOM.nextBtn.innerHTML = 'NEXT VERSE (N)';
     DOM.prevBtn.disabled = reading.position === 0;
+    attachBiblePlacesButton_(q);
     if (window.MathJax && MathJax.typesetPromise) {
       MathJax.typesetPromise([DOM.questionContainer]).catch(console.warn);
     }
@@ -5163,6 +5183,7 @@ function renderCurrentQuestion() {
 
   if (isSubjective) {
     renderSubjectiveQuestion(q, answered, headerText, passageHtml);
+    attachBiblePlacesButton_(q);
     return;
   }
   
@@ -5224,6 +5245,7 @@ function renderCurrentQuestion() {
   html += '</div>';
 
   DOM.questionContainer.innerHTML = html;
+  attachBiblePlacesButton_(q);
   console.log('✅ Question rendered');
   
   if (window.MathJax && MathJax.typesetPromise) {
@@ -6627,23 +6649,32 @@ function biblePeopleRenderDetail_(detail) {
     }).join('') + '</div>' +
     (references.length > referenceLimit ? '<div class="bible-reference-more">Showing the first ' + referenceLimit + ' of ' + references.length + ' references.</div>' : '') +
     '</section><section class="bible-person-section"><h4>People · Places · Events</h4>' +
+    '<div class="bible-person-meta">' +
+      '<button type="button" class="bible-person-chip" data-context-tab="places">Atlas</button>' +
+      '<button type="button" class="bible-person-chip" data-context-tab="timeline">Timeline</button>' +
+      '<button type="button" class="bible-person-chip" data-context-tab="journeys">Journeys</button>' +
+    '</div>' +
     (contextEvents.length
       ? '<div class="bible-context-list">' + contextEvents.slice(0, 12).map(function(event) {
-          return '<div class="bible-context-item"><strong>' + escapeHtml(event.title) +
+          var eventReference = (event.source_codes || [])[0] || '';
+          return '<button type="button" class="bible-context-item" data-context-event-reference="' +
+            escapeHtml(eventReference) + '"><strong>' + escapeHtml(event.title) +
             '</strong><span>' + escapeHtml((event.place_names || []).join(', ') ||
-              (event.source_codes || []).slice(0, 2).join(', ')) + '</span></div>';
+              (event.source_codes || []).slice(0, 2).join(', ')) + '</span></button>';
         }).join('') + '</div>'
       : '<div class="bible-context-empty">No source event is directly linked to this person.</div>') +
     (contextPlaces.length
       ? '<div class="bible-person-meta">' + contextPlaces.slice(0, 16).map(function(place) {
-          return '<span class="bible-person-chip">📍 ' + escapeHtml(place.name) + '</span>';
+          return '<button type="button" class="bible-person-chip" data-context-place-name="' +
+            escapeHtml(place.name) + '">📍 ' + escapeHtml(place.name) + '</button>';
         }).join('') + '</div>'
       : '') +
     (scripturePlaces.length
       ? '<details class="bible-context-more"><summary>Additional places appearing in the same Scripture passages (' +
           scripturePlaces.length + ')</summary><div class="bible-person-meta">' +
           scripturePlaces.slice(0, 30).map(function(place) {
-            return '<span class="bible-person-chip">' + escapeHtml(place.name) + '</span>';
+            return '<button type="button" class="bible-person-chip" data-context-place-name="' +
+              escapeHtml(place.name) + '">' + escapeHtml(place.name) + '</button>';
           }).join('') + '</div></details>'
       : '') +
     '</section><section class="bible-person-section"><h4>Relationships (' + relationships.length + ')</h4>' +
@@ -6662,6 +6693,36 @@ function biblePeopleRenderDetail_(detail) {
     });
     biblePeopleRelationshipScene.setScene(sceneFromGraphicObjects(relationshipGraphic));
   }
+  host.querySelectorAll('[data-context-place-name]').forEach(function(button) {
+    button.addEventListener('click', function() {
+      biblePeopleClose_();
+      if (typeof window.openBibleContext === 'function') {
+        window.openBibleContext({
+          tab: 'places',
+          placeName: button.getAttribute('data-context-place-name')
+        });
+      }
+    });
+  });
+  host.querySelectorAll('[data-context-event-reference]').forEach(function(button) {
+    button.addEventListener('click', function() {
+      biblePeopleClose_();
+      if (typeof window.openBibleContext === 'function') {
+        window.openBibleContext({
+          tab: 'timeline',
+          sourceCode: button.getAttribute('data-context-event-reference')
+        });
+      }
+    });
+  });
+  host.querySelectorAll('[data-context-tab]').forEach(function(button) {
+    button.addEventListener('click', function() {
+      biblePeopleClose_();
+      if (typeof window.openBibleContext === 'function') {
+        window.openBibleContext({ tab: button.getAttribute('data-context-tab') });
+      }
+    });
+  });
 }
 
 async function biblePeopleLoadDetail_(personId) {
@@ -6731,6 +6792,11 @@ function biblePeopleSearchSubmit_(event) {
   var input = document.getElementById('biblePeopleSearchInput');
   biblePeopleRunSearch_(input && input.value);
 }
+
+window.openBiblePerson = function(personId) {
+  biblePeopleOpen_();
+  biblePeopleLoadDetail_(personId);
+};
 
 function initBiblePeopleExplorer() {
   if (biblePeopleExplorerInitialized) return;

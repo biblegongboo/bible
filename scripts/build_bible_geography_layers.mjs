@@ -103,6 +103,19 @@ function featureBounds(feature) {
   ].map((value) => Number(value.toFixed(5)));
 }
 
+function displayMetadata(feature) {
+  const [west, south, east, north] = feature.bounds;
+  const span = Math.max(east - west, north - south);
+  const isWater = feature.land_or_water === 'water';
+  let minZoom = span >= 16 ? 1 : span >= 7 ? 2 : span >= 3 ? 3 : span >= 1 ? 4 : 5;
+  if (isWater && feature.lines.length) minZoom = Math.max(2, minZoom - 1);
+  return {
+    span: Number(span.toFixed(5)),
+    min_zoom: minZoom,
+    priority: Math.round(span * 100 + (isWater ? 25 : 0))
+  };
+}
+
 async function main() {
   const rows = await readJsonLines(path.join(sourceRoot, 'data', 'geometry.jsonl'));
   const features = [];
@@ -141,6 +154,7 @@ async function main() {
       skipped.push({ geometry_id: row.id, reason: 'no line or polygon coordinates' });
       continue;
     }
+    Object.assign(feature, displayMetadata(feature));
     features.push(feature);
   }
   const payload = {

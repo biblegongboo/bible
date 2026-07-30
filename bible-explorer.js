@@ -1,4 +1,4 @@
-import { VectorMap25D } from './graphics/map25d/vector-map25d.js?v=8.47-geography1';
+import { VectorMap25D } from './graphics/map25d/vector-map25d.js?v=8.51-patristic-reader1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
 
 let initialized = false;
@@ -9,11 +9,16 @@ let data = {
   timelines: [],
   map25dPlaces: [],
   ancientRoads: [],
-  geography: []
+  geography: [],
+  contextLinks: {},
+  peopleIndex: {},
+  patristic: [],
+  patristicReaders: {}
 };
 let activePlaceMap = null;
 let activeJourneyScene = null;
 let activeTimelineScene = null;
+const patristicReaderCache = new Map();
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (character) => ({
@@ -36,15 +41,24 @@ function loadData() {
     fetch('./content/timelines.json?v=8.38-family-roles1').then(checkResponse),
     fetch('./content/bible-map25d.json?v=8.43-map25d-live1').then(checkResponse),
     fetch('./content/ancient-roads25d.json?v=8.45-context-update1').then(checkResponse),
-    fetch('./content/bible-geography25d.json?v=8.47-geography1').then(checkResponse)
-  ]).then(([places, journeys, timelines, map25d, ancientRoads, geography]) => {
+    fetch('./content/bible-geography25d.json?v=8.49-context-ui1').then(checkResponse),
+    fetch('./content/bible-context-links.json?v=8.48-entity-context1').then(checkResponse),
+    fetch('./content/people-index.json?v=8.50-place-links1').then(checkResponse),
+    fetch('./content/patristic-deep-index.json?v=8.49-context-ui1').then(checkResponse),
+    fetch('./content/patristic-reader-manifest.json?v=8.51-patristic-reader1').then(checkResponse)
+  ]).then(([places, journeys, timelines, map25d, ancientRoads, geography, contextLinks, peopleIndex, patristic, patristicReaders]) => {
     data = {
       places,
       journeys,
       timelines,
       map25dPlaces: map25d.places || [],
       ancientRoads: ancientRoads.roads || [],
-      geography: geography.features || []
+      geography: geography.features || [],
+      contextLinks: contextLinks || {},
+      peopleIndex: peopleIndex || {},
+      patristic: (patristic.records || []).filter((record) => record.public_allowed),
+      patristicReaders: Object.fromEntries((patristicReaders.records || [])
+        .map((record) => [record.reader_key, record]))
     };
     return data;
   });
@@ -134,6 +148,19 @@ function renderPlaceDetail(place) {
     activePlaceMap = null;
   }
   const nearby = nearbyPlaces(place);
+  const relatedEvents = Object.values(data.contextLinks.events || {})
+    .filter((event) => (event.place_ids || []).includes(place.id));
+  const relatedPersonIds = [...new Set([
+    ...Object.entries(data.contextLinks.person_contexts || {})
+      .filter(([, context]) => (context.place_ids || []).includes(place.id))
+      .map(([personId]) => personId),
+    ...relatedEvents.flatMap((event) => event.participant_ids || [])
+  ])];
+  const relatedPeople = relatedPersonIds.map((personId) => ({
+    id: personId,
+    name: data.peopleIndex[personId]?.name ||
+      personId.replace(/^PER-(THEO-)?/, '').replace(/-\d+(?:-\d+)?$/, '').replaceAll('-', ' ')
+  }));
   host.innerHTML = `<article class="bible-place-card">
     <h3>${escapeHtml(place.name)}</h3>
     <div class="bible-person-meta">
@@ -142,6 +169,23 @@ function renderPlaceDetail(place) {
       ${place.source ? `<span class="bible-person-chip">${escapeHtml(place.source)}</span>` : ''}
     </div>
     <p>${escapeHtml(place.description || 'No source description is available.')}</p>
+    <section class="bible-person-section"><h4>Related people</h4>
+      <div class="bible-person-meta">${relatedPeople.length
+        ? relatedPeople.map((person) =>
+          `<button type="button" class="bible-person-chip" data-related-person-id="${escapeHtml(person.id)}">${escapeHtml(person.name)}</button>`
+        ).join('')
+        : '<span class="bible-context-empty">No source-linked people are recorded for this place.</span>'}</div>
+    </section>
+    <section class="bible-person-section"><h4>Related events</h4>
+      <div class="bible-context-list">${relatedEvents.length
+        ? relatedEvents.map((event) =>
+          `<button type="button" class="bible-context-item" data-related-event-reference="${escapeHtml((event.source_codes || [])[0] || '')}">
+            <strong>${escapeHtml(event.title)}</strong>
+            <span>${escapeHtml((event.source_codes || [])[0] || '')}</span>
+          </button>`
+        ).join('')
+        : '<div class="bible-context-empty">No source-linked event is recorded for this place.</div>'}</div>
+    </section>
     <div class="bible-place-map bible-place-map25d">
       <div class="bible-map25d-toolbar">
         <strong>2.5D Vector Bible Map</strong>
@@ -202,6 +246,22 @@ function renderPlaceDetail(place) {
   host.querySelectorAll('[data-nearby-place-id]').forEach((button) => {
     button.addEventListener('click', () => {
       renderPlaceDetail(data.places.find((item) => item.id === button.dataset.nearbyPlaceId));
+    });
+  });
+  host.querySelectorAll('[data-related-person-id]').forEach((button) => {
+    button.addEventListener('click', () => {
+      close();
+      if (typeof window.openBiblePerson === 'function') {
+        window.openBiblePerson(button.dataset.relatedPersonId);
+      }
+    });
+  });
+  host.querySelectorAll('[data-related-event-reference]').forEach((button) => {
+    button.addEventListener('click', () => {
+      openContext({
+        tab: 'timeline',
+        sourceCode: button.dataset.relatedEventReference
+      });
     });
   });
 }
@@ -302,6 +362,168 @@ function renderTimeline(index = 0) {
   setStatus(`${timeline.event_count} events loaded in Scripture order.`);
 }
 
+function selectTab(tabName) {
+  document.querySelectorAll('[data-bible-explore-tab]').forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.bibleExploreTab === tabName);
+  });
+  document.querySelectorAll('[data-bible-explore-view]').forEach((view) => {
+    view.classList.toggle('is-active', view.dataset.bibleExploreView === tabName);
+  });
+}
+
+function findLegacyPlaceFromGeocoding(placeId) {
+  const geocoding = data.contextLinks.geocoding_places?.[placeId];
+  if (!geocoding) return null;
+  if (geocoding.legacy_place_id) {
+    return data.places.find((place) => place.id === geocoding.legacy_place_id) || null;
+  }
+  const normalized = String(geocoding.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  return data.places.find((place) =>
+    String(place.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '') === normalized
+  ) || null;
+}
+
+function renderPlacesForSourceCode(sourceCode) {
+  const placeIds = data.contextLinks.source_to_places?.[sourceCode] || [];
+  const matches = placeIds.map(findLegacyPlaceFromGeocoding).filter(Boolean);
+  const uniqueMatches = [...new Map(matches.map((place) => [place.id, place])).values()];
+  const search = document.getElementById('biblePlaceSearch');
+  if (search) search.value = '';
+  const results = document.getElementById('biblePlaceResults');
+  if (!uniqueMatches.length) {
+    results.innerHTML = '<div class="bible-people-empty"><strong>No mapped place for this passage</strong><span>The source dataset does not identify a geographic place in this verse.</span></div>';
+    document.getElementById('biblePlaceDetail').innerHTML = '';
+    setStatus(`No mapped place is recorded for ${sourceCode}.`);
+    return;
+  }
+  results.innerHTML = uniqueMatches.map((place) =>
+    `<button type="button" class="bible-person-result" data-bible-place-id="${escapeHtml(place.id)}">
+      <strong>${escapeHtml(place.name)}</strong><span>${escapeHtml(place.type || 'Bible place')}</span>
+    </button>`
+  ).join('');
+  results.querySelectorAll('[data-bible-place-id]').forEach((button) => {
+    button.addEventListener('click', () =>
+      renderPlaceDetail(data.places.find((place) => place.id === button.dataset.biblePlaceId)));
+  });
+  renderPlaceDetail(uniqueMatches[0]);
+  setStatus(`${uniqueMatches.length} mapped place${uniqueMatches.length === 1 ? '' : 's'} in ${sourceCode}.`);
+}
+
+function renderPatristic(query = '') {
+  const results = document.getElementById('biblePatristicResults');
+  const detail = document.getElementById('biblePatristicDetail');
+  if (!results || !detail) return;
+  const needle = String(query).trim().toLowerCase();
+  const records = data.patristic.filter((record) =>
+    !needle || `${record.title} ${record.author} ${record.publication_year}`.toLowerCase().includes(needle)
+  ).slice(0, 80);
+  results.innerHTML = records.map((record, index) =>
+    `<button type="button" class="bible-person-result" data-patristic-index="${index}">
+      <strong>${escapeHtml(record.title)}</strong>
+      <span>${escapeHtml(record.author || 'Unknown author')}</span>
+    </button>`
+  ).join('') || '<div class="bible-people-empty"><strong>No works found</strong></div>';
+  const showRecord = (record) => {
+    const readerKey = `${record.id}|${record.language || 'und'}`;
+    const readerEntry = data.patristicReaders[readerKey];
+    detail.innerHTML = `<article class="bible-person-card">
+      <div class="bible-person-title"><div><h3>${escapeHtml(record.title)}</h3>
+      <p>${escapeHtml(record.author || 'Unknown author')}</p></div>
+      <span class="bible-person-id">${escapeHtml(record.id)}</span></div>
+      <div class="bible-person-meta">
+        ${record.publication_year ? `<span class="bible-person-chip">${escapeHtml(record.publication_year)}</span>` : ''}
+        ${record.language ? `<span class="bible-person-chip">${escapeHtml(record.language)}</span>` : ''}
+        <span class="bible-person-chip">Patristic Text Archive</span>
+      </div>
+      <div class="bible-secondary-notice"><strong>Historical secondary literature</strong>
+      This work is not part of the KJV/WEB Bible text.</div>
+      <section class="bible-person-section"><h4>Source and licence</h4>
+      <p>${escapeHtml(record.licence_name)}</p>
+      <a href="${escapeHtml(record.licence_url)}" target="_blank" rel="noopener">View licence</a></section>
+      ${readerEntry
+        ? `<button type="button" class="bible-patristic-read-button" data-patristic-read>Read work</button>
+           <section class="bible-patristic-reader" data-patristic-reader hidden></section>`
+        : '<div class="bible-context-empty">A readable source text is not available.</div>'}
+    </article>`;
+    detail.querySelector('[data-patristic-read]')?.addEventListener('click', () =>
+      renderPatristicReader(readerEntry, detail.querySelector('[data-patristic-reader]')));
+  };
+  results.querySelectorAll('[data-patristic-index]').forEach((button) => {
+    button.addEventListener('click', () => showRecord(records[Number(button.dataset.patristicIndex)]));
+  });
+  if (records.length) showRecord(records[0]);
+  setStatus(`${records.length} licensed Early Church work${records.length === 1 ? '' : 's'} shown.`);
+}
+
+async function renderPatristicReader(entry, host, page = 0) {
+  if (!entry || !host) return;
+  host.hidden = false;
+  host.innerHTML = '<div class="bible-people-empty"><strong>Loading source text...</strong></div>';
+  try {
+    let reader = patristicReaderCache.get(entry.reader_key);
+    if (!reader) {
+      reader = await fetch(`./${entry.file}?v=8.51-patristic-reader1`).then(checkResponse);
+      patristicReaderCache.set(entry.reader_key, reader);
+    }
+    const pageSize = 40;
+    const pageCount = Math.max(1, Math.ceil(reader.blocks.length / pageSize));
+    const safePage = Math.max(0, Math.min(page, pageCount - 1));
+    const blocks = reader.blocks.slice(safePage * pageSize, (safePage + 1) * pageSize);
+    host.innerHTML = `<div class="bible-patristic-reader-header">
+      <strong>${escapeHtml(reader.title)}</strong>
+      <span>Page ${safePage + 1} of ${pageCount}</span>
+    </div>
+    <div class="bible-patristic-reader-text">${blocks.map((block) =>
+      block.type === 'heading'
+        ? `<h4>${escapeHtml(block.text)}</h4>`
+        : `<p>${escapeHtml(block.text)}</p>`
+    ).join('')}</div>
+    <div class="bible-patristic-reader-nav">
+      <button type="button" data-reader-page="${safePage - 1}" ${safePage === 0 ? 'disabled' : ''}>Previous</button>
+      <button type="button" data-reader-page="${safePage + 1}" ${safePage >= pageCount - 1 ? 'disabled' : ''}>Next</button>
+    </div>`;
+    host.querySelectorAll('[data-reader-page]').forEach((button) => {
+      button.addEventListener('click', () =>
+        renderPatristicReader(entry, host, Number(button.dataset.readerPage)));
+    });
+  } catch (error) {
+    host.innerHTML = `<div class="bible-people-empty"><strong>Unable to load this work</strong>
+      <span>${escapeHtml(error.message)}</span></div>`;
+  }
+}
+
+async function openContext(options = {}) {
+  open();
+  await loadData();
+  const tab = options.tab || 'places';
+  selectTab(tab);
+  if (tab === 'places' && options.sourceCode) {
+    renderPlacesForSourceCode(options.sourceCode);
+  } else if (tab === 'places' && options.placeName) {
+    const place = data.places.find((item) =>
+      String(item.name).toLowerCase() === String(options.placeName).toLowerCase());
+    if (place) {
+      renderPlaceResults(place.name);
+      renderPlaceDetail(place);
+    }
+  } else if (tab === 'timeline' && options.sourceCode) {
+    const sourceMatch = String(options.sourceCode).match(/^(OT|NT)-(.+)-\d{2}-\d{2}$/);
+    const book = sourceMatch ? `${sourceMatch[1]}-${sourceMatch[2]}` : '';
+    const index = data.timelines.findIndex((timeline) => timeline.book_code === book);
+    const selector = document.getElementById('bibleTimelineSelector');
+    selector.value = String(index >= 0 ? index : 0);
+    renderTimeline(selector.value);
+  } else if (tab === 'journeys') {
+    renderJourney(document.getElementById('bibleJourneySelector').value);
+  } else if (tab === 'patristic') {
+    renderPatristic(options.query || '');
+  }
+}
+
+window.openBibleContext = openContext;
+window.openBiblePlacesForSource = (sourceCode) =>
+  openContext({ tab: 'places', sourceCode });
+
 function populate() {
   const journeySelector = document.getElementById('bibleJourneySelector');
   const timelineSelector = document.getElementById('bibleTimelineSelector');
@@ -324,6 +546,7 @@ function populate() {
   if (activeTab === 'places') renderPlaceResults();
   if (activeTab === 'journeys') requestAnimationFrame(() => renderJourney(journeySelector.value));
   if (activeTab === 'timeline') requestAnimationFrame(() => renderTimeline(timelineSelector.value));
+  if (activeTab === 'patristic') requestAnimationFrame(() => renderPatristic());
 }
 
 function open() {
@@ -361,16 +584,19 @@ function init() {
       const selectedTab = button.dataset.bibleExploreTab;
       if (selectedTab === 'journeys') document.getElementById('bibleJourneyOutput').innerHTML = '<div class="bible-people-empty"><strong>Loading journey...</strong></div>';
       if (selectedTab === 'timeline') document.getElementById('bibleTimelineOutput').innerHTML = '<div class="bible-people-empty"><strong>Loading timeline...</strong></div>';
+      if (selectedTab === 'patristic') document.getElementById('biblePatristicDetail').innerHTML = '<div class="bible-people-empty"><strong>Loading Early Church works...</strong></div>';
       loadData().then(() => requestAnimationFrame(() => {
         if (selectedTab === 'places') renderPlaceResults(document.getElementById('biblePlaceSearch').value);
         if (selectedTab === 'journeys') renderJourney(document.getElementById('bibleJourneySelector').value);
         if (selectedTab === 'timeline') renderTimeline(document.getElementById('bibleTimelineSelector').value);
+        if (selectedTab === 'patristic') renderPatristic(document.getElementById('biblePatristicSearch').value);
       })).catch((error) => setStatus(error.message, true));
     });
   });
   document.getElementById('biblePlaceSearch').addEventListener('input', (event) => renderPlaceResults(event.target.value));
   document.getElementById('bibleJourneySelector').addEventListener('change', (event) => renderJourney(event.target.value));
   document.getElementById('bibleTimelineSelector').addEventListener('change', (event) => renderTimeline(event.target.value));
+  document.getElementById('biblePatristicSearch').addEventListener('input', (event) => renderPatristic(event.target.value));
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !panel.hidden) close(); });
 }
 
