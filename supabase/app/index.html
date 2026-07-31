@@ -64,6 +64,7 @@
       <div class="bible-header-nav" aria-label="Bible reference tools">
         <button type="button" id="bibleExploreToggle" class="quiz-tool-toggle bible-explore-toggle persistent-explore-toggle" aria-label="Open Bible Atlas" title="Bible Atlas" aria-controls="bibleExplorePanel" aria-expanded="false">🌐</button>
         <button type="button" id="biblePeopleToggle" class="quiz-tool-toggle bible-people-toggle persistent-people-toggle" aria-label="Open Bible People" title="Bible People" aria-controls="biblePeoplePanel" aria-expanded="false"><span class="header-person-icon" aria-hidden="true"></span></button>
+        <button type="button" id="bibleLogoutToggle" class="quiz-tool-toggle bible-logout-toggle" aria-label="Log out" title="Log out">⎋</button>
       </div>
     </div>
     <button type="button" id="timerToggle" class="quiz-tool-toggle quiz-timer-toggle persistent-timer-toggle" aria-label="Open timer" aria-controls="timerPanel" aria-expanded="false"><span aria-hidden="true">⏱️</span></button>
@@ -1936,7 +1937,8 @@ html:not(.admin-user) .admin-preview-panel {
   .sat-title{font-size:clamp(1.1rem,2.5vw,1.45rem);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .bible-header-action-row{position:relative;z-index:4;display:flex;justify-content:center;align-items:center;gap:12px;margin:4px auto 1px}
   .bible-header-nav{position:relative;z-index:4;display:flex;justify-content:center;align-items:center;gap:5px;margin:0}
-  .persistent-people-toggle,.persistent-explore-toggle{position:static!important;z-index:auto;width:28px!important;min-width:28px!important;height:27px!important;min-height:27px!important;padding:0!important;font-size:14px!important;background:rgba(255,255,255,.2)!important;border-color:rgba(255,255,255,.55)!important;color:#f8fafc!important}
+  .persistent-people-toggle,.persistent-explore-toggle,.bible-logout-toggle{position:static!important;z-index:auto;width:28px!important;min-width:28px!important;height:27px!important;min-height:27px!important;padding:0!important;font-size:14px!important;background:rgba(255,255,255,.2)!important;border-color:rgba(255,255,255,.55)!important;color:#f8fafc!important}
+  .bible-logout-toggle{margin-left:2px!important;background:rgba(254,226,226,.2)!important;border-color:rgba(254,202,202,.7)!important;color:#fecaca!important;font-size:18px!important;line-height:1!important}
   .header-person-icon{position:relative;display:inline-block;width:13px;height:14px;vertical-align:middle}
   .header-person-icon::before{content:'';position:absolute;top:0;left:4px;width:6px;height:6px;border-radius:50%;background:#f8fafc;box-shadow:0 0 5px rgba(255,255,255,.55)}
   .header-person-icon::after{content:'';position:absolute;bottom:0;left:1px;width:12px;height:7px;border-radius:8px 8px 3px 3px;background:#f8fafc;box-shadow:0 0 5px rgba(255,255,255,.45)}
@@ -2018,9 +2020,10 @@ html:not(.admin-user) .admin-preview-panel {
 </style>
 
 <script src="./supabase-config.js?v=8.60-supabase-storage1"></script>
+<script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.76-people-sort1"></script>
 <script type="module">
-import { initialize } from './main.js?v=8.82-single-row-controls1';
+import { initialize } from './main.js?v=8.83-logout1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

@@ -194,6 +194,22 @@ function clearAuthAndRedirect(reason) {
   window.location.replace('./login.html?v=8.71-context-history1' + (authReason ? '&auth_error=' + encodeURIComponent(authReason) : ''));
 }
 
+function initBibleLogout_() {
+  var logoutButton = document.getElementById('bibleLogoutToggle');
+  if (!logoutButton || logoutButton.dataset.bound) return;
+  logoutButton.dataset.bound = '1';
+  logoutButton.addEventListener('click', function() {
+    if (!window.confirm('Log out of GongBoo Bible on this device?')) return;
+    if (window.BibleSupabaseAuth && typeof window.BibleSupabaseAuth.signOut === 'function') {
+      window.BibleSupabaseAuth.signOut();
+    }
+    localStorage.removeItem('quiz_current_user_v1');
+    localStorage.removeItem('quiz_available_subjects_v1');
+    localStorage.removeItem('quiz_current_subject_v1');
+    window.location.replace('./login.html?v=8.83-logout1');
+  });
+}
+
 function applyUserRolePolicy() {
   IS_ADMIN_USER = isAdminUser(currentUser);
   IS_TRIAL_USER = isTrialUser(currentUser);
@@ -5717,6 +5733,7 @@ function initialize() {
   initAdminPreviewTool();
   initTimer();
   attachEvents();
+  initBibleLogout_();
   initBiblePeopleExplorer();
 
   // Keep the initial quiz screen responsive.  Non-SAT subjects prepare the
