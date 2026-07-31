@@ -130,6 +130,7 @@
           <option value="KJV">KJV</option>
           <option value="KO_WEB">한국어</option>
         </select>
+        <button type="button" id="bibleGuideToggle" class="bible-guide-toggle" aria-label="Open user guide" title="Quick guide">?</button>
       </div>
     </div>
   </div>
@@ -1985,8 +1986,8 @@ html:not(.admin-user) .admin-preview-panel {
   .mode-exam:hover::after,.mode-exam:focus-visible::after{transform:translate(0,0)}
   .bible-passage-controls{
     display:grid;
-    grid-template-columns:42px 38px 75px 54px;
-    width:224px;
+    grid-template-columns:42px 38px 75px 54px 26px;
+    width:255px;
     gap:5px;
     margin:5px auto 0;
   }
@@ -1999,6 +2000,7 @@ html:not(.admin-user) .admin-preview-panel {
     border-radius:8px;
     font-size:12px;
   }
+  .bible-guide-toggle{width:26px;min-width:26px;min-height:30px;padding:0;border:1px solid #93c5fd;border-radius:50%;background:#eff6ff;color:#1d4ed8;font-size:15px;font-weight:900;line-height:1;cursor:pointer}
   .persistent-timer-toggle{width:30px!important;height:30px!important;min-width:30px!important}
   html:not([data-study-mode="exam"]) #timerToggle,
   #timerToggle[hidden]{display:none!important}
@@ -2013,9 +2015,10 @@ html:not(.admin-user) .admin-preview-panel {
     .learning-mode-panel{margin-top:5px}
     .mode-buttons{width:min(250px,100%)}
     .mode-btn{min-height:28px;font-size:11px;padding:3px 4px}
-    .bible-passage-controls{grid-template-columns:42px 38px 75px 54px;gap:4px;width:224px}
+    .bible-passage-controls{grid-template-columns:42px 38px 75px 54px 26px;gap:4px;width:251px}
     .bible-passage-toggle,.bible-quiz-toggle,
     #biblePrimaryTextSelector,#bibleSecondaryTextSelector{width:100%;font-size:11px}
+    .bible-guide-toggle{min-height:30px}
   }
   body.bible-people-open{overflow:hidden}
   .bible-speech-controls{width:auto!important;max-width:100%!important;display:flex!important;flex-wrap:nowrap!important;align-items:center;justify-content:center;gap:4px!important;margin:0!important;padding:4px!important}
@@ -2029,7 +2032,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.76-people-sort1"></script>
 <script type="module">
-import { initialize } from './main.js?v=8.83-logout1';
+import { initialize } from './main.js?v=8.86-user-guide1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

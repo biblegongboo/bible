@@ -210,13 +210,26 @@ function initBibleLogout_() {
   });
 }
 
+function initBibleGuide_() {
+  var guideButton = document.getElementById('bibleGuideToggle');
+  if (!guideButton || guideButton.dataset.bound) return;
+  guideButton.dataset.bound = '1';
+  guideButton.addEventListener('click', function() {
+    window.open(
+      'https://github.com/biblegongboo/bible/blob/main/supabase/app/USER-GUIDE.ko.md',
+      '_blank',
+      'noopener,noreferrer'
+    );
+  });
+}
+
 function initBibleTapFeedback_() {
   var header = document.querySelector('.quiz-header');
   if (!header || header.dataset.tapFeedbackBound) return;
   header.dataset.tapFeedbackBound = '1';
   header.addEventListener('click', function(event) {
     var button = event.target.closest(
-      '.quiz-tool-toggle, .mode-btn, .bible-passage-toggle, .bible-quiz-toggle'
+      '.quiz-tool-toggle, .mode-btn, .bible-passage-toggle, .bible-quiz-toggle, .bible-guide-toggle'
     );
     if (!button || button.disabled) return;
     button.classList.remove('bible-tap-feedback');
@@ -5756,6 +5769,7 @@ function initialize() {
   attachEvents();
   initBibleTapFeedback_();
   initBibleLogout_();
+  initBibleGuide_();
   initBiblePeopleExplorer();
 
   // Keep the initial quiz screen responsive.  Non-SAT subjects prepare the
