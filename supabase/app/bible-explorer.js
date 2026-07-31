@@ -24,6 +24,64 @@ const libraryCache = new Map();
 let librarySection = 'verse';
 let librarySourceCode = '';
 
+const bibleReferenceNavigation = window.BibleReferenceNavigation || (() => {
+  const entries = [];
+  let index = -1;
+  let replaying = false;
+  const update = () => {
+    ['biblePeopleBack', 'bibleExploreBack'].forEach((id) => {
+      const button = document.getElementById(id);
+      if (button) button.disabled = index <= 0;
+    });
+    ['biblePeopleForward', 'bibleExploreForward'].forEach((id) => {
+      const button = document.getElementById(id);
+      if (button) button.disabled = index < 0 || index >= entries.length - 1;
+    });
+  };
+  const apply = async (state) => {
+    if (!state) return;
+    replaying = true;
+    try {
+      if (state.kind === 'person' && typeof window.openBiblePerson === 'function') {
+        document.getElementById('bibleExplorePanel')?.setAttribute('hidden', '');
+        await window.openBiblePerson(state.personId, { skipHistory: true });
+      } else if (state.kind === 'context' && typeof window.openBibleContext === 'function') {
+        document.getElementById('biblePeoplePanel')?.setAttribute('hidden', '');
+        await window.openBibleContext(state.options || { tab: 'places' }, { skipHistory: true });
+      }
+    } finally {
+      replaying = false;
+      update();
+    }
+  };
+  return {
+    push(state) {
+      if (replaying || !state) return;
+      const serialized = JSON.stringify(state);
+      if (index >= 0 && JSON.stringify(entries[index]) === serialized) {
+        update();
+        return;
+      }
+      entries.splice(index + 1);
+      entries.push(state);
+      index = entries.length - 1;
+      update();
+    },
+    back() {
+      if (index <= 0) return;
+      index -= 1;
+      apply(entries[index]);
+    },
+    forward() {
+      if (index >= entries.length - 1) return;
+      index += 1;
+      apply(entries[index]);
+    },
+    update
+  };
+})();
+window.BibleReferenceNavigation = bibleReferenceNavigation;
+
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (character) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -1118,10 +1176,11 @@ async function renderLibrary(options = {}) {
   }
 }
 
-async function openContext(options = {}) {
+async function openContext(options = {}, navigationOptions = {}) {
   open();
-  const back = document.getElementById('bibleExploreBack');
-  if (back) back.hidden = !(window.__bibleContextReturn && window.__bibleContextReturn.kind === 'person');
+  if (!navigationOptions.skipHistory) {
+    bibleReferenceNavigation.push({ kind: 'context', options: { ...options } });
+  }
   await loadData();
   const tab = options.tab || 'places';
   selectTab(tab);
@@ -1216,20 +1275,14 @@ function init() {
   const panel = document.getElementById('bibleExplorePanel');
   const closeButton = document.getElementById('bibleExploreClose');
   const backButton = document.getElementById('bibleExploreBack');
+  const forwardButton = document.getElementById('bibleExploreForward');
   if (!toggle || !panel || !closeButton) return;
   initialized = true;
   toggle.addEventListener('click', open);
   closeButton.addEventListener('click', close);
-  if (backButton) {
-    backButton.addEventListener('click', () => {
-      const target = window.__bibleContextReturn;
-      window.__bibleContextReturn = null;
-      close();
-      if (target?.kind === 'person' && typeof window.openBiblePerson === 'function') {
-        window.openBiblePerson(target.personId);
-      }
-    });
-  }
+  if (backButton) backButton.addEventListener('click', () => bibleReferenceNavigation.back());
+  if (forwardButton) forwardButton.addEventListener('click', () => bibleReferenceNavigation.forward());
+  bibleReferenceNavigation.update();
   panel.addEventListener('click', (event) => { if (event.target === panel) close(); });
   document.querySelectorAll('[data-bible-explore-tab]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -1238,6 +1291,7 @@ function init() {
         view.classList.toggle('is-active', view.dataset.bibleExploreView === button.dataset.bibleExploreTab);
       });
       const selectedTab = button.dataset.bibleExploreTab;
+      bibleReferenceNavigation.push({ kind: 'context', options: { tab: selectedTab } });
       if (selectedTab === 'journeys') document.getElementById('bibleJourneyOutput').innerHTML = '<div class="bible-people-empty"><strong>Loading journey...</strong></div>';
       if (selectedTab === 'timeline') document.getElementById('bibleTimelineOutput').innerHTML = '<div class="bible-people-empty"><strong>Loading timeline...</strong></div>';
       if (selectedTab === 'patristic') document.getElementById('biblePatristicDetail').innerHTML = '<div class="bible-people-empty"><strong>Loading Early Church works...</strong></div>';

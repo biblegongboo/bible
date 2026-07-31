@@ -252,7 +252,8 @@
         <h2 id="biblePeopleTitle">Bible People</h2>
       </div>
       <div class="bible-context-head-actions">
-        <button type="button" id="biblePeopleBack" class="bible-context-back" hidden>← Back</button>
+        <button type="button" id="biblePeopleBack" class="bible-context-back" disabled>← Back</button>
+        <button type="button" id="biblePeopleForward" class="bible-context-back" disabled>Forward →</button>
         <button type="button" id="biblePeopleClose" class="bible-people-close" aria-label="Close Bible People">&times;</button>
       </div>
     </header>
@@ -282,7 +283,8 @@
     <header class="bible-people-head">
       <div><span class="bible-people-kicker">BIBLE CONTEXT</span><h2 id="bibleExploreTitle">Atlas &amp; Bible Study</h2></div>
       <div class="bible-context-head-actions">
-        <button type="button" id="bibleExploreBack" class="bible-context-back" hidden>← Back</button>
+        <button type="button" id="bibleExploreBack" class="bible-context-back" disabled>← Back</button>
+        <button type="button" id="bibleExploreForward" class="bible-context-back" disabled>Forward →</button>
         <button type="button" id="bibleExploreClose" class="bible-people-close" aria-label="Close Bible Atlas">&times;</button>
       </div>
     </header>
@@ -1906,6 +1908,7 @@ html:not(.admin-user) .admin-preview-panel {
   button.bible-relationship:hover,button.bible-relationship:focus-visible{border-color:#60a5fa;background:#eff6ff;outline:none}
   .bible-context-head-actions{display:flex;align-items:center;gap:8px}
   .bible-context-back{border:1px solid #94a3b8;border-radius:8px;padding:7px 11px;background:#fff;color:#1e3a8a;font:inherit;font-weight:800;cursor:pointer}
+  .bible-context-back:disabled{opacity:.42;cursor:not-allowed}
   .bible-reference{display:inline-flex;flex:0 0 auto;max-width:100%;white-space:nowrap;line-height:1.2}
   button.bible-reference{cursor:pointer;font-family:inherit;text-align:left}
   button.bible-reference:hover,button.bible-reference:focus-visible{border-color:#2563eb;background:#eff6ff;color:#1d4ed8;outline:none}
@@ -2000,9 +2003,9 @@ html:not(.admin-user) .admin-preview-panel {
 </style>
 
 <script src="./supabase-config.js?v=8.60-supabase-storage1"></script>
-<script src="./supabase-provider.js?v=8.70-reference-quiz1"></script>
+<script src="./supabase-provider.js?v=8.71-context-history1"></script>
 <script type="module">
-import { initialize } from './main.js?v=8.70-reference-quiz1';
+import { initialize } from './main.js?v=8.71-context-history1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
-import './bible-explorer.js?v=8.70-reference-quiz1';
+import './bible-explorer.js?v=8.71-context-history1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -191,7 +191,7 @@ function clearAuthAndRedirect(reason) {
   localStorage.removeItem('quiz_current_subject_v1');
   var rawReason = String(reason || '').replace(/[^A-Z0-9_\-]/gi, '').slice(0, 40);
   var authReason = rawReason.indexOf('AUTH_') === 0 ? 'LOGIN_REQUIRED' : rawReason;
-  window.location.replace('./login.html?v=8.70-reference-quiz1' + (authReason ? '&auth_error=' + encodeURIComponent(authReason) : ''));
+  window.location.replace('./login.html?v=8.71-context-history1' + (authReason ? '&auth_error=' + encodeURIComponent(authReason) : ''));
 }
 
 function applyUserRolePolicy() {
@@ -6958,10 +6958,12 @@ function biblePeopleSearchSubmit_(event) {
   biblePeopleRunSearch_(input && input.value);
 }
 
-window.openBiblePerson = function(personId) {
+window.openBiblePerson = function(personId, navigationOptions) {
   biblePeopleOpen_();
-  var back = document.getElementById('biblePeopleBack');
-  if (back) back.hidden = !(window.__bibleContextReturn && window.__bibleContextReturn.kind === 'context');
+  if (!(navigationOptions && navigationOptions.skipHistory) &&
+      window.BibleReferenceNavigation) {
+    window.BibleReferenceNavigation.push({ kind: 'person', personId: personId });
+  }
   biblePeopleLoadDetail_(personId);
 };
 
@@ -6971,21 +6973,23 @@ function initBiblePeopleExplorer() {
   var panel = document.getElementById('biblePeoplePanel');
   var close = document.getElementById('biblePeopleClose');
   var back = document.getElementById('biblePeopleBack');
+  var forward = document.getElementById('biblePeopleForward');
   var form = document.getElementById('biblePeopleSearchForm');
   if (!toggle || !panel || !close || !form) return;
   biblePeopleExplorerInitialized = true;
   toggle.addEventListener('click', biblePeopleOpen_);
   close.addEventListener('click', biblePeopleClose_);
-  if (back) {
+  if (back && window.BibleReferenceNavigation) {
     back.addEventListener('click', function() {
-      var target = window.__bibleContextReturn;
-      window.__bibleContextReturn = null;
-      biblePeopleClose_();
-      if (target && target.kind === 'context' && typeof window.openBibleContext === 'function') {
-        window.openBibleContext(target.options || { tab: 'places' });
-      }
+      window.BibleReferenceNavigation.back();
     });
   }
+  if (forward && window.BibleReferenceNavigation) {
+    forward.addEventListener('click', function() {
+      window.BibleReferenceNavigation.forward();
+    });
+  }
+  if (window.BibleReferenceNavigation) window.BibleReferenceNavigation.update();
   form.addEventListener('submit', biblePeopleSearchSubmit_);
   var input = document.getElementById('biblePeopleSearchInput');
   if (input) {
