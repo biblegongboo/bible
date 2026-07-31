@@ -7079,9 +7079,15 @@ async function openBibleScriptureReference_(sourceCode) {
   var loaded = await startQuizWithNumber(start);
   if (!loaded) return false;
 
+  // Quiz rows are normalized by load50Questions() into lower-camel-case
+  // properties.  Keep the original upper-case fallbacks for older rows, but
+  // search the normalized fields first so a linked Scripture reference opens
+  // its actual quiz instead of incorrectly reporting that none exists.
   var targetIndex = currentQuestions.findIndex(function(question) {
-    return String(question.SOURCE_CODE || question.SUBJECT || '').toLowerCase() ===
-      parts.sourceCode.toLowerCase();
+    return String(
+      question.sourceCode || question.SOURCE_CODE ||
+      question.subject || question.SUBJECT || ''
+    ).toLowerCase() === parts.sourceCode.toLowerCase();
   });
   if (targetIndex < 0) {
     alert('The chapter opened, but no quiz has been created for ' +
