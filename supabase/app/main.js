@@ -9,7 +9,8 @@
 // Super graphics are isolated from the Legacy SAT renderer.  The router only
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
-import './bible-explorer.js?v=8.38-family-roles1';
+import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
+import './bible-explorer.js?v=8.60-supabase-storage1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -188,7 +189,7 @@ function clearAuthAndRedirect(reason) {
   localStorage.removeItem('quiz_current_subject_v1');
   var rawReason = String(reason || '').replace(/[^A-Z0-9_\-]/gi, '').slice(0, 40);
   var authReason = rawReason.indexOf('AUTH_') === 0 ? 'LOGIN_REQUIRED' : rawReason;
-  window.location.replace('./login.html?v=8.0D' + (authReason ? '&auth_error=' + encodeURIComponent(authReason) : ''));
+  window.location.replace('./login.html?v=8.56-member-count1' + (authReason ? '&auth_error=' + encodeURIComponent(authReason) : ''));
 }
 
 function applyUserRolePolicy() {
@@ -255,7 +256,9 @@ function throwQuizApiError_(data, fallbackMessage) {
   if (code.indexOf('AUTH_') === 0) {
     clearAuthAndRedirect(code);
   }
-  throw new Error(data && data.message ? data.message : fallbackMessage);
+  var error = new Error(data && data.message ? data.message : fallbackMessage);
+  error.code = code;
+  throw error;
 }
 
 function isTrialProgressSafe(saved) {
@@ -294,9 +297,16 @@ function applySubjectConfig() {
   CURRENT_SUBJECT = currentSubject;
   DATA_SHEET = String(subjectConfig.SHEET).trim();
   var sheetAliases = {
-    REAL_ESTATE: 'realestate'
+    REAL_ESTATE: 'realestate',
+    BIBLE_OT: 'bible-ot',
+    'BIBLE-OT': 'bible-ot',
+    BIBLE_NT: 'bible-nt',
+    'BIBLE-NT': 'bible-nt'
   };
-  DATA_SHEET = sheetAliases[DATA_SHEET.toUpperCase()] || DATA_SHEET.toLowerCase();
+  DATA_SHEET =
+    sheetAliases[currentSubject] ||
+    sheetAliases[DATA_SHEET.toUpperCase()] ||
+    DATA_SHEET.toLowerCase();
   QUESTIONS_PER_SET = Math.max(1, parseInt(subjectConfig.SET_SIZE, 10) || 120);
   TOTAL_QUESTIONS = Math.max(0, parseInt(subjectConfig.QUESTION_COUNT, 10) || 0);
   var keyPart = currentSubject.replace(/[^A-Z0-9_-]/g, '_');
@@ -312,12 +322,11 @@ function applySubjectConfig() {
 
 function updateSubjectTitle(setNumber) {
   var title = document.querySelector('.sat-title');
-  var subtitle = document.querySelector('.sat-sub');
   var englishName = currentSubject === 'BIBLE_OT'
     ? 'Old Testament'
     : (currentSubject === 'BIBLE_NT' ? 'New Testament' : String(subjectConfig.NAME || currentSubject));
-  if (title) title.textContent = englishName + (IS_TRIAL_USER ? ' · Sample' : ' · Set ' + (setNumber || 1));
-  if (subtitle) subtitle.textContent = IS_TRIAL_USER ? 'Questions 1-20' : 'Bible';
+  if (title) title.textContent = 'BIBLE · ' + englishName +
+    (IS_TRIAL_USER ? ' · Sample' : ' · Set ' + (setNumber || 1));
 }
 
 // ========================================================================
@@ -912,6 +921,12 @@ function hideLoadingOverlay() {
   if (overlay) overlay.remove();
 }
 
+function updateQuestionLoadingStatus_(message) {
+  var overlay = document.getElementById('loadingOverlay');
+  var heading = overlay && overlay.querySelector('h3');
+  if (heading) heading.textContent = message || 'Loading questions...';
+}
+
 // ========================================================================
 // BLOCK 0600: 진행 저장/로드 (원본 B006 + 즉시 저장)
 // ========================================================================
@@ -1269,6 +1284,16 @@ function updateModeUI() {
   if (DOM.modeDescription) {
     DOM.modeDescription.textContent = info.icon + ' ' + info.label + ' · ' + info.description;
   }
+  var examMode = currentMode === 'exam';
+  if (DOM.timerToggle) {
+    DOM.timerToggle.hidden = !examMode;
+    DOM.timerToggle.setAttribute('aria-hidden', examMode ? 'false' : 'true');
+    DOM.timerToggle.tabIndex = examMode ? 0 : -1;
+  }
+  if (!examMode && DOM.timerPanel) {
+    DOM.timerPanel.hidden = true;
+    if (DOM.timerToggle) DOM.timerToggle.setAttribute('aria-expanded', 'false');
+  }
   updateBiblePassageControls_();
 }
 
@@ -1566,6 +1591,25 @@ async function detectTotalQuestions() {
 // ========================================================================
 let currentAbortController = null;
 
+function isRetryableQuestionLoadError_(error) {
+    var code = String(error && error.code || '').toUpperCase();
+    if ([
+        'SHEET_NOT_ALLOWED',
+        'SHEET_NOT_FOUND',
+        'CATALOG_NOT_FOUND',
+        'AUTH_REQUIRED',
+        'AUTH_INVALID',
+        'AUTH_EXPIRED'
+    ].indexOf(code) !== -1) {
+        return false;
+    }
+    var message = String(error && error.message || '');
+    if (/^HTTP 4\d\d\b/.test(message) && !/^HTTP (408|429)\b/.test(message)) {
+        return false;
+    }
+    return true;
+}
+
 async function load50Questions(uiStartNumber, retryCount = 0) {
     const MAX_RETRIES = 3;
     if (TOTAL_QUESTIONS === 0) await detectTotalQuestions();
@@ -1791,16 +1835,20 @@ async function load50Questions(uiStartNumber, retryCount = 0) {
             if (retryCount < MAX_RETRIES) {
                 const delay = Math.pow(2, retryCount) * 1000;
                 console.warn(`🔄 재시도 ${retryCount + 1}/${MAX_RETRIES} (${delay}ms 대기)...`);
-                showToast(`데이터 로드 재시도 중... (${retryCount + 1}/${MAX_RETRIES})`, 'warn', 2000);
+                updateQuestionLoadingStatus_('Loading questions...');
                 await new Promise(resolve => setTimeout(resolve, delay));
                 return load50Questions(uiStartNumber, retryCount + 1);
             }
             throw new Error('Timeout after retries');
         }
+        if (!isRetryableQuestionLoadError_(err)) {
+            console.error('❌ Non-retryable question request:', err);
+            throw err;
+        }
         if (retryCount < MAX_RETRIES) {
             const delay = Math.pow(2, retryCount) * 1000;
             console.warn(`🔄 재시도 ${retryCount + 1}/${MAX_RETRIES} (${delay}ms 대기)...`);
-            showToast(`데이터 로드 재시도 중... (${retryCount + 1}/${MAX_RETRIES})`, 'warn', 2000);
+            updateQuestionLoadingStatus_('Loading questions...');
             await new Promise(resolve => setTimeout(resolve, delay));
             return load50Questions(uiStartNumber, retryCount + 1);
         }
@@ -2243,10 +2291,13 @@ function updateTimerDisplay() {
   if (DOM.calculatorTimerMirror) DOM.calculatorTimerMirror.textContent = formatted;
   if (DOM.headerTimerDisplay) DOM.headerTimerDisplay.textContent = formatted;
   if (DOM.timerToggle) {
-    DOM.timerToggle.hidden = false;
-    DOM.timerToggle.style.display = 'flex';
+    var examMode = currentMode === 'exam';
+    DOM.timerToggle.hidden = !examMode;
+    DOM.timerToggle.style.display = examMode ? 'flex' : 'none';
     DOM.timerToggle.style.visibility = 'visible';
     DOM.timerToggle.style.opacity = '1';
+    DOM.timerToggle.setAttribute('aria-hidden', examMode ? 'false' : 'true');
+    DOM.timerToggle.tabIndex = examMode ? 0 : -1;
   }
   if (DOM.timerPauseBtn) DOM.timerPauseBtn.textContent = timerRunning ? '⏸ Pause' : (timerPaused ? '▶ Resume' : '▶ Start');
 }
@@ -5101,6 +5152,38 @@ function showExplanation(force) {
 // ========================================================================
 // BLOCK 1330: renderCurrentQuestion (수정 - 수식만 LaTeX 처리)
 // ========================================================================
+function attachBiblePlacesButton_(q) {
+  var sourceCode = getBibleSourceCode_(q);
+  if (!/^(OT|NT)-/.test(sourceCode || '')) return;
+  var card = DOM.questionContainer.querySelector('.question-card');
+  if (!card || card.querySelector('[data-bible-verse-places]')) return;
+  var button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'bible-verse-places-button';
+  button.setAttribute('data-bible-verse-places', sourceCode);
+  button.textContent = '📍 Places in this passage';
+  button.addEventListener('click', function() {
+    if (typeof window.openBiblePlacesForSource === 'function') {
+      window.openBiblePlacesForSource(sourceCode);
+    }
+  });
+  var number = card.querySelector('.q-num');
+  if (number) number.insertAdjacentElement('afterend', button);
+  if (!card.querySelector('[data-bible-verse-knowledge]')) {
+    var knowledgeButton = document.createElement('button');
+    knowledgeButton.type = 'button';
+    knowledgeButton.className = 'bible-verse-knowledge-button';
+    knowledgeButton.setAttribute('data-bible-verse-knowledge', sourceCode);
+    knowledgeButton.textContent = 'Topics in this passage';
+    knowledgeButton.addEventListener('click', function() {
+      if (typeof window.openBibleKnowledgeForSource === 'function') {
+        window.openBibleKnowledgeForSource(sourceCode);
+      }
+    });
+    button.insertAdjacentElement('afterend', knowledgeButton);
+  }
+}
+
 function renderCurrentQuestion() {
   console.log('🔴 renderCurrentQuestion START');
   updateBiblePassageControls_();
@@ -5157,6 +5240,7 @@ function renderCurrentQuestion() {
       reading.position < reading.indexes.length - 1 ? 'inline-block' : 'none';
     DOM.nextBtn.innerHTML = 'NEXT VERSE (N)';
     DOM.prevBtn.disabled = reading.position === 0;
+    attachBiblePlacesButton_(q);
     if (window.MathJax && MathJax.typesetPromise) {
       MathJax.typesetPromise([DOM.questionContainer]).catch(console.warn);
     }
@@ -5167,6 +5251,7 @@ function renderCurrentQuestion() {
 
   if (isSubjective) {
     renderSubjectiveQuestion(q, answered, headerText, passageHtml);
+    attachBiblePlacesButton_(q);
     return;
   }
   
@@ -5228,6 +5313,7 @@ function renderCurrentQuestion() {
   html += '</div>';
 
   DOM.questionContainer.innerHTML = html;
+  attachBiblePlacesButton_(q);
   console.log('✅ Question rendered');
   
   if (window.MathJax && MathJax.typesetPromise) {
@@ -5536,7 +5622,7 @@ async function startQuizWithNumber(uiStartNumber) {
     }
   }
   
-  var overlay = showLoadingOverlay('Loading ' + (IS_TRIAL_USER ? TRIAL_LIMIT : QUESTIONS_PER_SET) + ' questions from ' + startNum + '...');
+  var overlay = showLoadingOverlay('Loading questions...');
   try {
     var questions = await load50Questions(startNum);
     if (questions.length === 0) throw new Error('No question data received');
@@ -6021,30 +6107,30 @@ function initBibleSpeechControls() {
   var wrap = document.createElement('div');
   wrap.id = 'bibleSpeechControls';
   wrap.hidden = true;
-  wrap.style.cssText = 'position:relative;z-index:4;display:none;flex-wrap:wrap;justify-content:center;gap:7px;width:fit-content;max-width:100%;margin:10px auto 3px;padding:7px;background:rgba(15,23,42,.72);border:1px solid rgba(255,255,255,.16);border-radius:12px';
+  wrap.style.cssText = 'position:relative;z-index:4;display:none;flex-wrap:wrap;justify-content:center;gap:5px;width:fit-content;max-width:100%;margin:6px auto 2px;padding:5px;background:rgba(15,23,42,.72);border:1px solid rgba(255,255,255,.16);border-radius:10px';
 
   var readButton = document.createElement('button');
   readButton.type = 'button';
   readButton.textContent = '▶ Play';
   readButton.title = 'Read the current Bible lesson';
-  readButton.style.cssText = 'border:0;border-radius:9px;padding:10px 13px;background:#f5a623;color:#fff;font-weight:800;cursor:pointer';
+  readButton.style.cssText = 'border:0;border-radius:8px;padding:7px 10px;background:#f5a623;color:#fff;font-size:13px;font-weight:800;cursor:pointer';
 
   var replayButton = document.createElement('button');
   replayButton.type = 'button';
   replayButton.textContent = '↻ Replay';
   replayButton.title = 'Read the current item again without moving to the next item';
-  replayButton.style.cssText = 'border:0;border-radius:9px;padding:10px 12px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer';
+  replayButton.style.cssText = 'border:0;border-radius:8px;padding:7px 10px;background:#2563eb;color:#fff;font-size:13px;font-weight:800;cursor:pointer';
 
   var stopButton = document.createElement('button');
   stopButton.type = 'button';
   stopButton.textContent = '■ Stop';
   stopButton.title = 'Stop reading';
-  stopButton.style.cssText = 'border:0;border-radius:9px;padding:10px 13px;background:#475569;color:#fff;font-weight:800;cursor:pointer';
+  stopButton.style.cssText = 'border:0;border-radius:8px;padding:7px 10px;background:#475569;color:#fff;font-size:13px;font-weight:800;cursor:pointer';
 
   var speedSelect = document.createElement('select');
   speedSelect.title = 'Reading speed';
   speedSelect.setAttribute('aria-label', 'Reading speed');
-  speedSelect.style.cssText = 'border:0;border-radius:9px;padding:9px 8px;background:#fff;color:#0f172a;font-weight:800;cursor:pointer';
+  speedSelect.style.cssText = 'border:0;border-radius:8px;padding:6px 7px;background:#fff;color:#0f172a;font-size:13px;font-weight:800;cursor:pointer';
   [
     { value: '0.5', label: 'Speed 0.5×' },
     { value: '0.75', label: 'Speed 0.75×' },
@@ -6061,7 +6147,7 @@ function initBibleSpeechControls() {
   var autoNextButton = document.createElement('button');
   autoNextButton.type = 'button';
   autoNextButton.title = 'Automatically move to the next item after reading';
-  autoNextButton.style.cssText = 'border:0;border-radius:9px;padding:10px 12px;color:#fff;font-weight:800;cursor:pointer';
+  autoNextButton.style.cssText = 'border:0;border-radius:8px;padding:7px 10px;color:#fff;font-size:13px;font-weight:800;cursor:pointer';
 
   var speechSpeedKey = 'bibleSpeechSpeed';
   var speechAutoNextKey = 'bibleSpeechAutoNext';
@@ -6344,6 +6430,9 @@ var biblePeopleSearchTimer = null;
 var biblePeopleDirectoryLoaded = false;
 var biblePeopleNameIndex = {};
 var biblePeopleNameIndexPromise = null;
+var bibleContextLinks = null;
+var bibleContextLinksPromise = null;
+var biblePeopleRelationshipScene = null;
 
 function biblePeopleLoadNameIndex_() {
   if (biblePeopleNameIndexPromise) return biblePeopleNameIndexPromise;
@@ -6361,6 +6450,24 @@ function biblePeopleLoadNameIndex_() {
       return {};
     });
   return biblePeopleNameIndexPromise;
+}
+
+function biblePeopleLoadContextLinks_() {
+  if (bibleContextLinksPromise) return bibleContextLinksPromise;
+  bibleContextLinksPromise = fetch('./content/bible-context-links.json?v=8.48-entity-context1')
+    .then(function(response) {
+      if (!response.ok) throw new Error('Bible context links could not be loaded.');
+      return response.json();
+    })
+    .then(function(value) {
+      bibleContextLinks = value || {};
+      return bibleContextLinks;
+    })
+    .catch(function(error) {
+      console.warn(error.message);
+      return {};
+    });
+  return bibleContextLinksPromise;
 }
 
 async function biblePeopleApi_(action, values) {
@@ -6561,6 +6668,10 @@ function biblePeopleGraphPayload_(person, relationships) {
 function biblePeopleRenderDetail_(detail) {
   var host = document.getElementById('biblePeopleDetail');
   if (!host || !detail || !detail.person) return;
+  if (biblePeopleRelationshipScene) {
+    biblePeopleRelationshipScene.destroy();
+    biblePeopleRelationshipScene = null;
+  }
   var person = detail.person;
   var aliases = Array.isArray(detail.aliases) ? detail.aliases : [];
   var references = Array.isArray(detail.references) ? detail.references : [];
@@ -6572,9 +6683,21 @@ function biblePeopleRenderDetail_(detail) {
   var description = person.DESCRIPTION_EN || person.DESCRIPTION_KO || 'No source description is available.';
   var referenceLimit = 24;
   var relationshipLimit = 30;
+  var context = detail.context || {};
+  var contextEvents = Array.isArray(context.events) ? context.events : [];
+  var contextPlaces = Array.isArray(context.places) ? context.places : [];
+  var scripturePlaces = Array.isArray(context.scripture_places)
+    ? context.scripture_places
+    : [];
+  var relationshipGraphic = relationships.length ? biblePeopleGraphPayload_(person, relationships) : null;
   var graphHtml = relationships.length
-    ? renderSuperGraphicPayload(biblePeopleGraphPayload_(person, relationships))
-    : '<div class="bible-people-empty"><span>No source-provided relationships are available.</span></div>';
+    ? '<div class="vector-scene25d-host bible-relationship-25d"></div>'
+    : '<div class="bible-single-person">' +
+        '<div class="bible-single-person-icon" aria-hidden="true">👤</div>' +
+        '<strong>' + escapeHtml(person.NAME_EN || person.PERSON_ID) + '</strong>' +
+        (person.NAME_KO ? '<span>' + escapeHtml(person.NAME_KO) + '</span>' : '') +
+        '<small>No family relationships are recorded for this person.</small>' +
+      '</div>';
 
   host.innerHTML = '<article class="bible-person-card">' +
     '<div class="bible-person-title"><div><h3>' + escapeHtml(person.NAME_EN || person.PERSON_ID) + '</h3>' +
@@ -6593,6 +6716,45 @@ function biblePeopleRenderDetail_(detail) {
         (reference.IS_KEY === 'TRUE' || reference.IS_KEY === 'true' ? ' · Key' : '') + '</div>';
     }).join('') + '</div>' +
     (references.length > referenceLimit ? '<div class="bible-reference-more">Showing the first ' + referenceLimit + ' of ' + references.length + ' references.</div>' : '') +
+    '</section><section class="bible-person-section"><h4>People · Places · Events</h4>' +
+    '<div class="bible-person-meta">' +
+      '<button type="button" class="bible-person-chip" data-context-tab="places">Atlas</button>' +
+      '<button type="button" class="bible-person-chip" data-context-tab="timeline">Timeline</button>' +
+      '<button type="button" class="bible-person-chip" data-context-tab="journeys">Journeys</button>' +
+    '</div>' +
+    (contextEvents.length
+      ? '<div class="bible-context-list">' + contextEvents.slice(0, 12).map(function(event) {
+          var eventReference = (event.source_codes || [])[0] || '';
+          var eventPlaces = Array.isArray(event.place_names) ? event.place_names : [];
+          return '<div class="bible-context-event-row">' +
+            '<button type="button" class="bible-context-item" data-context-event-reference="' +
+              escapeHtml(eventReference) + '"><strong>Event · ' + escapeHtml(event.title) +
+              '</strong><span>' + escapeHtml((event.source_codes || []).slice(0, 2).join(', ')) +
+              '</span></button>' +
+            (eventPlaces.length
+              ? '<div class="bible-context-event-places"><span>Places:</span>' +
+                  eventPlaces.map(function(placeName) {
+                    return '<button type="button" class="bible-person-chip" data-context-place-name="' +
+                      escapeHtml(placeName) + '">📍 ' + escapeHtml(placeName) + '</button>';
+                  }).join('') + '</div>'
+              : '') +
+          '</div>';
+        }).join('') + '</div>'
+      : '<div class="bible-context-empty">No source event is directly linked to this person.</div>') +
+    (contextPlaces.length
+      ? '<div class="bible-person-meta">' + contextPlaces.slice(0, 16).map(function(place) {
+          return '<button type="button" class="bible-person-chip" data-context-place-name="' +
+            escapeHtml(place.name) + '">📍 ' + escapeHtml(place.name) + '</button>';
+        }).join('') + '</div>'
+      : '') +
+    (scripturePlaces.length
+      ? '<details class="bible-context-more"><summary>Additional places appearing in the same Scripture passages (' +
+          scripturePlaces.length + ')</summary><div class="bible-person-meta">' +
+          scripturePlaces.slice(0, 30).map(function(place) {
+            return '<button type="button" class="bible-person-chip" data-context-place-name="' +
+              escapeHtml(place.name) + '">' + escapeHtml(place.name) + '</button>';
+          }).join('') + '</div></details>'
+      : '') +
     '</section><section class="bible-person-section"><h4>Relationships (' + relationships.length + ')</h4>' +
     '<div class="bible-person-grid">' + relationships.slice(0, relationshipLimit).map(function(relationship) {
       return '<div class="bible-relationship"><strong>' +
@@ -6601,6 +6763,44 @@ function biblePeopleRenderDetail_(detail) {
     }).join('') + '</div></section>' +
     '<section class="bible-person-section"><h4>Relationship graph</h4><div class="bible-person-graph">' + graphHtml + '</div></section>' +
     '</article>';
+  if (relationshipGraphic) {
+    var relationshipHost = host.querySelector('.bible-relationship-25d');
+    biblePeopleRelationshipScene = new VectorScene25D(relationshipHost, {
+      ariaLabel: 'Interactive Bible relationship graph',
+      labelFontSize: 12
+    });
+    biblePeopleRelationshipScene.setScene(sceneFromGraphicObjects(relationshipGraphic));
+  }
+  host.querySelectorAll('[data-context-place-name]').forEach(function(button) {
+    button.addEventListener('click', function() {
+      biblePeopleClose_();
+      if (typeof window.openBibleContext === 'function') {
+        window.openBibleContext({
+          tab: 'places',
+          placeName: button.getAttribute('data-context-place-name')
+        });
+      }
+    });
+  });
+  host.querySelectorAll('[data-context-event-reference]').forEach(function(button) {
+    button.addEventListener('click', function() {
+      biblePeopleClose_();
+      if (typeof window.openBibleContext === 'function') {
+        window.openBibleContext({
+          tab: 'timeline',
+          sourceCode: button.getAttribute('data-context-event-reference')
+        });
+      }
+    });
+  });
+  host.querySelectorAll('[data-context-tab]').forEach(function(button) {
+    button.addEventListener('click', function() {
+      biblePeopleClose_();
+      if (typeof window.openBibleContext === 'function') {
+        window.openBibleContext({ tab: button.getAttribute('data-context-tab') });
+      }
+    });
+  });
 }
 
 async function biblePeopleLoadDetail_(personId) {
@@ -6615,9 +6815,31 @@ async function biblePeopleLoadDetail_(personId) {
   try {
     var results = await Promise.all([
       biblePeopleApi_('person_detail', { person_id: personId }),
-      biblePeopleLoadNameIndex_()
+      biblePeopleLoadNameIndex_(),
+      biblePeopleLoadContextLinks_()
     ]);
     var detail = results[0];
+    var contextData = results[2] || {};
+    var personContext = contextData.person_contexts &&
+      contextData.person_contexts[personId] || {};
+    detail.context = {
+      events: (personContext.event_ids || []).map(function(eventId) {
+        var event = contextData.events && contextData.events[eventId];
+        if (!event) return null;
+        return Object.assign({}, event, {
+          place_names: (event.place_ids || []).map(function(placeId) {
+            return contextData.places && contextData.places[placeId] &&
+              contextData.places[placeId].name;
+          }).filter(Boolean)
+        });
+      }).filter(Boolean),
+      places: (personContext.place_ids || []).map(function(placeId) {
+        return contextData.places && contextData.places[placeId];
+      }).filter(Boolean),
+      scripture_places: (personContext.scripture_place_ids || []).map(function(placeId) {
+        return contextData.geocoding_places && contextData.geocoding_places[placeId];
+      }).filter(Boolean)
+    };
     biblePeopleRenderDetail_(detail);
     biblePeopleSetStatus_('Loaded ' + (detail.person.NAME_EN || personId) + '.');
   } catch (error) {
@@ -6648,6 +6870,11 @@ function biblePeopleSearchSubmit_(event) {
   var input = document.getElementById('biblePeopleSearchInput');
   biblePeopleRunSearch_(input && input.value);
 }
+
+window.openBiblePerson = function(personId) {
+  biblePeopleOpen_();
+  biblePeopleLoadDetail_(personId);
+};
 
 function initBiblePeopleExplorer() {
   if (biblePeopleExplorerInitialized) return;
@@ -6771,6 +6998,6 @@ document.addEventListener('change', function(event) {
   currentStartNumber = start;
   if (DOM.startNumberInput) DOM.startNumberInput.value = String(start);
   var title = document.querySelector('.sat-title');
-  if (title) title.textContent = option.textContent;
+  if (title) title.textContent = 'BIBLE · ' + option.textContent;
   console.log('Bible chapter selected:', option.dataset.code, 'start', start, 'count', limit);
 }, true);

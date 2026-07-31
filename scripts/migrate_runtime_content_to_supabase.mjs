@@ -190,18 +190,41 @@ function headers(extra = {}) {
   };
 }
 
+async function fetchWithRetry(url, options, label) {
+  let lastError;
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    try {
+      const response = await fetch(url, options);
+      if (response.status < 500 && response.status !== 429) return response;
+      lastError = new Error(`${label} returned HTTP ${response.status}`);
+    } catch (error) {
+      lastError = error;
+    }
+    if (attempt < 5) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.min(8000, 1000 * 2 ** (attempt - 1))),
+      );
+    }
+  }
+  throw lastError;
+}
+
 async function upsert(table, rows, onConflict) {
   if (dryRun || rows.length === 0) return;
   const url = new URL(`${supabaseUrl}/rest/v1/${table}`);
   url.searchParams.set("on_conflict", onConflict);
-  const response = await fetch(url, {
-    method: "POST",
-    headers: headers({
-      "Content-Type": "application/json",
-      Prefer: "resolution=merge-duplicates,return=minimal",
-    }),
-    body: JSON.stringify(rows),
-  });
+  const response = await fetchWithRetry(
+    url,
+    {
+      method: "POST",
+      headers: headers({
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=minimal",
+      }),
+      body: JSON.stringify(rows),
+    },
+    `${table} upsert`,
+  );
   if (!response.ok) {
     throw new Error(
       `${table} upsert failed: ${response.status} ${await response.text()}`,
@@ -230,7 +253,7 @@ function encodeStoragePath(value) {
 }
 
 async function uploadAsset(asset) {
-  const response = await fetch(
+  const response = await fetchWithRetry(
     `${supabaseUrl}/storage/v1/object/${asset.storage_bucket}/${encodeStoragePath(asset.storage_path)}`,
     {
       method: "POST",
@@ -240,6 +263,7 @@ async function uploadAsset(asset) {
       }),
       body: fs.readFileSync(asset.localPath),
     },
+    `Storage upload ${asset.storage_path}`,
   );
   if (!response.ok) {
     throw new Error(
@@ -299,12 +323,30 @@ console.log(
 
 if (!dryRun) {
   await upsert("content_sources", sourceRows, "source_id");
-  for (let index = 0; index < changed.length; index += 1) {
-    await uploadAsset(changed[index]);
-    if ((index + 1) % 25 === 0 || index + 1 === changed.length) {
-      console.log(`storage: ${index + 1}/${changed.length}`);
+  let nextUploadIndex = 0;
+  let completedUploads = 0;
+  const uploadWorker = async () => {
+    while (nextUploadIndex < changed.length) {
+      const asset = changed[nextUploadIndex];
+      nextUploadIndex += 1;
+      await uploadAsset(asset);
+      const { localPath, ...assetRow } = asset;
+      await upsert("bible_content_assets", [assetRow], "asset_id");
+      completedUploads += 1;
+      if (
+        completedUploads % 25 === 0 ||
+        completedUploads === changed.length
+      ) {
+        console.log(`storage: ${completedUploads}/${changed.length}`);
+      }
     }
-  }
+  };
+  await Promise.all(
+    Array.from(
+      { length: Math.min(8, Math.max(1, changed.length)) },
+      () => uploadWorker(),
+    ),
+  );
   await upsert(
     "bible_content_assets",
     assets.map(({ localPath, ...row }) => row),

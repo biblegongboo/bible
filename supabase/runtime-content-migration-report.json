@@ -1,14 +1,18 @@
 {
-  "generated_at": "2026-07-31T00:44:54.007Z",
-  "mode": "dry-run",
+  "generated_at": "2026-07-31T01:21:57.472Z",
+  "mode": "upload",
   "source_count": 3,
   "asset_count": 314,
-  "changed_asset_count": 314,
+  "changed_asset_count": 28,
   "total_bytes": 68135814,
   "excluded": [
     "content/patristic/** duplicate working copies",
     "commentary source files",
     "factory intermediate files"
   ],
-  "validation": null
+  "validation": {
+    "expected": 314,
+    "matched": 314,
+    "failures": []
+  }
 }

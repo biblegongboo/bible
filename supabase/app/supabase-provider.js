@@ -46,6 +46,35 @@
     return result.json();
   }
 
+  function encodeStoragePath_(value) {
+    return String(value || '')
+      .replace(/^\.?\//, '')
+      .split('/')
+      .map(encodeURIComponent)
+      .join('/');
+  }
+
+  async function fetchContent_(relativePath, signal) {
+    if (!configured_()) {
+      throw new Error('Supabase content storage is not configured.');
+    }
+    var result = await fetch(
+      baseUrl + '/storage/v1/object/authenticated/bible-content/' +
+        encodeStoragePath_(relativePath),
+      {
+        headers: headers_(),
+        signal: signal
+      }
+    );
+    if (!result.ok) {
+      throw new Error(
+        'Supabase content request failed: HTTP ' + result.status +
+        ' (' + relativePath + ')'
+      );
+    }
+    return result;
+  }
+
   function mapQuestion_(row) {
     return {
       N: row.n,
@@ -191,6 +220,7 @@
 
   window.BibleSupabaseProvider = Object.freeze({
     isConfigured: configured_,
-    request: request_
+    request: request_,
+    fetchContent: fetchContent_
   });
 })();
