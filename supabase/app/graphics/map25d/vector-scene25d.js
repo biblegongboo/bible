@@ -112,6 +112,7 @@ export class VectorScene25D {
       this.setZoom(this.camera.zoom + 1, event.clientX - box.left, event.clientY - box.top);
     });
     this.svg.addEventListener('pointerdown', (event) => {
+      if (event.target.closest?.('.scene25d-node, .scene25d-label-selectable')) return;
       this.drag = { id: event.pointerId, x: event.clientX, y: event.clientY, centerX: this.camera.centerX, centerY: this.camera.centerY };
       this.svg.setPointerCapture(event.pointerId);
       this.svg.classList.add('is-dragging');
