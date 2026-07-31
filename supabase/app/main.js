@@ -6133,6 +6133,23 @@ console.log("📊 v8.0B: Learn / Study / Exam mode engine enabled");
 // ========================================================================
 // BIBLE: Browser speech controls (Chrome/Safari)
 // ========================================================================
+function getBibleNativeSpeechPlugin_() {
+  var capacitor = window.Capacitor;
+  if (!capacitor) return null;
+  var isNative = typeof capacitor.isNativePlatform === 'function'
+    ? capacitor.isNativePlatform()
+    : typeof capacitor.getPlatform === 'function' && capacitor.getPlatform() !== 'web';
+  if (!isNative) return null;
+  // Capacitor exposes installed native plugins through this bridge even when
+  // the content page itself is served remotely by GitHub Pages.
+  if (capacitor.Plugins && capacitor.Plugins.TextToSpeech) {
+    return capacitor.Plugins.TextToSpeech;
+  }
+  return typeof capacitor.registerPlugin === 'function'
+    ? capacitor.registerPlugin('TextToSpeech')
+    : null;
+}
+
 function initBibleSpeechControls() {
   if (window.__bibleSpeechControlsInstalled) return;
   window.__bibleSpeechControlsInstalled = true;
@@ -6141,9 +6158,11 @@ function initBibleSpeechControls() {
   // either case: hiding them made the Android app look as if reading support
   // had disappeared.  A clear tap-time message is safer than silently
   // removing the feature.
-  var bibleSpeechSupported =
+  var bibleBrowserSpeechSupported =
     'speechSynthesis' in window &&
     typeof SpeechSynthesisUtterance !== 'undefined';
+  var bibleNativeSpeech = getBibleNativeSpeechPlugin_();
+  var bibleSpeechSupported = bibleBrowserSpeechSupported || !!bibleNativeSpeech;
 
   var wrap = document.createElement('div');
   wrap.id = 'bibleSpeechControls';
@@ -6222,11 +6241,14 @@ function initBibleSpeechControls() {
   function stopBibleSpeech(keepAutoRead) {
     bibleSpeechRunId++;
     if (!keepAutoRead) bibleAutoReadActive = false;
-    if (bibleSpeechSupported) window.speechSynthesis.cancel();
+    if (bibleBrowserSpeechSupported) window.speechSynthesis.cancel();
+    if (bibleNativeSpeech && typeof bibleNativeSpeech.stop === 'function') {
+      Promise.resolve(bibleNativeSpeech.stop()).catch(function() {});
+    }
   }
 
   function getBibleVoice_(langCode) {
-    if (!bibleSpeechSupported) return null;
+    if (!bibleBrowserSpeechSupported) return null;
     var prefix = langCode.slice(0, 2).toLowerCase();
     return window.speechSynthesis.getVoices().find(function(item) {
       return String(item.lang || '').toLowerCase().indexOf(prefix) === 0;
@@ -6394,6 +6416,22 @@ function initBibleSpeechControls() {
       var segment = segments[segmentIndex];
       var speak = function() {
         if (runId !== bibleSpeechRunId) return;
+        if (bibleNativeSpeech && typeof bibleNativeSpeech.speak === 'function') {
+          Promise.resolve(bibleNativeSpeech.speak({
+            text: segment.text,
+            lang: segment.lang,
+            rate: bibleSpeechRate,
+            pitch: 1,
+            volume: 1,
+            category: 'ambient'
+          })).then(function() {
+            speakBibleSegment_(segmentIndex + 1);
+          }).catch(function() {
+            bibleAutoReadActive = false;
+            window.alert('Android text-to-speech could not start. Please check that a text-to-speech engine is enabled in your device settings.');
+          });
+          return;
+        }
         var utterance = new SpeechSynthesisUtterance(segment.text);
         utterance.lang = segment.lang;
         utterance.rate = bibleSpeechRate;
@@ -6425,7 +6463,7 @@ function initBibleSpeechControls() {
     if ([0.5, 0.75, 1, 1.25, 1.5].indexOf(nextRate) === -1) nextRate = 1;
     bibleSpeechRate = nextRate;
     localStorage.setItem(speechSpeedKey, String(nextRate));
-    if (bibleSpeechSupported && window.speechSynthesis.speaking) {
+    if (bibleBrowserSpeechSupported && window.speechSynthesis.speaking) {
       readCurrentBibleQuestion(false, !bibleAutoNextEnabled);
     }
   });

@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@capacitor-community/text-to-speech':
+        specifier: ^6.1.0
+        version: 6.1.0(@capacitor/core@7.6.8)
       '@capacitor/android':
         specifier: ^7.0.0
         version: 7.6.8(@capacitor/core@7.6.8)
@@ -20,6 +23,11 @@ importers:
         version: 7.6.8
 
 packages:
+
+  '@capacitor-community/text-to-speech@6.1.0':
+    resolution: {integrity: sha512-K9kbQm7BEkUGhZQYMrPaLfHTbOjQPtXZyQTtZxR+lNJyl1pbSFWwRmK3PCIa5C5M2HLf3iPgj/vTaMvMxlk1Ag==}
+    peerDependencies:
+      '@capacitor/core': '>=7.0.0'
 
   '@capacitor/android@7.6.8':
     resolution: {integrity: sha512-N5LXe1ls+TA0mq+RhtyDdP1JISzAAI+OuLGL3G7OWQxfQQOZYkiEjEJMYqMV6JR421IqpRsYj08JOfC0PFC3NA==}
@@ -380,6 +388,10 @@ packages:
     resolution: {integrity: sha512-p4a9I6X6nu6IhoGmBqAcbJy1mlC4j27vEPZX9F4L4/vZT3Lyq1VkFHw/V/PUcB9Buo+DG3iHkT0x3Qya58zc3g==}
 
 snapshots:
+
+  '@capacitor-community/text-to-speech@6.1.0(@capacitor/core@7.6.8)':
+    dependencies:
+      '@capacitor/core': 7.6.8
 
   '@capacitor/android@7.6.8(@capacitor/core@7.6.8)':
     dependencies:
