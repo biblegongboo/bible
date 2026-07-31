@@ -61,8 +61,8 @@
       <button type="button" id="calculatorToggle" class="quiz-tool-toggle" aria-label="Open calculator" aria-controls="calculatorPanel" aria-expanded="false">🧮</button>
     </div>
     <div class="bible-header-nav" aria-label="Bible reference tools">
-      <button type="button" id="bibleExploreToggle" class="quiz-tool-toggle bible-explore-toggle persistent-explore-toggle" aria-label="Open Bible Atlas" aria-controls="bibleExplorePanel" aria-expanded="false">Atlas</button>
-      <button type="button" id="biblePeopleToggle" class="quiz-tool-toggle bible-people-toggle persistent-people-toggle" aria-label="Open Bible People" aria-controls="biblePeoplePanel" aria-expanded="false">People</button>
+      <button type="button" id="bibleExploreToggle" class="quiz-tool-toggle bible-explore-toggle persistent-explore-toggle" aria-label="Open Bible Atlas" title="Bible Atlas" aria-controls="bibleExplorePanel" aria-expanded="false">🌐</button>
+      <button type="button" id="biblePeopleToggle" class="quiz-tool-toggle bible-people-toggle persistent-people-toggle" aria-label="Open Bible People" title="Bible People" aria-controls="biblePeoplePanel" aria-expanded="false">👤</button>
     </div>
     <button type="button" id="timerToggle" class="quiz-tool-toggle quiz-timer-toggle persistent-timer-toggle" aria-label="Open timer" aria-controls="timerPanel" aria-expanded="false"><span aria-hidden="true">⏱️</span></button>
     <section id="calculatorPanel" class="quiz-tool-panel calculator-panel" aria-label="Scientific calculator" hidden>
@@ -102,29 +102,29 @@
 
     <div class="learning-mode-panel" aria-label="Learning mode preview">
       <div id="modeButtons" class="mode-buttons">
-        <button type="button" class="mode-btn mode-learn" data-ui-mode="learn" data-tooltip="Answers and explanations are shown automatically." aria-label="Learn mode. Answers and explanations are shown automatically.">🟢 Learn</button>
-        <button type="button" class="mode-btn mode-study active" data-ui-mode="study" data-tooltip="Choose an answer and receive instant feedback." aria-label="Study mode. Choose an answer and receive instant feedback.">🔵 Study</button>
-        <button type="button" class="mode-btn mode-exam" data-ui-mode="exam" data-tooltip="Feedback stays hidden until you submit the set." aria-label="Exam mode. Feedback stays hidden until you submit the set.">🔴 Exam</button>
+        <button type="button" class="mode-btn mode-learn" data-ui-mode="learn" data-tooltip="Answers and explanations are shown automatically." aria-label="Learn mode. Answers and explanations are shown automatically."><span class="mode-marker" aria-hidden="true"></span>Lrn</button>
+        <button type="button" class="mode-btn mode-study active" data-ui-mode="study" data-tooltip="Choose an answer and receive instant feedback." aria-label="Study mode. Choose an answer and receive instant feedback."><span class="mode-marker" aria-hidden="true"></span>Std</button>
+        <button type="button" class="mode-btn mode-exam" data-ui-mode="exam" data-tooltip="Feedback stays hidden until you submit the set." aria-label="Exam mode. Feedback stays hidden until you submit the set."><span class="mode-marker" aria-hidden="true"></span>Exm</button>
       </div>
       <div id="modeDescription" class="mode-description" hidden></div>
       <div id="biblePassageControls" class="bible-passage-controls" aria-label="Bible language controls">
         <button type="button" id="biblePassageToggle" class="bible-passage-toggle" aria-pressed="false">
-          📖 Passage OFF
+          📖 PSG OFF
         </button>
         <button type="button" id="bibleQuizToggle" class="bible-quiz-toggle is-on" aria-pressed="true">
-          📝 Quiz ON
+          📝 Qz ON
         </button>
         <label for="biblePrimaryTextSelector">First language</label>
         <select id="biblePrimaryTextSelector" aria-label="First language">
-          <option value="WEB">WEB Modern English</option>
-          <option value="KJV">KJV Original</option>
+          <option value="WEB">ModEng</option>
+          <option value="KJV">KJV</option>
           <option value="KO_WEB">한국어</option>
         </select>
         <label for="bibleSecondaryTextSelector">Second language</label>
         <select id="bibleSecondaryTextSelector" aria-label="Second language">
           <option value="NONE">None</option>
-          <option value="WEB">WEB Modern English</option>
-          <option value="KJV">KJV Original</option>
+          <option value="WEB">ModEng</option>
+          <option value="KJV">KJV</option>
           <option value="KO_WEB">한국어</option>
         </select>
       </div>
@@ -1933,10 +1933,12 @@ html:not(.admin-user) .admin-preview-panel {
   .sat-logo{padding:0;min-height:28px;flex-wrap:nowrap}
   .sat-title{font-size:clamp(1.1rem,2.5vw,1.45rem);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .bible-header-nav{position:relative;z-index:4;display:flex;justify-content:center;align-items:center;gap:5px;margin:3px auto 0}
-  .persistent-people-toggle,.persistent-explore-toggle{position:static!important;z-index:auto;height:27px!important;min-height:27px!important;padding:0 8px!important}
+  .persistent-people-toggle,.persistent-explore-toggle{position:static!important;z-index:auto;width:28px!important;min-width:28px!important;height:27px!important;min-height:27px!important;padding:0!important;font-size:14px!important}
   .learning-mode-panel{max-width:600px;margin:5px auto 0}
-  .mode-buttons{width:min(330px,100%);margin:0 auto;gap:3px;padding:3px;border-radius:10px;overflow:visible}
+  .mode-buttons{width:min(252px,100%);margin:0 auto;gap:3px;padding:3px;border-radius:10px;overflow:visible}
   .mode-btn{position:relative;min-height:29px;padding:4px 6px;border-radius:8px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mode-marker{display:inline-block;width:7px;height:7px;margin-right:4px;border-radius:50%;background:#5eea91;box-shadow:0 0 5px currentColor;vertical-align:1px}
+  .mode-study .mode-marker{background:#60a5fa}.mode-exam .mode-marker{background:#fb7185}
   .mode-description{display:none!important}
   .mode-btn::after{
     content:attr(data-tooltip);
@@ -1969,8 +1971,8 @@ html:not(.admin-user) .admin-preview-panel {
   .mode-exam:hover::after,.mode-exam:focus-visible::after{transform:translate(0,0)}
   .bible-passage-controls{
     display:grid;
-    grid-template-columns:auto auto minmax(135px,1fr) minmax(105px,1fr);
-    width:min(600px,100%);
+    grid-template-columns:auto auto minmax(82px,112px) minmax(64px,82px);
+    width:min(350px,100%);
     gap:5px;
     margin:5px auto 0;
   }
@@ -1994,9 +1996,9 @@ html:not(.admin-user) .admin-preview-panel {
     .bible-header-nav{margin-top:3px}
     .bible-header-nav .quiz-tool-toggle{height:26px!important;min-height:26px!important;font-size:11px!important;padding:0 7px!important}
     .learning-mode-panel{margin-top:5px}
-    .mode-buttons{width:min(315px,100%)}
+    .mode-buttons{width:min(250px,100%)}
     .mode-btn{min-height:28px;font-size:11px;padding:3px 4px}
-    .bible-passage-controls{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+    .bible-passage-controls{grid-template-columns:auto auto minmax(82px,112px) minmax(64px,82px);gap:4px;width:min(350px,100%)}
     .bible-passage-toggle,.bible-quiz-toggle,
     #biblePrimaryTextSelector,#bibleSecondaryTextSelector{width:100%;font-size:11px}
   }
@@ -2011,7 +2013,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-config.js?v=8.60-supabase-storage1"></script>
 <script src="./supabase-provider.js?v=8.76-people-sort1"></script>
 <script type="module">
-import { initialize } from './main.js?v=8.80-compact-mobile-header1';
+import { initialize } from './main.js?v=8.81-icon-header1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

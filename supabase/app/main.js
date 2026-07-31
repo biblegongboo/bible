@@ -1352,7 +1352,7 @@ function updateBibleReadingModeUI_() {
   if (DOM.bibleQuizToggle) {
     DOM.bibleQuizToggle.classList.toggle('is-on', bibleQuizVisible);
     DOM.bibleQuizToggle.setAttribute('aria-pressed', bibleQuizVisible ? 'true' : 'false');
-    DOM.bibleQuizToggle.textContent = bibleQuizVisible ? '📝 Quiz ON' : '📖 Quiz OFF';
+    DOM.bibleQuizToggle.textContent = bibleQuizVisible ? '📝 Qz ON' : '📝 Qz OFF';
   }
 }
 
@@ -1364,8 +1364,8 @@ function updateBiblePassageControls_() {
     DOM.biblePassageToggle.classList.toggle('is-on', visible);
     DOM.biblePassageToggle.setAttribute('aria-pressed', visible ? 'true' : 'false');
     DOM.biblePassageToggle.textContent = locked
-      ? '🔒 Passage after submission'
-      : (visible ? '📖 Passage ON' : '📕 Passage OFF');
+      ? '🔒 PSG later'
+      : (visible ? '📖 PSG ON' : '📕 PSG OFF');
   }
   updateBibleReadingModeUI_();
   if (DOM.biblePrimaryTextSelector) DOM.biblePrimaryTextSelector.value = biblePrimaryText;
