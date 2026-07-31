@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
-import './bible-explorer.js?v=8.69-timeline-click1';
+import './bible-explorer.js?v=8.70-reference-quiz1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -191,7 +191,7 @@ function clearAuthAndRedirect(reason) {
   localStorage.removeItem('quiz_current_subject_v1');
   var rawReason = String(reason || '').replace(/[^A-Z0-9_\-]/gi, '').slice(0, 40);
   var authReason = rawReason.indexOf('AUTH_') === 0 ? 'LOGIN_REQUIRED' : rawReason;
-  window.location.replace('./login.html?v=8.69-timeline-click1' + (authReason ? '&auth_error=' + encodeURIComponent(authReason) : ''));
+  window.location.replace('./login.html?v=8.70-reference-quiz1' + (authReason ? '&auth_error=' + encodeURIComponent(authReason) : ''));
 }
 
 function applyUserRolePolicy() {
@@ -5683,15 +5683,17 @@ async function startQuizWithNumber(uiStartNumber) {
     
     resetTimer();
     // Timer always waits for the student's explicit Set and Start action.
+    return true;
     
   } catch(err) {
     if (err.name === 'AbortError') {
       LOG.info('🛑 Request aborted, user navigated away');
-      return;
+      return false;
     }
     hideLoadingOverlay();
     alert(LANG.loadError + ' ' + err.message);
     console.error(err);
+    return false;
   }
 }
 
@@ -6737,7 +6739,20 @@ function biblePeopleRenderDetail_(detail) {
   }
   var person = detail.person;
   var aliases = Array.isArray(detail.aliases) ? detail.aliases : [];
-  var references = Array.isArray(detail.references) ? detail.references : [];
+  var referenceMap = {};
+  (Array.isArray(detail.references) ? detail.references : []).forEach(function(reference) {
+    var code = String(reference.SOURCE_CODE || '').trim();
+    if (!code) return;
+    var key = code.toLowerCase();
+    if (!referenceMap[key]) referenceMap[key] = Object.assign({}, reference);
+    if (reference.IS_KEY === 'TRUE' || reference.IS_KEY === 'true' ||
+        reference.IS_KEY === true) {
+      referenceMap[key].IS_KEY = 'TRUE';
+    }
+  });
+  var references = Object.keys(referenceMap).map(function(key) {
+    return referenceMap[key];
+  });
   var relationships = biblePeopleUniqueRelationships_(
     Array.isArray(detail.relationships) ? detail.relationships : [],
     person.PERSON_ID
@@ -6775,8 +6790,9 @@ function biblePeopleRenderDetail_(detail) {
       '</div></section>' : '') +
     '<section class="bible-person-section"><h4>Scripture references (' + references.length + ')</h4>' +
     '<div class="bible-person-grid">' + references.slice(0, referenceLimit).map(function(reference) {
-      return '<div class="bible-reference">' + escapeHtml(reference.SOURCE_CODE) +
-        (reference.IS_KEY === 'TRUE' || reference.IS_KEY === 'true' ? ' · Key' : '') + '</div>';
+      return '<button type="button" class="bible-reference" data-bible-source-code="' +
+        escapeHtml(reference.SOURCE_CODE) + '">' + escapeHtml(reference.SOURCE_CODE) +
+        (reference.IS_KEY === 'TRUE' || reference.IS_KEY === 'true' ? ' · Key' : '') + '</button>';
     }).join('') + '</div>' +
     (references.length > referenceLimit ? '<div class="bible-reference-more">Showing the first ' + referenceLimit + ' of ' + references.length + ' references.</div>' : '') +
     '</section><section class="bible-person-section"><h4>People · Places · Events</h4>' +
@@ -7001,6 +7017,91 @@ function initBiblePeopleExplorer() {
 var BIBLE_CHAPTER_CATALOG = [];
 var bibleLegacyDetectTotalQuestions_ = detectTotalQuestions;
 var bibleLegacyUpdateSetSelector_ = updateSetSelector;
+
+function bibleSourceCodeParts_(sourceCode) {
+  var match = String(sourceCode || '').trim().match(
+    /^(OT|NT)-(.+)-(\d{2,3})-(\d{2,3})$/i
+  );
+  return match ? {
+    testament: match[1].toUpperCase(),
+    book: match[2],
+    chapter: parseInt(match[3], 10),
+    verse: parseInt(match[4], 10),
+    sourceCode: match[1].toUpperCase() + '-' + match[2] + '-' +
+      String(parseInt(match[3], 10)).padStart(2, '0') + '-' +
+      String(parseInt(match[4], 10)).padStart(2, '0')
+  } : null;
+}
+
+function bibleCatalogMatchesReference_(chapter, parts) {
+  if (!chapter || !parts) return false;
+  var expected = (parts.testament + '-' + parts.book + '-' +
+    String(parts.chapter).padStart(2, '0')).toLowerCase();
+  return String(chapter.CODE || '').toLowerCase() === expected ||
+    (String(chapter.BOOK_EN || '').toLowerCase() === parts.book.toLowerCase() &&
+      parseInt(chapter.CHAPTER, 10) === parts.chapter);
+}
+
+async function openBibleScriptureReference_(sourceCode) {
+  var parts = bibleSourceCodeParts_(sourceCode);
+  if (!parts) {
+    alert('This Scripture reference is not recognized: ' + sourceCode);
+    return false;
+  }
+  if (!BIBLE_CHAPTER_CATALOG.length) {
+    try {
+      await loadBibleChapterCatalog_();
+      updateSetSelector();
+    } catch (error) {
+      alert('The Bible chapter catalog could not be loaded. ' + error.message);
+      return false;
+    }
+  }
+  var catalogIndex = BIBLE_CHAPTER_CATALOG.findIndex(function(chapter) {
+    return bibleCatalogMatchesReference_(chapter, parts);
+  });
+  if (catalogIndex < 0) {
+    alert('This Bible chapter is not available yet: ' + parts.sourceCode);
+    return false;
+  }
+
+  if (DOM.setSelector) {
+    DOM.setSelector.selectedIndex = catalogIndex;
+    DOM.setSelector.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  var chapter = BIBLE_CHAPTER_CATALOG[catalogIndex];
+  var start = Math.max(1, parseInt(chapter.START_ROW, 10) ||
+    parseInt(chapter.START, 10) || 1);
+  var loaded = await startQuizWithNumber(start);
+  if (!loaded) return false;
+
+  var targetIndex = currentQuestions.findIndex(function(question) {
+    return String(question.SOURCE_CODE || question.SUBJECT || '').toLowerCase() ===
+      parts.sourceCode.toLowerCase();
+  });
+  if (targetIndex < 0) {
+    alert('The chapter opened, but no quiz has been created for ' +
+      parts.sourceCode + ' yet.');
+    return true;
+  }
+  currentIndex = targetIndex;
+  RendererManager.disposeCurrent();
+  renderCurrentQuestion();
+  var quizContent = document.getElementById('quizContent');
+  if (quizContent) {
+    quizContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  return true;
+}
+
+window.openBibleScriptureReference = openBibleScriptureReference_;
+
+document.addEventListener('click', function(event) {
+  var referenceButton = event.target.closest('[data-bible-source-code]');
+  if (!referenceButton) return;
+  event.preventDefault();
+  openBibleScriptureReference_(referenceButton.dataset.bibleSourceCode);
+});
 
 async function loadBibleChapterCatalog_() {
   var params = new URLSearchParams();

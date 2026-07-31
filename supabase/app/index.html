@@ -1907,6 +1907,8 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-context-head-actions{display:flex;align-items:center;gap:8px}
   .bible-context-back{border:1px solid #94a3b8;border-radius:8px;padding:7px 11px;background:#fff;color:#1e3a8a;font:inherit;font-weight:800;cursor:pointer}
   .bible-reference{display:inline-flex;flex:0 0 auto;max-width:100%;white-space:nowrap;line-height:1.2}
+  button.bible-reference{cursor:pointer;font-family:inherit;text-align:left}
+  button.bible-reference:hover,button.bible-reference:focus-visible{border-color:#2563eb;background:#eff6ff;color:#1d4ed8;outline:none}
   .bible-relationship strong{display:block;color:#172033;margin-bottom:3px}.bible-reference-more{margin-top:10px;color:#64748b;font-size:12px}
   .bible-person-graph{min-height:390px;margin-top:12px;border:1px solid #dbe3ee;border-radius:12px;overflow:hidden}
   .bible-explore-tabs{display:flex;flex-wrap:wrap;gap:8px;padding:16px 26px 6px}.bible-explore-tabs button{border:1px solid #cbd5e1;border-radius:999px;background:#fff;color:#334155;padding:9px 17px;font-weight:800;cursor:pointer}.bible-explore-tabs button.is-active{background:#17233d;color:#fff;border-color:#17233d}
@@ -1998,9 +2000,9 @@ html:not(.admin-user) .admin-preview-panel {
 </style>
 
 <script src="./supabase-config.js?v=8.60-supabase-storage1"></script>
-<script src="./supabase-provider.js?v=8.69-timeline-click1"></script>
+<script src="./supabase-provider.js?v=8.70-reference-quiz1"></script>
 <script type="module">
-import { initialize } from './main.js?v=8.69-timeline-click1';
+import { initialize } from './main.js?v=8.70-reference-quiz1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

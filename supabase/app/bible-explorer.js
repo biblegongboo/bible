@@ -427,6 +427,7 @@ function showKnowledgeSection(section) {
 }
 
 function renderEntityDetail(record, host) {
+  const uniqueSourceCodes = [...new Set(record.source_codes || [])];
   host.innerHTML = `<article class="bible-person-card">
     <div class="bible-person-title"><div><h3>${escapeHtml(record.name_en)}</h3>
     <p>${escapeHtml(record.category)}${record.subtype ? ` · ${escapeHtml(record.subtype)}` : ''}</p></div>
@@ -434,10 +435,10 @@ function renderEntityDetail(record, host) {
     ${record.aliases_en?.length ? `<div class="bible-person-meta">${record.aliases_en.map((alias) =>
       `<span class="bible-person-chip">${escapeHtml(alias)}</span>`).join('')}</div>` : ''}
     <p>${escapeHtml(record.description_en || 'No source description is available.')}</p>
-    <section class="bible-person-section"><h4>Scripture references (${record.source_codes.length})</h4>
-      <div class="bible-reference-grid">${record.source_codes.slice(0, 60).map((code) =>
-        `<span class="bible-reference">${escapeHtml(code)}</span>`).join('')}</div>
-      ${record.source_codes.length > 60 ? `<p>Showing the first 60 of ${record.source_codes.length} references.</p>` : ''}
+    <section class="bible-person-section"><h4>Scripture references (${uniqueSourceCodes.length})</h4>
+      <div class="bible-reference-grid">${uniqueSourceCodes.slice(0, 60).map((code) =>
+        `<button type="button" class="bible-reference" data-bible-source-code="${escapeHtml(code)}">${escapeHtml(code)}</button>`).join('')}</div>
+      ${uniqueSourceCodes.length > 60 ? `<p>Showing the first 60 of ${uniqueSourceCodes.length} references.</p>` : ''}
     </section>
   </article>`;
 }
@@ -758,6 +759,7 @@ function renderTimelineEventDetail(timeline, rowIndex) {
   if (!selection || !row) return;
   const event = timelineEventForRow(row);
   const references = event?.source_codes?.length ? event.source_codes : [row[2]].filter(Boolean);
+  const uniqueReferences = [...new Set(references)];
   const people = (event?.participant_ids || []).map((personId) => ({
     id: personId,
     name: data.peopleIndex[personId]?.name ||
@@ -778,9 +780,9 @@ function renderTimelineEventDetail(timeline, rowIndex) {
         `<button type="button" class="bible-person-chip" data-timeline-place-id="${escapeHtml(place.id)}">${escapeHtml(place.name)}</button>`
       ).join('') : '<span class="bible-context-empty">No source-linked places are recorded.</span>'}</div>
     </section>
-    <section class="bible-person-section"><h4>Scripture references (${references.length})</h4>
-      <div class="bible-reference-grid">${references.slice(0, 60).map((code) =>
-        `<span class="bible-reference">${escapeHtml(code)}</span>`).join('')}</div>
+    <section class="bible-person-section"><h4>Scripture references (${uniqueReferences.length})</h4>
+      <div class="bible-reference-grid">${uniqueReferences.slice(0, 60).map((code) =>
+        `<button type="button" class="bible-reference" data-bible-source-code="${escapeHtml(code)}">${escapeHtml(code)}</button>`).join('')}</div>
     </section>
   </article>`;
   selection.querySelectorAll('[data-timeline-person-id]').forEach((button) => {
