@@ -155,6 +155,15 @@
     localStorage.removeItem('quiz_current_user_v1');
   }
 
+  // Used only by the organization PIN sign-in page after Supabase has issued
+  // a normal Auth session. The PIN itself is never retained in the browser.
+  function adoptSession(session) {
+    if (!session || !session.access_token || !session.refresh_token) {
+      throw new Error('A valid organization session is required.');
+    }
+    writeSession_(session);
+  }
+
   window.BibleSupabaseAuth = Object.freeze({
     isConfigured: configured_,
     signIn: signIn,
@@ -162,6 +171,7 @@
     changePassword: changePassword,
     restoreUser: restoreUser,
     getSession: session_,
+    adoptSession: adoptSession,
     signOut: signOut
   });
 })();
