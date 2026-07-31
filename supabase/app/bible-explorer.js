@@ -23,6 +23,16 @@ const knowledgeCache = new Map();
 const libraryCache = new Map();
 let librarySection = 'verse';
 let librarySourceCode = '';
+const searchRenderVersions = {};
+
+function beginSearchRender(name) {
+  searchRenderVersions[name] = (searchRenderVersions[name] || 0) + 1;
+  return searchRenderVersions[name];
+}
+
+function isCurrentSearchRender(name, version) {
+  return searchRenderVersions[name] === version;
+}
 
 const bibleReferenceNavigation = window.BibleReferenceNavigation || (() => {
   const entries = [];
@@ -86,6 +96,33 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (character) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[character]);
+}
+
+// Every visible search box uses the same predictable behavior: entering "S"
+// immediately lists entries whose displayed name starts with S.  Secondary
+// fields (aliases, authors, IDs) remain searchable, but always appear after
+// direct name/title matches so the result list does not look unrelated.
+function normalizedSearch(value) {
+  return String(value ?? '').trim().toLocaleLowerCase();
+}
+
+function startsWithSearch(value, needle) {
+  if (Array.isArray(value)) return value.some((item) => startsWithSearch(item, needle));
+  return normalizedSearch(value).startsWith(needle);
+}
+
+function prefixSearch(records, query, primaryFields, secondaryFields = []) {
+  const needle = normalizedSearch(query);
+  if (!needle) return records.slice();
+  const primaryMatches = [];
+  const secondaryMatches = [];
+  records.forEach((record) => {
+    const matches = (fields) => fields.some((field) =>
+      startsWithSearch(typeof field === 'function' ? field(record) : record?.[field], needle));
+    if (matches(primaryFields)) primaryMatches.push(record);
+    else if (matches(secondaryFields)) secondaryMatches.push(record);
+  });
+  return primaryMatches.concat(secondaryMatches);
 }
 
 function setStatus(message, isError = false) {
@@ -528,6 +565,7 @@ function mountPagedKnowledgeResults(results, records, renderButton, onSelect, op
 }
 
 async function renderSemanticKnowledge(query = '', sourceCode = '') {
+  const renderVersion = beginSearchRender('entities');
   const results = document.getElementById('bibleKnowledgeEntityResults');
   const detail = document.getElementById('bibleKnowledgeEntityDetail');
   results.innerHTML = knowledgeEmpty('Loading Scripture-linked entities...');
@@ -537,17 +575,13 @@ async function renderSemanticKnowledge(query = '', sourceCode = '') {
       const index = await loadKnowledge('semantic/by-source.json');
       ids = new Set(index.source_to_entities?.[sourceCode] || []);
     }
-    const needle = String(query).trim().toLowerCase();
+    const needle = normalizedSearch(query);
     const availableRecords = (await loadSemanticRecords()).filter((record) =>
       !ids || ids.has(record.entity_id));
-    const prefixRecords = needle ? availableRecords.filter((record) =>
-      String(record.name_en || '').toLowerCase().startsWith(needle) ||
-      (record.aliases_en || []).some((alias) => String(alias).toLowerCase().startsWith(needle))
-    ) : [];
-    const records = (needle && prefixRecords.length ? prefixRecords : availableRecords.filter((record) =>
-      !needle || `${record.name_en} ${(record.aliases_en || []).join(' ')} ${record.description_en}`
-        .toLowerCase().includes(needle)
-    )).sort((left, right) => String(left.name_en || '').localeCompare(String(right.name_en || '')));
+    if (!isCurrentSearchRender('entities', renderVersion)) return;
+    const records = prefixSearch(availableRecords, needle,
+      [(record) => record.name_en],
+      [(record) => record.aliases_en || []]);
     const visibleCount = mountPagedKnowledgeResults(results, records, (record, index) =>
       `<button type="button" class="bible-person-result" data-knowledge-index="${index}">
         <strong>${escapeHtml(record.name_en)}</strong>
@@ -564,20 +598,20 @@ async function renderSemanticKnowledge(query = '', sourceCode = '') {
       ? `${records.length} key term, living thing, object, or group record(s) linked to ${sourceCode}.`
       : `${visibleCount} of ${records.length} semantic Bible records shown.`);
   } catch (error) {
+    if (!isCurrentSearchRender('entities', renderVersion)) return;
     results.innerHTML = knowledgeEmpty('Unable to load semantic records', error.message);
   }
 }
 
 async function renderWordSearch(query = '') {
+  const renderVersion = beginSearchRender('words');
   const results = document.getElementById('bibleWordResults');
   const detail = document.getElementById('bibleWordDetail');
-  const needle = String(query).trim().toLowerCase();
+  const needle = normalizedSearch(query);
   const manifest = await loadKnowledge('concordance/manifest.json');
+  if (!isCurrentSearchRender('words', renderVersion)) return;
   const allWords = manifest.all_words || [];
-  const prefixWords = needle ? allWords.filter((entry) =>
-    String(entry.word || '').toLowerCase().startsWith(needle)) : [];
-  const words = needle && prefixWords.length ? prefixWords : allWords.filter((entry) =>
-    !needle || String(entry.word || '').toLowerCase().includes(needle));
+  const words = prefixSearch(allWords, needle, [(entry) => entry.word]);
   results.innerHTML = [].map((entry, index) =>
     `<button type="button" class="bible-person-result" data-word-index="${index}">
       <strong>${escapeHtml(entry.word)}</strong><span>${entry.count.toLocaleString()} occurrences · ${entry.book_numbers.length} book(s)</span>
@@ -588,6 +622,7 @@ async function renderWordSearch(query = '') {
       const book = manifest.books.find((item) => item.book_number === bookNumber);
       return loadKnowledge(book.file.replace(/^knowledge\//, ''));
     }));
+    if (!isCurrentSearchRender('words', renderVersion)) return;
     const matches = bookPayloads.map((payload) => ({
       book: payload.book,
       record: (payload.records || []).find((item) => item.word.toLowerCase() === entry.word)
@@ -620,15 +655,14 @@ async function renderWordSearch(query = '') {
 }
 
 async function renderDictionary(query = '') {
+  const renderVersion = beginSearchRender('dictionary');
   const results = document.getElementById('bibleDictionaryResults');
   const detail = document.getElementById('bibleDictionaryDetail');
   const payload = await loadKnowledge('reference/easton.json');
-  const needle = String(query).trim().toLowerCase();
+  if (!isCurrentSearchRender('dictionary', renderVersion)) return;
+  const needle = normalizedSearch(query);
   const allRecords = payload.records || [];
-  const prefixRecords = needle ? allRecords.filter((record) =>
-    String(record.term_en || '').toLowerCase().startsWith(needle)) : [];
-  const records = needle && prefixRecords.length ? prefixRecords : allRecords.filter((record) =>
-    !needle || `${record.term_en} ${record.text_en}`.toLowerCase().includes(needle));
+  const records = prefixSearch(allRecords, needle, [(record) => record.term_en]);
   const show = (record) => {
     detail.innerHTML = `<article class="bible-person-card"><div class="bible-person-title">
       <div><h3>${escapeHtml(record.term_en)}</h3><p>Easton Bible Dictionary</p></div></div>
@@ -679,15 +713,18 @@ async function renderTopics() {
 }
 
 async function renderBooks(query = '') {
+  const renderVersion = beginSearchRender('books');
   const [bookPayload, chapterPayload] = await Promise.all([
     loadKnowledge('reference/books.json'),
     loadKnowledge('reference/chapters.json')
   ]);
+  if (!isCurrentSearchRender('books', renderVersion)) return;
   const results = document.getElementById('bibleBookResults');
   const detail = document.getElementById('bibleBookDetail');
-  const needle = String(query).trim().toLowerCase();
-  const books = (bookPayload.records || []).filter((book) =>
-    !needle || `${book.name_en} ${book.division} ${book.testament}`.toLowerCase().includes(needle));
+  const needle = normalizedSearch(query);
+  const books = prefixSearch(bookPayload.records || [], needle,
+    [(book) => book.name_en],
+    [(book) => book.osis_name, (book) => book.division, (book) => book.testament]);
   const show = (book) => {
     const chapters = (chapterPayload.records || []).filter((chapter) =>
       (chapter.book_ids || []).includes(book.source_id) ||
@@ -753,12 +790,10 @@ async function renderKnowledge(options = {}) {
 function renderPlaceResults(query = '') {
   const results = document.getElementById('biblePlaceResults');
   if (!results) return;
-  const needle = String(query).trim().toLowerCase();
-  const places = data.places.filter((place) => {
-    if (!needle) return true;
-    const aliases = Array.isArray(place.aliases) ? place.aliases.join(' ') : '';
-    return `${place.name} ${place.name_ko || ''} ${aliases}`.toLowerCase().includes(needle);
-  }).slice(0, 60);
+  const needle = normalizedSearch(query);
+  const places = prefixSearch(data.places, needle,
+    [(place) => place.name, (place) => place.name_ko],
+    [(place) => place.aliases || []]).slice(0, 60);
   results.innerHTML = places.map((place) =>
     `<button type="button" class="bible-person-result" data-bible-place-id="${escapeHtml(place.id)}">
       <strong>${escapeHtml(place.name)}</strong><span>${escapeHtml(place.type || 'Bible place')}</span>
@@ -971,10 +1006,10 @@ function renderPatristic(query = '') {
   const results = document.getElementById('biblePatristicResults');
   const detail = document.getElementById('biblePatristicDetail');
   if (!results || !detail) return;
-  const needle = String(query).trim().toLowerCase();
-  const records = data.patristic.filter((record) =>
-    !needle || `${record.title} ${record.author} ${record.publication_year}`.toLowerCase().includes(needle)
-  ).slice(0, 80);
+  const needle = normalizedSearch(query);
+  const records = prefixSearch(data.patristic, needle,
+    [(record) => record.title],
+    [(record) => record.author, (record) => record.publication_year]).slice(0, 80);
   results.innerHTML = records.map((record, index) =>
     `<button type="button" class="bible-person-result" data-patristic-index="${index}">
       <strong>${escapeHtml(record.title)}</strong>
@@ -1111,6 +1146,7 @@ async function loadLibraryManifests() {
 }
 
 async function renderLibrary(options = {}) {
+  const renderVersion = beginSearchRender('library');
   librarySection = options.section || librarySection || 'verse';
   if (options.sourceCode) librarySourceCode = options.sourceCode;
   document.querySelectorAll('[data-library-section]').forEach((button) =>
@@ -1123,14 +1159,13 @@ async function renderLibrary(options = {}) {
   detail.innerHTML = knowledgeEmpty('Select a source');
   try {
     const manifests = await loadLibraryManifests();
+    if (!isCurrentSearchRender('library', renderVersion)) return;
     const manifest = librarySection === 'verse' ? manifests.verse : manifests.remaining;
     let sources = (manifest.sources || []).filter((source) =>
       librarySection === 'verse' ? true : source.category === librarySection);
-    const needle = String(search.value || '').trim().toLowerCase();
-    if (needle) {
-      sources = sources.filter((source) =>
-        `${source.title || ''} ${source.author || ''} ${source.source_id || ''}`.toLowerCase().includes(needle));
-    }
+    sources = prefixSearch(sources, search.value,
+      [(source) => source.title || source.source_id],
+      [(source) => source.author, (source) => source.source_id]);
     const partitions = manifest.partitions || [];
     const parsed = parseSourceCode(librarySourceCode);
     if (librarySection === 'verse' && parsed?.book) {
@@ -1150,6 +1185,7 @@ async function renderLibrary(options = {}) {
         (librarySection !== 'verse' || !parsed?.book || partition.book === parsed.book));
       const recordGroups = await Promise.all(selectedPartitions.map((partition) =>
         loadStorageJsonlGzip(partition.storage_path)));
+      if (!isCurrentSearchRender('library', renderVersion)) return;
       let records = recordGroups.flat();
       if (librarySection === 'verse' && parsed) {
         records = records.filter((record) => {
@@ -1171,6 +1207,7 @@ async function renderLibrary(options = {}) {
     if (visible.length) await showSource(visible[0]);
     else setStatus('No matching library source is available.');
   } catch (error) {
+    if (!isCurrentSearchRender('library', renderVersion)) return;
     detail.innerHTML = knowledgeEmpty('Library data is temporarily unavailable', error.message);
     setStatus(error.message || 'Library data could not be loaded.', true);
   }
