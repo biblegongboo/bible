@@ -4,7 +4,7 @@
   "webDir": "www",
   "bundledWebRuntime": false,
   "server": {
-    "url": "https://biblegongboo.github.io/bible/supabase/app/",
+    "url": "https://biblegongboo.github.io/bible/supabase/app/?v=8.78-android-play1",
     "cleartext": false,
     "allowNavigation": [
       "biblegongboo.github.io",
