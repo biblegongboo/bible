@@ -336,9 +336,13 @@ async function renderModernPlaceContext(place, vectorPlace, host) {
         </article>`;
       }).join('')}</div>
       ${images.length ? `<div class="bible-source-images">${images.map((image) => {
-        const thumbnail = String(image.thumbnail_url_pattern || '').replace('####', '480');
+        const thumbnail = String(image.thumbnail_url_pattern || '').replace('####', '500');
+        const fallback = String(image.file_url || '');
+        const description = String(Object.values(image.descriptions || {})[0] || place.name)
+          .replace(/<\/?modern\b[^>]*>/gi, '');
         return `<figure>
-          <img src="${escapeHtml(thumbnail || image.file_url)}" alt="${escapeHtml(Object.values(image.descriptions || {})[0] || place.name)}" loading="lazy">
+          <img src="${escapeHtml(thumbnail || fallback)}" data-fallback="${escapeHtml(fallback)}"
+            alt="${escapeHtml(description)}" loading="lazy">
           <figcaption>${escapeHtml(image.credit || image.author || 'Source contributor')} ·
             ${escapeHtml(image.license)}
             <a href="${escapeHtml(image.source_page_url || image.credit_url)}" target="_blank" rel="noopener">Source</a>
@@ -346,6 +350,16 @@ async function renderModernPlaceContext(place, vectorPlace, host) {
         </figure>`;
       }).join('')}</div>` : ''}
     </section>`;
+    host.querySelectorAll('.bible-source-images img[data-fallback]').forEach((image) => {
+      image.addEventListener('error', () => {
+        if (!image.dataset.fallbackUsed && image.dataset.fallback) {
+          image.dataset.fallbackUsed = '1';
+          image.src = image.dataset.fallback;
+          return;
+        }
+        image.closest('figure')?.setAttribute('hidden', '');
+      });
+    });
   } catch (error) {
     host.innerHTML = knowledgeEmpty('Modern location context unavailable', error.message);
   }
