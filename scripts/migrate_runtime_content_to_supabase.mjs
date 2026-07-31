@@ -12,6 +12,9 @@ const reportPath = path.join(
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
 const envArg = args.find((arg) => arg.startsWith("--env="));
+const defaultEnvPath =
+  process.env.BIBLE_SUPABASE_ENV ||
+  "C:\\Users\\daeca\\Desktop\\gongboo.org\\BIBLE\\config.env.supabase.local";
 
 function loadEnv(filePath) {
   if (!filePath || !fs.existsSync(filePath)) return;
@@ -30,7 +33,7 @@ function loadEnv(filePath) {
   }
 }
 
-if (envArg) loadEnv(path.resolve(envArg.slice("--env=".length)));
+loadEnv(envArg ? path.resolve(envArg.slice("--env=".length)) : defaultEnvPath);
 
 const supabaseUrl = String(process.env.SUPABASE_URL || "").replace(/\/+$/, "");
 const serviceKey = String(
