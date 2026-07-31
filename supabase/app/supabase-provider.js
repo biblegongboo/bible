@@ -152,14 +152,58 @@
   async function peopleSearch_(payload, signal) {
     var query = String(payload.q || '').trim();
     var limit = Math.min(100, Math.max(1, parseInt(payload.limit, 10) || 30));
-    var encoded = encodeURIComponent('*' + query + '*');
-    var people = await rest_(
+    // Directory search is intentionally prefix based.  A single "D" should
+    // start the D section, rather than return arbitrary names that merely
+    // contain a d somewhere later in the spelling.
+    var encodedPrefix = encodeURIComponent(query + '*');
+    var peopleRequest = rest_(
       'bible_people',
       'select=person_id,canonical_name_en,canonical_name_ko,gender,roles' +
-        '&or=(canonical_name_en.ilike.' + encoded + ',canonical_name_ko.ilike.' + encoded + ')' +
+        '&or=(canonical_name_en.ilike.' + encodedPrefix + ',canonical_name_ko.ilike.' + encodedPrefix + ')' +
         '&order=canonical_name_en.asc&limit=' + limit,
       signal
     );
+
+    // Aliases are a separate normalized table.  Querying them in parallel
+    // keeps aliases first-class in the same search box without exposing any
+    // privileged database key in the browser.
+    var aliasesRequest = rest_(
+      'bible_person_aliases',
+      'select=person_id,alias&alias=ilike.' + encodedPrefix +
+        '&order=alias.asc&limit=' + limit,
+      signal
+    );
+    var results = await Promise.all([peopleRequest, aliasesRequest]);
+    var people = results[0] || [];
+    var aliases = results[1] || [];
+    var aliasIds = aliases.map(function(alias) { return String(alias.person_id || ''); })
+      .filter(Boolean);
+    var known = {};
+    people.forEach(function(person) { known[String(person.person_id)] = true; });
+    var missingIds = aliasIds.filter(function(personId, index) {
+      return !known[personId] && aliasIds.indexOf(personId) === index;
+    });
+    if (missingIds.length) {
+      var aliasPeople = await rest_(
+        'bible_people',
+        'select=person_id,canonical_name_en,canonical_name_ko,gender,roles&person_id=in.(' +
+          missingIds.map(encodeURIComponent).join(',') + ')&order=canonical_name_en.asc&limit=' + limit,
+        signal
+      );
+      people = people.concat(aliasPeople || []);
+    }
+    var aliasById = {};
+    aliases.forEach(function(alias) {
+      var personId = String(alias.person_id || '');
+      if (!personId) return;
+      if (!aliasById[personId]) aliasById[personId] = [];
+      aliasById[personId].push(alias.alias);
+    });
+    people = people.filter(function(person, index, all) {
+      return all.findIndex(function(other) { return other.person_id === person.person_id; }) === index;
+    }).sort(function(left, right) {
+      return String(left.canonical_name_en || '').localeCompare(String(right.canonical_name_en || ''));
+    }).slice(0, limit);
     return response_({
       status: 'success',
       data: people.map(function(person) {
@@ -168,7 +212,8 @@
           NAME_EN: person.canonical_name_en,
           NAME_KO: person.canonical_name_ko,
           GENDER: person.gender,
-          ROLES: Array.isArray(person.roles) ? person.roles.join('|') : ''
+          ROLES: Array.isArray(person.roles) ? person.roles.join('|') : '',
+          ALIASES: aliasById[person.person_id] || []
         };
       })
     });

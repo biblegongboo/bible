@@ -6460,6 +6460,7 @@ if (document.readyState === 'loading') {
 var biblePeopleExplorerInitialized = false;
 var biblePeopleSelectedId = '';
 var biblePeopleSearchTimer = null;
+var biblePeopleSearchRequestId = 0;
 var biblePeopleDirectoryLoaded = false;
 var biblePeopleNameIndex = {};
 var biblePeopleNameIndexPromise = null;
@@ -6938,15 +6939,20 @@ async function biblePeopleLoadDetail_(personId) {
 async function biblePeopleRunSearch_(query, isDirectory) {
   query = String(query || '').trim();
   if (!query) return;
+  var requestId = ++biblePeopleSearchRequestId;
   biblePeopleSetStatus_('Searching...');
   try {
     var people = await biblePeopleApi_('people_search', { q: query, limit: 30 });
+    // The first directory request can finish after a later keystroke.  Do
+    // not let that older response overwrite the results for the new letter.
+    if (requestId !== biblePeopleSearchRequestId) return;
     biblePeopleRenderResults_(people);
     biblePeopleSetStatus_(isDirectory
       ? 'Select a name, or type to search all people and aliases.'
       : people.length + ' result' + (people.length === 1 ? '' : 's') + ' found.');
     if (!isDirectory && people.length === 1) biblePeopleLoadDetail_(people[0].PERSON_ID);
   } catch (error) {
+    if (requestId !== biblePeopleSearchRequestId) return;
     biblePeopleRenderResults_([]);
     biblePeopleSetStatus_(error.message, true);
   }
@@ -7067,6 +7073,19 @@ async function openBibleScriptureReference_(sourceCode) {
   if (catalogIndex < 0) {
     alert('This Bible chapter is not available yet: ' + parts.sourceCode);
     return false;
+  }
+
+  // A reference can be clicked inside the full-screen People or Atlas
+  // dialog.  Close that dialog before starting the quiz; otherwise the
+  // question really changes behind the dialog and looks like a dead link.
+  var peoplePanel = document.getElementById('biblePeoplePanel');
+  if (peoplePanel && !peoplePanel.hidden) biblePeopleClose_();
+  var explorePanel = document.getElementById('bibleExplorePanel');
+  if (explorePanel && !explorePanel.hidden) {
+    explorePanel.hidden = true;
+    var exploreToggle = document.getElementById('bibleExploreToggle');
+    if (exploreToggle) exploreToggle.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('bible-people-open');
   }
 
   if (DOM.setSelector) {
