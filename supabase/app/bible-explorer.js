@@ -395,6 +395,32 @@ function renderEntityDetail(record, host) {
   </article>`;
 }
 
+function mountPagedKnowledgeResults(results, records, renderButton, onSelect, options = {}) {
+  const pageSize = Math.max(1, Number(options.pageSize) || 100);
+  let visibleCount = Math.min(pageSize, records.length);
+  const paint = () => {
+    results.innerHTML = records.slice(0, visibleCount).map((record, index) =>
+      renderButton(record, index)).join('') || knowledgeEmpty(options.emptyTitle || 'No matching record');
+    if (visibleCount < records.length) {
+      const nextCount = Math.min(pageSize, records.length - visibleCount);
+      results.insertAdjacentHTML('beforeend',
+        `<button type="button" class="bible-person-result bible-knowledge-more" data-knowledge-more>
+          <strong>Show next ${nextCount}</strong>
+          <span>${visibleCount} of ${records.length} records currently shown</span>
+        </button>`);
+    }
+    results.querySelectorAll('[data-knowledge-index]').forEach((button) =>
+      button.addEventListener('click', () => onSelect(records[Number(button.dataset.knowledgeIndex)])));
+    results.querySelector('[data-knowledge-more]')?.addEventListener('click', () => {
+      visibleCount = Math.min(visibleCount + pageSize, records.length);
+      paint();
+      options.onProgress?.(visibleCount, records.length);
+    });
+  };
+  paint();
+  return visibleCount;
+}
+
 async function renderSemanticKnowledge(query = '', sourceCode = '') {
   const results = document.getElementById('bibleKnowledgeEntityResults');
   const detail = document.getElementById('bibleKnowledgeEntityDetail');
@@ -410,19 +436,22 @@ async function renderSemanticKnowledge(query = '', sourceCode = '') {
       (!ids || ids.has(record.entity_id)) &&
       (!needle || `${record.name_en} ${(record.aliases_en || []).join(' ')} ${record.description_en}`
         .toLowerCase().includes(needle))
-    ).slice(0, 100);
-    results.innerHTML = records.map((record, index) =>
-      `<button type="button" class="bible-person-result" data-entity-index="${index}">
+    ).sort((left, right) => String(left.name_en || '').localeCompare(String(right.name_en || '')));
+    const visibleCount = mountPagedKnowledgeResults(results, records, (record, index) =>
+      `<button type="button" class="bible-person-result" data-knowledge-index="${index}">
         <strong>${escapeHtml(record.name_en)}</strong>
         <span>${escapeHtml(record.category)}${record.subtype ? ` · ${escapeHtml(record.subtype)}` : ''}</span>
-      </button>`).join('') || knowledgeEmpty('No matching entity');
-    results.querySelectorAll('[data-entity-index]').forEach((button) =>
-      button.addEventListener('click', () => renderEntityDetail(records[Number(button.dataset.entityIndex)], detail)));
+      </button>`,
+    (record) => renderEntityDetail(record, detail), {
+      pageSize: ids ? Math.max(records.length, 1) : 100,
+      emptyTitle: 'No matching entity',
+      onProgress: (shown, total) => setStatus(`${shown} of ${total} semantic Bible records shown.`)
+    });
     if (records.length) renderEntityDetail(records[0], detail);
     else detail.innerHTML = '';
     setStatus(sourceCode
       ? `${records.length} key term, living thing, object, or group record(s) linked to ${sourceCode}.`
-      : `${records.length} semantic Bible record(s) shown.`);
+      : `${visibleCount} of ${records.length} semantic Bible records shown.`);
   } catch (error) {
     results.innerHTML = knowledgeEmpty('Unable to load semantic records', error.message);
   }
@@ -434,8 +463,8 @@ async function renderWordSearch(query = '') {
   const needle = String(query).trim().toLowerCase();
   const manifest = await loadKnowledge('concordance/manifest.json');
   const words = (manifest.all_words || []).filter((entry) =>
-    !needle || entry.word.includes(needle)).slice(0, 120);
-  results.innerHTML = words.map((entry, index) =>
+    !needle || entry.word.includes(needle));
+  results.innerHTML = [].map((entry, index) =>
     `<button type="button" class="bible-person-result" data-word-index="${index}">
       <strong>${escapeHtml(entry.word)}</strong><span>${entry.count.toLocaleString()} occurrences · ${entry.book_numbers.length} book(s)</span>
     </button>`).join('') || knowledgeEmpty('No word found');
@@ -463,10 +492,17 @@ async function renderWordSearch(query = '') {
         ${references.length > 240 ? `<p>Showing the first 240 of ${references.length} verse locations.</p>` : ''}
       </section></article>`;
   };
-  results.querySelectorAll('[data-word-index]').forEach((button) =>
-    button.addEventListener('click', () => showWord(words[Number(button.dataset.wordIndex)])));
+  const visibleCount = mountPagedKnowledgeResults(results, words, (entry, index) =>
+    `<button type="button" class="bible-person-result" data-knowledge-index="${index}">
+      <strong>${escapeHtml(entry.word)}</strong><span>${entry.count.toLocaleString()} occurrences in ${entry.book_numbers.length} book(s)</span>
+    </button>`,
+  showWord, {
+    pageSize: 100,
+    emptyTitle: 'No word found',
+    onProgress: (shown, total) => setStatus(`${shown} of ${total} concordance results shown.`)
+  });
   if (needle && words.length) showWord(words[0]);
-  setStatus(`${words.length} concordance result(s) shown.`);
+  setStatus(`${visibleCount} of ${words.length} concordance results shown.`);
 }
 
 async function renderDictionary(query = '') {
@@ -475,20 +511,27 @@ async function renderDictionary(query = '') {
   const payload = await loadKnowledge('reference/easton.json');
   const needle = String(query).trim().toLowerCase();
   const records = (payload.records || []).filter((record) =>
-    !needle || `${record.term_en} ${record.text_en}`.toLowerCase().includes(needle)).slice(0, 100);
+    !needle || `${record.term_en} ${record.text_en}`.toLowerCase().includes(needle));
   const show = (record) => {
     detail.innerHTML = `<article class="bible-person-card"><div class="bible-person-title">
       <div><h3>${escapeHtml(record.term_en)}</h3><p>Easton Bible Dictionary</p></div></div>
       <p>${escapeHtml(record.text_en || 'No entry text.')}</p></article>`;
   };
-  results.innerHTML = records.map((record, index) =>
+  results.innerHTML = [].map((record, index) =>
     `<button type="button" class="bible-person-result" data-dictionary-index="${index}">
       <strong>${escapeHtml(record.term_en)}</strong><span>${escapeHtml(record.match_type || 'Dictionary')}</span>
     </button>`).join('') || knowledgeEmpty('No dictionary entry found');
-  results.querySelectorAll('[data-dictionary-index]').forEach((button) =>
-    button.addEventListener('click', () => show(records[Number(button.dataset.dictionaryIndex)])));
+  const visibleCount = mountPagedKnowledgeResults(results, records, (record, index) =>
+    `<button type="button" class="bible-person-result" data-knowledge-index="${index}">
+      <strong>${escapeHtml(record.term_en)}</strong><span>${escapeHtml(record.match_type || 'Dictionary')}</span>
+    </button>`,
+  show, {
+    pageSize: 100,
+    emptyTitle: 'No dictionary entry found',
+    onProgress: (shown, total) => setStatus(`${shown} of ${total} dictionary results shown.`)
+  });
   if (records.length) show(records[0]);
-  setStatus(`${records.length} dictionary result(s) shown.`);
+  setStatus(`${visibleCount} of ${records.length} dictionary results shown.`);
 }
 
 async function renderTopics() {
@@ -501,14 +544,21 @@ async function renderTopics() {
       <div><h3>${escapeHtml(record.topic)}</h3><p>BibleData topic list</p></div></div>
       <pre class="bible-topic-source">${escapeHtml(record.source_markdown)}</pre></article>`;
   };
-  results.innerHTML = records.map((record, index) =>
+  results.innerHTML = [].map((record, index) =>
     `<button type="button" class="bible-person-result" data-topic-index="${index}">
       <strong>${escapeHtml(record.topic)}</strong><span>Topic index</span>
     </button>`).join('');
-  results.querySelectorAll('[data-topic-index]').forEach((button) =>
-    button.addEventListener('click', () => show(records[Number(button.dataset.topicIndex)])));
+  const visibleCount = mountPagedKnowledgeResults(results, records, (record, index) =>
+    `<button type="button" class="bible-person-result" data-knowledge-index="${index}">
+      <strong>${escapeHtml(record.topic)}</strong><span>Topic index</span>
+    </button>`,
+  show, {
+    pageSize: 100,
+    emptyTitle: 'No topic list found',
+    onProgress: (shown, total) => setStatus(`${shown} of ${total} Bible topic lists shown.`)
+  });
   if (records.length) show(records[0]);
-  setStatus(`${records.length} Bible topic lists loaded.`);
+  setStatus(`${visibleCount} of ${records.length} Bible topic lists shown.`);
 }
 
 async function renderBooks(query = '') {
@@ -540,14 +590,21 @@ async function renderBooks(query = '') {
         ).join('')}</div>
       </section></article>`;
   };
-  results.innerHTML = books.map((book, index) =>
+  results.innerHTML = [].map((book, index) =>
     `<button type="button" class="bible-person-result" data-book-index="${index}">
       <strong>${escapeHtml(book.name_en)}</strong><span>${escapeHtml(book.division)}</span>
     </button>`).join('') || knowledgeEmpty('No Bible book found');
-  results.querySelectorAll('[data-book-index]').forEach((button) =>
-    button.addEventListener('click', () => show(books[Number(button.dataset.bookIndex)])));
+  const visibleCount = mountPagedKnowledgeResults(results, books, (book, index) =>
+    `<button type="button" class="bible-person-result" data-knowledge-index="${index}">
+      <strong>${escapeHtml(book.name_en)}</strong><span>${escapeHtml(book.division)}</span>
+    </button>`,
+  show, {
+    pageSize: 100,
+    emptyTitle: 'No Bible book found',
+    onProgress: (shown, total) => setStatus(`${shown} of ${total} Bible book records shown.`)
+  });
   if (books.length) show(books[0]);
-  setStatus(`${books.length} Bible book record(s) shown.`);
+  setStatus(`${visibleCount} of ${books.length} Bible book records shown.`);
 }
 
 async function renderKnowledge(options = {}) {
