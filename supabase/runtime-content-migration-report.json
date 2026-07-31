@@ -1,0 +1,14 @@
+{
+  "generated_at": "2026-07-31T00:34:15.470Z",
+  "mode": "dry-run",
+  "source_count": 3,
+  "asset_count": 314,
+  "changed_asset_count": 314,
+  "total_bytes": 68135814,
+  "excluded": [
+    "content/patristic/** duplicate working copies",
+    "commentary source files",
+    "factory intermediate files"
+  ],
+  "validation": null
+}
