@@ -174,7 +174,9 @@
       signal
     );
     var results = await Promise.all([peopleRequest, aliasesRequest]);
-    var people = results[0] || [];
+    var people = (results[0] || []).map(function(person) {
+      return Object.assign({}, person, { __name_match: true });
+    });
     var aliases = results[1] || [];
     var aliasIds = aliases.map(function(alias) { return String(alias.person_id || ''); })
       .filter(Boolean);
@@ -190,7 +192,9 @@
           missingIds.map(encodeURIComponent).join(',') + ')&order=canonical_name_en.asc&limit=' + limit,
         signal
       );
-      people = people.concat(aliasPeople || []);
+      people = people.concat((aliasPeople || []).map(function(person) {
+        return Object.assign({}, person, { __name_match: false });
+      }));
     }
     var aliasById = {};
     aliases.forEach(function(alias) {
@@ -202,6 +206,11 @@
     people = people.filter(function(person, index, all) {
       return all.findIndex(function(other) { return other.person_id === person.person_id; }) === index;
     }).sort(function(left, right) {
+      // A true name match must appear before an alias-only match. Otherwise
+      // searching S appears to return an A-name directory.
+      if (!!left.__name_match !== !!right.__name_match) {
+        return left.__name_match ? -1 : 1;
+      }
       return String(left.canonical_name_en || '').localeCompare(String(right.canonical_name_en || ''));
     }).slice(0, limit);
     return response_({
@@ -213,7 +222,8 @@
           NAME_KO: person.canonical_name_ko,
           GENDER: person.gender,
           ROLES: Array.isArray(person.roles) ? person.roles.join('|') : '',
-          ALIASES: aliasById[person.person_id] || []
+          ALIASES: aliasById[person.person_id] || [],
+          MATCH_KIND: person.__name_match ? 'name' : 'alias'
         };
       })
     });

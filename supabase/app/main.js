@@ -6564,9 +6564,11 @@ function biblePeopleRenderResults_(people) {
     return;
   }
   results.innerHTML = people.map(function(person) {
-    var aliases = Array.isArray(person.ALIASES) && person.ALIASES.length
-      ? 'Aliases: ' + person.ALIASES.slice(0, 3).join(', ')
-      : (person.ROLES || person.GENDER || 'Bible person');
+    var aliases = person.MATCH_KIND === 'alias' && Array.isArray(person.ALIASES) && person.ALIASES.length
+      ? 'Alias match: ' + person.ALIASES.slice(0, 3).join(', ')
+      : (Array.isArray(person.ALIASES) && person.ALIASES.length
+        ? 'Aliases: ' + person.ALIASES.slice(0, 3).join(', ')
+        : (person.ROLES || person.GENDER || 'Bible person'));
     return '<button type="button" class="bible-person-result' +
       (person.PERSON_ID === biblePeopleSelectedId ? ' is-active' : '') +
       '" data-person-id="' + escapeHtml(person.PERSON_ID) + '">' +
