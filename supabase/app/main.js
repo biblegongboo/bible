@@ -184,12 +184,14 @@ function isTrialUser(user) {
 }
 
 function clearAuthAndRedirect(reason) {
+  if (window.__bibleAuthRedirectStarted) return;
+  window.__bibleAuthRedirectStarted = true;
   localStorage.removeItem('quiz_current_user_v1');
   localStorage.removeItem('quiz_available_subjects_v1');
   localStorage.removeItem('quiz_current_subject_v1');
   var rawReason = String(reason || '').replace(/[^A-Z0-9_\-]/gi, '').slice(0, 40);
   var authReason = rawReason.indexOf('AUTH_') === 0 ? 'LOGIN_REQUIRED' : rawReason;
-  window.location.replace('./login.html?v=8.56-member-count1' + (authReason ? '&auth_error=' + encodeURIComponent(authReason) : ''));
+  window.location.replace('./login.html?v=8.64-auth-expiry1' + (authReason ? '&auth_error=' + encodeURIComponent(authReason) : ''));
 }
 
 function applyUserRolePolicy() {
@@ -239,16 +241,25 @@ async function fetchQuizApi_(params, signal) {
   var body = {};
   params.forEach(function(value, key) { body[key] = value; });
   body.session_token = token;
+  var response;
   if (window.BibleSupabaseProvider &&
       typeof window.BibleSupabaseProvider.request === 'function') {
-    return window.BibleSupabaseProvider.request(body, signal);
+    response = await window.BibleSupabaseProvider.request(body, signal);
+  } else {
+    response = await fetch(ORIGINAL_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body),
+      signal: signal
+    });
   }
-  return fetch(ORIGINAL_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(body),
-    signal: signal
-  });
+  if (response && (response.status === 401 || response.status === 403)) {
+    clearAuthAndRedirect('SESSION_EXPIRED');
+    var authError = new Error('Your session has expired. Please log in again.');
+    authError.code = 'AUTH_EXPIRED';
+    throw authError;
+  }
+  return response;
 }
 
 function throwQuizApiError_(data, fallbackMessage) {

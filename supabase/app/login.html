@@ -383,6 +383,15 @@
             }
         })();
 
+        (function handleAuthError() {
+            const reason = new URLSearchParams(location.search).get('auth_error');
+            if (!reason) return;
+            const message = reason === 'SESSION_EXPIRED'
+                ? 'Your session expired. Please log in again.'
+                : 'Please log in to continue.';
+            showResult('loginResult', message, false);
+        })();
+
         // ==============================
         // 로그인
         // ==============================
