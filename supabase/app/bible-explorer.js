@@ -565,7 +565,10 @@ async function renderDictionary(query = '') {
   const detail = document.getElementById('bibleDictionaryDetail');
   const payload = await loadKnowledge('reference/easton.json');
   const needle = String(query).trim().toLowerCase();
-  const records = (payload.records || []).filter((record) =>
+  const allRecords = payload.records || [];
+  const prefixRecords = needle ? allRecords.filter((record) =>
+    String(record.term_en || '').toLowerCase().startsWith(needle)) : [];
+  const records = needle && prefixRecords.length ? prefixRecords : allRecords.filter((record) =>
     !needle || `${record.term_en} ${record.text_en}`.toLowerCase().includes(needle));
   const show = (record) => {
     detail.innerHTML = `<article class="bible-person-card"><div class="bible-person-title">
