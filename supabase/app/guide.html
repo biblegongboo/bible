@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>GongBoo Bible · Quick Guide</title>
+  <style>
+    :root{font-family:Inter,'Noto Sans KR','Malgun Gothic',sans-serif;color:#172033;background:#f4f8ff}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh}.guide-header{padding:24px max(20px,calc((100vw - 920px)/2));background:#15223d;color:#fff;border-bottom:4px solid #38bdf8}.guide-kicker{margin:0 0 6px;color:#facc15;font-size:11px;font-weight:900;letter-spacing:.15em}.guide-header h1{margin:0;font-size:clamp(24px,4vw,34px)}.guide-header p{margin:8px 0 0;color:#cbd5e1}.guide-main{width:min(920px,calc(100% - 28px));margin:24px auto 48px;padding:clamp(18px,4vw,40px);border:1px solid #dbeafe;border-radius:18px;background:#fff;box-shadow:0 16px 44px rgba(15,23,42,.1)}.guide-loading,.guide-error{padding:44px 18px;text-align:center;color:#475569}.guide-error strong{display:block;color:#b91c1c;font-size:19px;margin-bottom:8px}.guide-error a{color:#1d4ed8;font-weight:800}.guide-content{line-height:1.75;color:#27364d}.guide-content h1{font-size:27px;color:#172033;border-bottom:2px solid #bfdbfe;padding-bottom:12px}.guide-content h2{margin-top:36px;font-size:22px;color:#172033}.guide-content h3{margin-top:24px;font-size:17px;color:#1e3a8a}.guide-content p{margin:12px 0}.guide-content ul,.guide-content ol{padding-left:24px}.guide-content li{margin:4px 0}.guide-content code{padding:2px 5px;border-radius:5px;background:#eff6ff;color:#1d4ed8;font:700 .9em ui-monospace,Consolas,monospace}.guide-content blockquote{margin:16px 0;padding:12px 15px;border-left:4px solid #38bdf8;border-radius:0 9px 9px 0;background:#f0f9ff;color:#334155}.guide-content hr{border:0;border-top:1px solid #dbeafe;margin:30px 0}.guide-content table{width:100%;border-collapse:collapse;margin:14px 0 20px;overflow:hidden;border:1px solid #dbeafe;border-radius:10px}.guide-content th,.guide-content td{padding:9px 10px;border:1px solid #dbeafe;text-align:left;vertical-align:top}.guide-content th{background:#eff6ff;color:#1e3a8a;font-size:13px}.guide-content td{font-size:14px}.guide-footer{padding:0 18px 28px;text-align:center;color:#64748b;font-size:12px}@media(max-width:600px){.guide-header{padding:18px}.guide-main{width:calc(100% - 18px);margin:10px auto 28px;padding:19px 16px;border-radius:13px}.guide-content h1{font-size:23px}.guide-content h2{font-size:20px}.guide-content table{font-size:12px}.guide-content th,.guide-content td{padding:7px}.guide-content{font-size:15px}}
+  </style>
+</head>
+<body>
+  <header class="guide-header"><p class="guide-kicker">GONGBOO BIBLE</p><h1>Quick Guide</h1><p>학습 화면은 그대로 두고, 새 창에서 안내를 읽을 수 있습니다.</p></header>
+  <main class="guide-main"><div id="guideOutput" class="guide-loading">사용자 안내서를 불러오는 중입니다…</div></main>
+  <footer class="guide-footer">GongBoo Bible Beta</footer>
+  <script src="./supabase-config.js?v=8.60-supabase-storage1"></script>
+  <script src="./supabase-auth.js?v=8.83-logout1"></script>
+  <script src="./supabase-provider.js?v=8.76-people-sort1"></script>
+  <script>
+    (function () {
+      var output = document.getElementById('guideOutput');
+      function escapeHtml(value) {
+        return String(value || '').replace(/[&<>"']/g, function (character) {
+          return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character];
+        });
+      }
+      function inline(value) {
+        return escapeHtml(value)
+          .replace(/`([^`]+)`/g, '<code>$1</code>')
+          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      }
+      function isTableDivider(line) { return /^\s*\|?\s*:?-{3,}/.test(line); }
+      function tableCells(line) {
+        return String(line).trim().replace(/^\||\|$/g, '').split('|').map(function (cell) { return cell.trim(); });
+      }
+      function renderMarkdown(markdown) {
+        var lines = String(markdown || '').replace(/\r/g, '').split('\n');
+        var html = [], index = 0;
+        while (index < lines.length) {
+          var line = lines[index];
+          if (!line.trim()) { index += 1; continue; }
+          if (/^\|/.test(line) && index + 1 < lines.length && isTableDivider(lines[index + 1])) {
+            var headers = tableCells(line); index += 2; var rows = [];
+            while (index < lines.length && /^\|/.test(lines[index])) { rows.push(tableCells(lines[index])); index += 1; }
+            html.push('<table><thead><tr>' + headers.map(function (cell) { return '<th>' + inline(cell) + '</th>'; }).join('') + '</tr></thead><tbody>' + rows.map(function (row) { return '<tr>' + headers.map(function (_, cellIndex) { return '<td>' + inline(row[cellIndex] || '') + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table>');
+            continue;
+          }
+          var heading = line.match(/^(#{1,3})\s+(.+)$/);
+          if (heading) { var level = heading[1].length; html.push('<h' + level + '>' + inline(heading[2]) + '</h' + level + '>'); index += 1; continue; }
+          if (/^---+$/.test(line.trim())) { html.push('<hr>'); index += 1; continue; }
+          if (/^>\s?/.test(line)) { html.push('<blockquote>' + inline(line.replace(/^>\s?/, '')) + '</blockquote>'); index += 1; continue; }
+          var list = line.match(/^(\s*)([-*]|\d+\.)\s+(.+)$/);
+          if (list) {
+            var ordered = /\d+\./.test(list[2]); var tag = ordered ? 'ol' : 'ul'; var items = [];
+            while (index < lines.length) { var item = lines[index].match(/^\s*([-*]|\d+\.)\s+(.+)$/); if (!item || /\d+\./.test(item[1]) !== ordered) break; items.push('<li>' + inline(item[2]) + '</li>'); index += 1; }
+            html.push('<' + tag + '>' + items.join('') + '</' + tag + '>'); continue;
+          }
+          html.push('<p>' + inline(line) + '</p>'); index += 1;
+        }
+        return html.join('');
+      }
+      async function loadGuide() {
+        try {
+          if (!window.BibleSupabaseProvider) throw new Error('Guide service is unavailable.');
+          var response = await window.BibleSupabaseProvider.fetchContent('guides/user-guide-ko.md');
+          output.className = 'guide-content';
+          output.innerHTML = renderMarkdown(await response.text());
+        } catch (error) {
+          output.className = 'guide-error';
+          output.innerHTML = '<strong>안내서를 열 수 없습니다.</strong><span>로그인 상태를 확인한 뒤 다시 시도해 주세요.</span><p><a href="./login.html">로그인 화면으로 이동</a></p>';
+          console.warn('Bible guide unavailable:', error);
+        }
+      }
+      loadGuide();
+    })();
+  </script>
+</body>
+</html>

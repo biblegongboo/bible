@@ -216,7 +216,7 @@ function initBibleGuide_() {
   guideButton.dataset.bound = '1';
   guideButton.addEventListener('click', function() {
     window.open(
-      'https://github.com/biblegongboo/bible/blob/main/supabase/app/USER-GUIDE.ko.md',
+      './guide.html?v=8.87-guide-storage1',
       '_blank',
       'noopener,noreferrer'
     );
