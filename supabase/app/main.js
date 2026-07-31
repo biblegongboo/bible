@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
-import './bible-explorer.js?v=8.62-study-pagination1';
+import './bible-explorer.js?v=8.63-library1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -5181,6 +5181,17 @@ function attachBiblePlacesButton_(q) {
       }
     });
     button.insertAdjacentElement('afterend', knowledgeButton);
+    var commentaryButton = document.createElement('button');
+    commentaryButton.type = 'button';
+    commentaryButton.className = 'bible-verse-knowledge-button';
+    commentaryButton.setAttribute('data-bible-verse-commentary', sourceCode);
+    commentaryButton.textContent = 'Commentary';
+    commentaryButton.addEventListener('click', function() {
+      if (typeof window.openBibleCommentaryForSource === 'function') {
+        window.openBibleCommentaryForSource(sourceCode);
+      }
+    });
+    knowledgeButton.insertAdjacentElement('afterend', commentaryButton);
   }
 }
 

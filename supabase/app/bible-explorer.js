@@ -20,6 +20,9 @@ let activeJourneyScene = null;
 let activeTimelineScene = null;
 const patristicReaderCache = new Map();
 const knowledgeCache = new Map();
+const libraryCache = new Map();
+let librarySection = 'verse';
+let librarySourceCode = '';
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (character) => ({
@@ -43,6 +46,46 @@ function fetchContent(relativePath, signal) {
     return window.BibleSupabaseProvider.fetchContent(`content/${normalizedPath}`, signal);
   }
   return fetch(`./content/${normalizedPath}`, { signal });
+}
+
+function fetchStorage(relativePath, signal) {
+  const normalizedPath = String(relativePath || '').replace(/^\.?\//, '');
+  if (window.BibleSupabaseProvider &&
+      typeof window.BibleSupabaseProvider.fetchContent === 'function') {
+    return window.BibleSupabaseProvider.fetchContent(normalizedPath, signal);
+  }
+  return fetch(`./${normalizedPath}`, { signal });
+}
+
+async function loadStorageJson(relativePath) {
+  const cacheKey = `json:${relativePath}`;
+  if (!libraryCache.has(cacheKey)) {
+    libraryCache.set(cacheKey, fetchStorage(relativePath).then(checkResponse));
+  }
+  return libraryCache.get(cacheKey);
+}
+
+async function loadStorageJsonlGzip(relativePath) {
+  const cacheKey = `jsonl:${relativePath}`;
+  if (!libraryCache.has(cacheKey)) {
+    libraryCache.set(cacheKey, (async () => {
+      const response = await fetchStorage(relativePath);
+      if (!response.ok) throw new Error(`Library data could not be loaded (${response.status}).`);
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      let text;
+      if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+        if (typeof DecompressionStream !== 'function') {
+          throw new Error('This browser cannot open compressed library data.');
+        }
+        const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+        text = await new Response(stream).text();
+      } else {
+        text = new TextDecoder().decode(bytes);
+      }
+      return text.split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
+    })());
+  }
+  return libraryCache.get(cacheKey);
 }
 
 function loadData() {
@@ -859,6 +902,132 @@ async function renderPatristicReader(entry, host, page = 0) {
   }
 }
 
+const SOURCE_BOOK_TO_OSIS = {
+  Genesis: 'gen', Exodus: 'exod', Leviticus: 'lev', Numbers: 'num', Deuteronomy: 'deut',
+  Joshua: 'josh', Judges: 'judg', Ruth: 'ruth', '1-Samuel': '1sam', '2-Samuel': '2sam',
+  '1-Kings': '1kgs', '2-Kings': '2kgs', '1-Chronicles': '1chr', '2-Chronicles': '2chr',
+  Ezra: 'ezra', Nehemiah: 'neh', Esther: 'esth', Job: 'job', Psalms: 'ps',
+  Proverbs: 'prov', Ecclesiastes: 'eccl', 'Song-of-Solomon': 'song', Isaiah: 'isa',
+  Jeremiah: 'jer', Lamentations: 'lam', Ezekiel: 'ezek', Daniel: 'dan', Hosea: 'hos',
+  Joel: 'joel', Amos: 'amos', Obadiah: 'obad', Jonah: 'jonah', Micah: 'mic',
+  Nahum: 'nah', Habakkuk: 'hab', Zephaniah: 'zeph', Haggai: 'hag', Zechariah: 'zech',
+  Malachi: 'mal', Matthew: 'matt', Mark: 'mark', Luke: 'luke', John: 'john',
+  Acts: 'acts', Romans: 'rom', '1-Corinthians': '1cor', '2-Corinthians': '2cor',
+  Galatians: 'gal', Ephesians: 'eph', Philippians: 'phil', Colossians: 'col',
+  '1-Thessalonians': '1thess', '2-Thessalonians': '2thess', '1-Timothy': '1tim',
+  '2-Timothy': '2tim', Titus: 'titus', Philemon: 'phlm', Hebrews: 'heb',
+  James: 'jas', '1-Peter': '1pet', '2-Peter': '2pet', '1-John': '1john',
+  '2-John': '2john', '3-John': '3john', Jude: 'jude', Revelation: 'rev'
+};
+
+function parseSourceCode(sourceCode) {
+  const match = String(sourceCode || '').match(/^(OT|NT)-(.+)-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  return {
+    book: SOURCE_BOOK_TO_OSIS[match[2]] || '',
+    chapter: Number(match[3]),
+    verse: Number(match[4])
+  };
+}
+
+function valueText(value) {
+  if (value == null) return '';
+  if (typeof value === 'string' || typeof value === 'number') return String(value);
+  if (Array.isArray(value)) return value.map(valueText).filter(Boolean).join(' · ');
+  return Object.entries(value).map(([key, item]) => `${key}: ${valueText(item)}`).join(' · ');
+}
+
+function libraryRecordHtml(record, category) {
+  const title = record.title || record.term || record.source_title || record.section_title ||
+    record.author || record.entry_id || 'Library entry';
+  const reference = valueText(record.anchor_ref?.raw || record.primary_reference ||
+    record.verse_range_osis || record.scripture_references || record.references);
+  const body = record.commentary_text || record.quote || record.definition || record.text ||
+    record.content || valueText(record.definition_blocks || record.content_blocks ||
+      record.stanzas || record.context);
+  return `<article class="bible-person-card bible-library-entry">
+    <div class="bible-person-title"><div><h3>${escapeHtml(title)}</h3>
+    ${reference ? `<p>${escapeHtml(reference)}</p>` : ''}</div>
+    <span class="bible-person-id">${escapeHtml(category)}</span></div>
+    ${record.author ? `<div class="bible-person-meta"><span class="bible-person-chip">${escapeHtml(record.author)}</span></div>` : ''}
+    <div class="bible-patristic-reader-text"><p>${escapeHtml(body || 'No readable text is available for this entry.')}</p></div>
+  </article>`;
+}
+
+async function loadLibraryManifests() {
+  const [verse, remaining] = await Promise.all([
+    loadStorageJson('commentary/commentary-manifest.json'),
+    loadStorageJson('commentary/remaining-commentary-manifest.json')
+  ]);
+  return { verse, remaining };
+}
+
+async function renderLibrary(options = {}) {
+  librarySection = options.section || librarySection || 'verse';
+  if (options.sourceCode) librarySourceCode = options.sourceCode;
+  document.querySelectorAll('[data-library-section]').forEach((button) =>
+    button.classList.toggle('is-active', button.dataset.librarySection === librarySection));
+  const results = document.getElementById('bibleLibraryResults');
+  const detail = document.getElementById('bibleLibraryDetail');
+  const search = document.getElementById('bibleLibrarySearch');
+  if (!results || !detail || !search) return;
+  results.innerHTML = knowledgeEmpty('Loading library sources');
+  detail.innerHTML = knowledgeEmpty('Select a source');
+  try {
+    const manifests = await loadLibraryManifests();
+    const manifest = librarySection === 'verse' ? manifests.verse : manifests.remaining;
+    let sources = (manifest.sources || []).filter((source) =>
+      librarySection === 'verse' ? true : source.category === librarySection);
+    const needle = String(search.value || '').trim().toLowerCase();
+    if (needle) {
+      sources = sources.filter((source) =>
+        `${source.title || ''} ${source.author || ''} ${source.source_id || ''}`.toLowerCase().includes(needle));
+    }
+    const partitions = manifest.partitions || [];
+    const parsed = parseSourceCode(librarySourceCode);
+    if (librarySection === 'verse' && parsed?.book) {
+      sources = sources.filter((source) => Array.isArray(source.books) && source.books.includes(parsed.book));
+    }
+    const visible = sources.slice(0, 350);
+    results.innerHTML = visible.map((source, index) =>
+      `<button type="button" class="bible-person-result" data-library-source="${index}">
+        <strong>${escapeHtml(source.title || source.source_id)}</strong>
+        <span>${escapeHtml(source.author || `${source.records || 0} records`)}</span>
+      </button>`).join('') || knowledgeEmpty('No library source found');
+
+    const showSource = async (source) => {
+      detail.innerHTML = knowledgeEmpty('Loading selected source');
+      let selectedPartitions = partitions.filter((partition) =>
+        partition.source_id === source.source_id &&
+        (librarySection !== 'verse' || !parsed?.book || partition.book === parsed.book));
+      const recordGroups = await Promise.all(selectedPartitions.map((partition) =>
+        loadStorageJsonlGzip(partition.storage_path)));
+      let records = recordGroups.flat();
+      if (librarySection === 'verse' && parsed) {
+        records = records.filter((record) => {
+          if (Number(record.chapter) !== parsed.chapter) return false;
+          const numbers = String(record.verse_range || '').match(/\d+/g)?.map(Number) || [];
+          return numbers.length === 1
+            ? numbers[0] === parsed.verse
+            : numbers.length > 1 && parsed.verse >= numbers[0] && parsed.verse <= numbers.at(-1);
+        });
+      }
+      detail.innerHTML = records.slice(0, 80).map((record) =>
+        libraryRecordHtml(record, librarySection)).join('') ||
+        knowledgeEmpty(librarySection === 'verse' ? 'No commentary for this verse' : 'No entries in this source');
+      setStatus(`${records.length} matching ${librarySection === 'verse' ? 'commentary' : 'library'} record${records.length === 1 ? '' : 's'}.`);
+    };
+    results.querySelectorAll('[data-library-source]').forEach((button) => {
+      button.addEventListener('click', () => showSource(visible[Number(button.dataset.librarySource)]));
+    });
+    if (visible.length) await showSource(visible[0]);
+    else setStatus('No matching library source is available.');
+  } catch (error) {
+    detail.innerHTML = knowledgeEmpty('Library data is temporarily unavailable', error.message);
+    setStatus(error.message || 'Library data could not be loaded.', true);
+  }
+}
+
 async function openContext(options = {}) {
   open();
   await loadData();
@@ -886,6 +1055,8 @@ async function openContext(options = {}) {
     renderPatristic(options.query || '');
   } else if (tab === 'knowledge') {
     renderKnowledge(options);
+  } else if (tab === 'library') {
+    renderLibrary(options);
   }
 }
 
@@ -894,6 +1065,8 @@ window.openBiblePlacesForSource = (sourceCode) =>
   openContext({ tab: 'places', sourceCode });
 window.openBibleKnowledgeForSource = (sourceCode) =>
   openContext({ tab: 'knowledge', section: 'entities', sourceCode });
+window.openBibleCommentaryForSource = (sourceCode) =>
+  openContext({ tab: 'library', section: 'verse', sourceCode });
 
 function populate() {
   const journeySelector = document.getElementById('bibleJourneySelector');
@@ -919,6 +1092,7 @@ function populate() {
   if (activeTab === 'timeline') requestAnimationFrame(() => renderTimeline(timelineSelector.value));
   if (activeTab === 'patristic') requestAnimationFrame(() => renderPatristic());
   if (activeTab === 'knowledge') requestAnimationFrame(() => renderKnowledge());
+  if (activeTab === 'library') requestAnimationFrame(() => renderLibrary());
 }
 
 function open() {
@@ -958,12 +1132,14 @@ function init() {
       if (selectedTab === 'timeline') document.getElementById('bibleTimelineOutput').innerHTML = '<div class="bible-people-empty"><strong>Loading timeline...</strong></div>';
       if (selectedTab === 'patristic') document.getElementById('biblePatristicDetail').innerHTML = '<div class="bible-people-empty"><strong>Loading Early Church works...</strong></div>';
       if (selectedTab === 'knowledge') document.getElementById('bibleKnowledgeEntityDetail').innerHTML = '<div class="bible-people-empty"><strong>Loading Bible study data...</strong></div>';
+      if (selectedTab === 'library') document.getElementById('bibleLibraryDetail').innerHTML = '<div class="bible-people-empty"><strong>Loading Bible library...</strong></div>';
       loadData().then(() => requestAnimationFrame(() => {
         if (selectedTab === 'places') renderPlaceResults(document.getElementById('biblePlaceSearch').value);
         if (selectedTab === 'journeys') renderJourney(document.getElementById('bibleJourneySelector').value);
         if (selectedTab === 'timeline') renderTimeline(document.getElementById('bibleTimelineSelector').value);
         if (selectedTab === 'patristic') renderPatristic(document.getElementById('biblePatristicSearch').value);
         if (selectedTab === 'knowledge') renderKnowledge();
+        if (selectedTab === 'library') renderLibrary();
       })).catch((error) => setStatus(error.message, true));
     });
   });
@@ -974,6 +1150,10 @@ function init() {
   document.querySelectorAll('[data-knowledge-section]').forEach((button) => {
     button.addEventListener('click', () => renderKnowledge({ section: button.dataset.knowledgeSection }));
   });
+  document.querySelectorAll('[data-library-section]').forEach((button) => {
+    button.addEventListener('click', () => renderLibrary({ section: button.dataset.librarySection }));
+  });
+  document.getElementById('bibleLibrarySearch').addEventListener('input', () => renderLibrary());
   document.getElementById('bibleKnowledgeEntitySearch').addEventListener('input', (event) => {
     event.target.dataset.sourceCode = '';
     renderSemanticKnowledge(event.target.value);

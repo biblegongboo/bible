@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-07-31T01:27:15.140Z",
+  "generated_at": "2026-07-31T02:54:38.773Z",
   "mode": "upload",
   "source_count": 3,
   "asset_count": 314,
-  "changed_asset_count": 314,
-  "total_bytes": 68135814,
+  "changed_asset_count": 2,
+  "total_bytes": 68364841,
   "excluded": [
     "content/patristic/** duplicate working copies",
     "commentary source files",

@@ -480,9 +480,9 @@ function buildModernPlacesAndImages() {
   });
   writeJson(path.join(contentRoot, 'images', 'licensed-manifest.json'), {
     schema_version: '1.0',
-    policy: 'Metadata retains source and licence details. User-facing attribution is handled by the site-level credits notice.',
+    policy: 'External image links are retained with source and licence metadata. User-facing attribution is handled by the site-level credits notice.',
     records: imageRecords.filter((record) =>
-      record.public_allowed && (record.thumbnail_url_pattern || record.file_url))
+      record.thumbnail_url_pattern || record.file_url || record.source_page_url)
   });
   const licenseCounts = {};
   imageRecords.forEach((record) => {
@@ -498,6 +498,8 @@ function buildModernPlacesAndImages() {
     image_records: imageRecords.length,
     licensed_images: imageRecords.filter((record) =>
       record.public_allowed && (record.thumbnail_url_pattern || record.file_url)).length,
+    linked_images: imageRecords.filter((record) =>
+      record.thumbnail_url_pattern || record.file_url || record.source_page_url).length,
     excluded_images: imageRecords.filter((record) =>
       !record.public_allowed || !(record.thumbnail_url_pattern || record.file_url)).length,
     license_counts: licenseCounts

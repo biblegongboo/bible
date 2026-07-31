@@ -286,6 +286,7 @@
       <button type="button" data-bible-explore-tab="timeline">Timeline</button>
       <button type="button" data-bible-explore-tab="patristic">Early Church</button>
       <button type="button" data-bible-explore-tab="knowledge">Study</button>
+      <button type="button" data-bible-explore-tab="library">Library</button>
     </nav>
     <div id="bibleExploreStatus" class="bible-people-status" aria-live="polite">Loading Bible context data...</div>
     <section class="bible-explore-view is-active" data-bible-explore-view="places">
@@ -352,6 +353,23 @@
           <main id="bibleBookDetail" class="bible-people-detail"></main>
         </div>
       </section>
+    </section>
+    <section class="bible-explore-view" data-bible-explore-view="library">
+      <nav class="bible-knowledge-sections" aria-label="Bible library sections">
+        <button type="button" class="is-active" data-library-section="verse">Commentary</button>
+        <button type="button" data-library-section="church-father-quotes">Church Fathers</button>
+        <button type="button" data-library-section="reference">Dictionaries</button>
+        <button type="button" data-library-section="sermon">Sermons</button>
+        <button type="button" data-library-section="hymn">Hymns</button>
+        <button type="button" data-library-section="historical-work">Historical Works</button>
+      </nav>
+      <div class="bible-explore-toolbar">
+        <input id="bibleLibrarySearch" type="search" autocomplete="off" placeholder="Search sources and titles...">
+      </div>
+      <div class="bible-people-layout bible-explore-layout">
+        <aside id="bibleLibraryResults" class="bible-people-results" aria-label="Library sources"></aside>
+        <main id="bibleLibraryDetail" class="bible-people-detail"></main>
+      </div>
     </section>
   </div>
 </section>
@@ -1969,7 +1987,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-config.js?v=8.60-supabase-storage1"></script>
 <script src="./supabase-provider.js?v=8.60-supabase-storage1"></script>
 <script type="module">
-import { initialize } from './main.js?v=8.62-study-pagination1';
+import { initialize } from './main.js?v=8.63-library1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

@@ -7,3 +7,11 @@ __pycache__/
 *.pyc
 supabase/workbook-inventory.json
 supabase/workbook-migration-report.json
+factory-output/commentary-audit.json
+factory-output/commentary-runtime/
+factory-output/commentary-sources-audit.cjs
+factory-output/commentary-sources.jsonl
+factory-output/commentary-remaining-ready/
+factory-output/commentary-remaining-build.log
+factory-output/commentary-remaining-build.err.log
+factory-output/inspect-hymn-errors.cjs
