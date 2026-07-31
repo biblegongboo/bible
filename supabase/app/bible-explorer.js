@@ -479,11 +479,16 @@ async function renderSemanticKnowledge(query = '', sourceCode = '') {
       ids = new Set(index.source_to_entities?.[sourceCode] || []);
     }
     const needle = String(query).trim().toLowerCase();
-    const records = (await loadSemanticRecords()).filter((record) =>
-      (!ids || ids.has(record.entity_id)) &&
-      (!needle || `${record.name_en} ${(record.aliases_en || []).join(' ')} ${record.description_en}`
-        .toLowerCase().includes(needle))
-    ).sort((left, right) => String(left.name_en || '').localeCompare(String(right.name_en || '')));
+    const availableRecords = (await loadSemanticRecords()).filter((record) =>
+      !ids || ids.has(record.entity_id));
+    const prefixRecords = needle ? availableRecords.filter((record) =>
+      String(record.name_en || '').toLowerCase().startsWith(needle) ||
+      (record.aliases_en || []).some((alias) => String(alias).toLowerCase().startsWith(needle))
+    ) : [];
+    const records = (needle && prefixRecords.length ? prefixRecords : availableRecords.filter((record) =>
+      !needle || `${record.name_en} ${(record.aliases_en || []).join(' ')} ${record.description_en}`
+        .toLowerCase().includes(needle)
+    )).sort((left, right) => String(left.name_en || '').localeCompare(String(right.name_en || '')));
     const visibleCount = mountPagedKnowledgeResults(results, records, (record, index) =>
       `<button type="button" class="bible-person-result" data-knowledge-index="${index}">
         <strong>${escapeHtml(record.name_en)}</strong>
@@ -509,8 +514,11 @@ async function renderWordSearch(query = '') {
   const detail = document.getElementById('bibleWordDetail');
   const needle = String(query).trim().toLowerCase();
   const manifest = await loadKnowledge('concordance/manifest.json');
-  const words = (manifest.all_words || []).filter((entry) =>
-    !needle || entry.word.includes(needle));
+  const allWords = manifest.all_words || [];
+  const prefixWords = needle ? allWords.filter((entry) =>
+    String(entry.word || '').toLowerCase().startsWith(needle)) : [];
+  const words = needle && prefixWords.length ? prefixWords : allWords.filter((entry) =>
+    !needle || String(entry.word || '').toLowerCase().includes(needle));
   results.innerHTML = [].map((entry, index) =>
     `<button type="button" class="bible-person-result" data-word-index="${index}">
       <strong>${escapeHtml(entry.word)}</strong><span>${entry.count.toLocaleString()} occurrences · ${entry.book_numbers.length} book(s)</span>
@@ -728,7 +736,72 @@ function renderJourney(index = 0) {
   setStatus('Journey route loaded.');
 }
 
-function renderTimeline(index = 0) {
+function timelineEventForRow(row) {
+  const title = String(row?.[1] || '').trim().toLowerCase();
+  const reference = String(row?.[2] || '').trim();
+  return Object.values(data.contextLinks.events || {}).find((event) =>
+    String(event.title || '').trim().toLowerCase() === title &&
+    (!reference || (event.source_codes || []).includes(reference))
+  ) || Object.values(data.contextLinks.events || {}).find((event) =>
+    reference && (event.source_codes || []).includes(reference)
+  ) || null;
+}
+
+function renderTimelineEventDetail(timeline, rowIndex) {
+  const output = document.getElementById('bibleTimelineOutput');
+  const selection = output?.querySelector('.bible-timeline-selection');
+  const rows = Array.isArray(timeline?.graphic?.rows) ? timeline.graphic.rows : [];
+  const row = rows[Number(rowIndex)];
+  if (!selection || !row) return;
+  const event = timelineEventForRow(row);
+  const references = event?.source_codes?.length ? event.source_codes : [row[2]].filter(Boolean);
+  const people = (event?.participant_ids || []).map((personId) => ({
+    id: personId,
+    name: data.peopleIndex[personId]?.name ||
+      personId.replace(/^PER-(THEO-)?/, '').replace(/-\d+(?:-\d+)?$/, '').replaceAll('-', ' ')
+  }));
+  const places = (event?.place_ids || []).map((placeId) =>
+    data.places.find((place) => place.id === placeId)).filter(Boolean);
+  selection.innerHTML = `<article class="bible-person-card">
+    <div class="bible-person-title"><div><h3>${escapeHtml(row[1])}</h3>
+      <p>${escapeHtml(row[2] || 'No reference')} · ${escapeHtml(row[3] || 'No source date')}</p></div></div>
+    <section class="bible-person-section"><h4>Related people</h4>
+      <div class="bible-person-meta">${people.length ? people.map((person) =>
+        `<button type="button" class="bible-person-chip" data-timeline-person-id="${escapeHtml(person.id)}">${escapeHtml(person.name)}</button>`
+      ).join('') : '<span class="bible-context-empty">No source-linked people are recorded.</span>'}</div>
+    </section>
+    <section class="bible-person-section"><h4>Related places</h4>
+      <div class="bible-person-meta">${places.length ? places.map((place) =>
+        `<button type="button" class="bible-person-chip" data-timeline-place-id="${escapeHtml(place.id)}">${escapeHtml(place.name)}</button>`
+      ).join('') : '<span class="bible-context-empty">No source-linked places are recorded.</span>'}</div>
+    </section>
+    <section class="bible-person-section"><h4>Scripture references (${references.length})</h4>
+      <div class="bible-reference-grid">${references.slice(0, 60).map((code) =>
+        `<span class="bible-reference">${escapeHtml(code)}</span>`).join('')}</div>
+    </section>
+  </article>`;
+  selection.querySelectorAll('[data-timeline-person-id]').forEach((button) => {
+    button.addEventListener('click', () => {
+      close();
+      if (typeof window.openBiblePerson === 'function') {
+        window.openBiblePerson(button.dataset.timelinePersonId);
+      }
+    });
+  });
+  selection.querySelectorAll('[data-timeline-place-id]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const place = data.places.find((item) => item.id === button.dataset.timelinePlaceId);
+      if (!place) return;
+      selectTab('places');
+      renderPlaceResults(place.name);
+      renderPlaceDetail(place);
+    });
+  });
+  const eventSelector = document.getElementById('bibleTimelineEventSelector');
+  if (eventSelector) eventSelector.value = String(rowIndex);
+}
+
+function renderTimeline(index = 0, selectedEventIndex = 0) {
   const output = document.getElementById('bibleTimelineOutput');
   const timeline = data.timelines[Number(index) || 0];
   if (!output) return;
@@ -738,6 +811,12 @@ function renderTimeline(index = 0) {
   }
   if (activeTimelineScene) activeTimelineScene.destroy();
   const rows = Array.isArray(timeline.graphic?.rows) ? timeline.graphic.rows : [];
+  const eventSelector = document.getElementById('bibleTimelineEventSelector');
+  if (eventSelector) {
+    eventSelector.innerHTML = rows.map((row, rowIndex) =>
+      `<option value="${rowIndex}">${escapeHtml(`${row[0]}. ${row[1]}`)}</option>`).join('');
+    eventSelector.value = String(Math.min(Math.max(Number(selectedEventIndex) || 0, 0), Math.max(rows.length - 1, 0)));
+  }
   const nodes = rows.map((row, rowIndex) => ({
     id: `event_${rowIndex}`,
     x: rowIndex,
@@ -770,9 +849,10 @@ function renderTimeline(index = 0) {
   });
   timelineHost.addEventListener('scene25d:select', (event) => {
     const node = event.detail.node;
-    output.querySelector('.bible-timeline-selection').textContent =
-      `${node.label} · ${node.metadata.reference || 'No reference'} · ${node.metadata.date || 'No source date'}`;
+    const rowIndex = Number(String(node.id || '').replace('event_', '')) || 0;
+    renderTimelineEventDetail(timeline, rowIndex);
   });
+  if (rows.length) renderTimelineEventDetail(timeline, eventSelector?.value || 0);
   setStatus(`${timeline.event_count} events loaded in Scripture order.`);
 }
 
@@ -1054,7 +1134,10 @@ async function openContext(options = {}) {
     const index = data.timelines.findIndex((timeline) => timeline.book_code === book);
     const selector = document.getElementById('bibleTimelineSelector');
     selector.value = String(index >= 0 ? index : 0);
-    renderTimeline(selector.value);
+    const selectedTimeline = data.timelines[Number(selector.value) || 0];
+    const rowIndex = (selectedTimeline?.graphic?.rows || []).findIndex((row) =>
+      String(row[2] || '') === String(options.sourceCode));
+    renderTimeline(selector.value, rowIndex >= 0 ? rowIndex : 0);
   } else if (tab === 'journeys') {
     renderJourney(document.getElementById('bibleJourneySelector').value);
   } else if (tab === 'patristic') {
@@ -1077,6 +1160,7 @@ window.openBibleCommentaryForSource = (sourceCode) =>
 function populate() {
   const journeySelector = document.getElementById('bibleJourneySelector');
   const timelineSelector = document.getElementById('bibleTimelineSelector');
+  const timelineEventSelector = document.getElementById('bibleTimelineEventSelector');
   const selectedJourney = journeySelector.value;
   journeySelector.innerHTML = data.journeys.map((journey, index) =>
     `<option value="${index}">${escapeHtml(journey.title_en || journey.journey_id)}</option>`
@@ -1092,6 +1176,9 @@ function populate() {
   timelineSelector.innerHTML = data.timelines.map((timeline, index) =>
     `<option value="${index}">${escapeHtml(timeline.book_code.replace(/^(OT|NT)-/, ''))} (${timeline.event_count} events)</option>`
   ).join('');
+  if (timelineEventSelector && !timelineEventSelector.options.length) {
+    timelineEventSelector.innerHTML = '<option value="0">Select an event</option>';
+  }
   const activeTab = document.querySelector('[data-bible-explore-tab].is-active')?.dataset.bibleExploreTab || 'places';
   if (activeTab === 'places') renderPlaceResults();
   if (activeTab === 'journeys') requestAnimationFrame(() => renderJourney(journeySelector.value));
@@ -1163,6 +1250,9 @@ function init() {
   document.getElementById('biblePlaceSearch').addEventListener('input', (event) => renderPlaceResults(event.target.value));
   document.getElementById('bibleJourneySelector').addEventListener('change', (event) => renderJourney(event.target.value));
   document.getElementById('bibleTimelineSelector').addEventListener('change', (event) => renderTimeline(event.target.value));
+  document.getElementById('bibleTimelineEventSelector').addEventListener('change', (event) =>
+    renderTimelineEventDetail(data.timelines[Number(document.getElementById('bibleTimelineSelector').value) || 0],
+      event.target.value));
   document.getElementById('biblePatristicSearch').addEventListener('input', (event) => renderPatristic(event.target.value));
   document.querySelectorAll('[data-knowledge-section]').forEach((button) => {
     button.addEventListener('click', () => renderKnowledge({ section: button.dataset.knowledgeSection }));

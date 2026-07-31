@@ -307,7 +307,10 @@
       <div id="bibleJourneyOutput" class="bible-explore-output"></div>
     </section>
     <section class="bible-explore-view" data-bible-explore-view="timeline">
-      <div class="bible-explore-toolbar"><select id="bibleTimelineSelector" aria-label="Select a Bible book"></select></div>
+      <div class="bible-explore-toolbar">
+        <select id="bibleTimelineSelector" aria-label="Select a Bible book"></select>
+        <select id="bibleTimelineEventSelector" aria-label="Select an event"></select>
+      </div>
       <div id="bibleTimelineOutput" class="bible-explore-output"></div>
     </section>
     <section class="bible-explore-view" data-bible-explore-view="patristic">
@@ -1995,9 +1998,9 @@ html:not(.admin-user) .admin-preview-panel {
 </style>
 
 <script src="./supabase-config.js?v=8.60-supabase-storage1"></script>
-<script src="./supabase-provider.js?v=8.65-accessibility-nav1"></script>
+<script src="./supabase-provider.js?v=8.66-timeline-search1"></script>
 <script type="module">
-import { initialize } from './main.js?v=8.65-accessibility-nav1';
+import { initialize } from './main.js?v=8.66-timeline-search1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
