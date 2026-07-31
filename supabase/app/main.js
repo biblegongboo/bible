@@ -6136,7 +6136,14 @@ console.log("📊 v8.0B: Learn / Study / Exam mode engine enabled");
 function initBibleSpeechControls() {
   if (window.__bibleSpeechControlsInstalled) return;
   window.__bibleSpeechControlsInstalled = true;
-  if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') return;
+  // Some Android WebViews expose the speech API only after the first page
+  // render (and a few do not expose it at all).  Keep the controls visible in
+  // either case: hiding them made the Android app look as if reading support
+  // had disappeared.  A clear tap-time message is safer than silently
+  // removing the feature.
+  var bibleSpeechSupported =
+    'speechSynthesis' in window &&
+    typeof SpeechSynthesisUtterance !== 'undefined';
 
   var wrap = document.createElement('div');
   wrap.id = 'bibleSpeechControls';
@@ -6146,7 +6153,9 @@ function initBibleSpeechControls() {
   var readButton = document.createElement('button');
   readButton.type = 'button';
   readButton.textContent = '▶ Play';
-  readButton.title = 'Read the current Bible lesson';
+  readButton.title = bibleSpeechSupported
+    ? 'Read the current Bible lesson'
+    : 'Text-to-speech is not available in this Android WebView';
   readButton.style.cssText = 'border:0;border-radius:8px;padding:7px 10px;background:#f5a623;color:#fff;font-size:13px;font-weight:800;cursor:pointer';
 
   var replayButton = document.createElement('button');
@@ -6213,10 +6222,11 @@ function initBibleSpeechControls() {
   function stopBibleSpeech(keepAutoRead) {
     bibleSpeechRunId++;
     if (!keepAutoRead) bibleAutoReadActive = false;
-    window.speechSynthesis.cancel();
+    if (bibleSpeechSupported) window.speechSynthesis.cancel();
   }
 
   function getBibleVoice_(langCode) {
+    if (!bibleSpeechSupported) return null;
     var prefix = langCode.slice(0, 2).toLowerCase();
     return window.speechSynthesis.getVoices().find(function(item) {
       return String(item.lang || '').toLowerCase().indexOf(prefix) === 0;
@@ -6328,6 +6338,10 @@ function initBibleSpeechControls() {
   }
 
   function readCurrentBibleQuestion(fromAutoAdvance, replayOnly) {
+    if (!bibleSpeechSupported) {
+      window.alert('Text-to-speech is not available on this device yet. The lesson and all study controls remain available.');
+      return;
+    }
     if (!fromAutoAdvance) {
       bibleAutoReadActive =
         !replayOnly &&
@@ -6411,7 +6425,7 @@ function initBibleSpeechControls() {
     if ([0.5, 0.75, 1, 1.25, 1.5].indexOf(nextRate) === -1) nextRate = 1;
     bibleSpeechRate = nextRate;
     localStorage.setItem(speechSpeedKey, String(nextRate));
-    if (window.speechSynthesis.speaking) {
+    if (bibleSpeechSupported && window.speechSynthesis.speaking) {
       readCurrentBibleQuestion(false, !bibleAutoNextEnabled);
     }
   });
