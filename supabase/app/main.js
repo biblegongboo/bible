@@ -6166,39 +6166,47 @@ function initBibleSpeechControls() {
 
   var wrap = document.createElement('div');
   wrap.id = 'bibleSpeechControls';
+  wrap.className = 'bible-speech-controls';
   wrap.hidden = true;
-  wrap.style.cssText = 'position:relative;z-index:4;display:none;flex-wrap:wrap;justify-content:center;gap:5px;width:fit-content;max-width:100%;margin:6px auto 2px;padding:5px;background:rgba(15,23,42,.72);border:1px solid rgba(255,255,255,.16);border-radius:10px';
+  wrap.style.cssText = 'position:relative;z-index:4;display:none;flex-wrap:nowrap;justify-content:center;gap:4px;width:fit-content;max-width:100%;margin:4px auto 1px;padding:4px;background:rgba(15,23,42,.72);border:1px solid rgba(255,255,255,.16);border-radius:9px';
 
   var readButton = document.createElement('button');
   readButton.type = 'button';
-  readButton.textContent = '▶ Play';
+  readButton.className = 'bible-speech-button bible-speech-play';
+  readButton.textContent = '▶';
+  readButton.setAttribute('aria-label', 'Play current Bible lesson');
   readButton.title = bibleSpeechSupported
     ? 'Read the current Bible lesson'
     : 'Text-to-speech is not available in this Android WebView';
-  readButton.style.cssText = 'border:0;border-radius:8px;padding:7px 10px;background:#f5a623;color:#fff;font-size:13px;font-weight:800;cursor:pointer';
+  readButton.style.cssText = 'border:0;border-radius:8px;padding:0;background:#f5a623;color:#fff;font-size:14px;font-weight:800;cursor:pointer';
 
   var replayButton = document.createElement('button');
   replayButton.type = 'button';
-  replayButton.textContent = '↻ Replay';
+  replayButton.className = 'bible-speech-button bible-speech-replay';
+  replayButton.textContent = '↻';
+  replayButton.setAttribute('aria-label', 'Replay current item');
   replayButton.title = 'Read the current item again without moving to the next item';
-  replayButton.style.cssText = 'border:0;border-radius:8px;padding:7px 10px;background:#2563eb;color:#fff;font-size:13px;font-weight:800;cursor:pointer';
+  replayButton.style.cssText = 'border:0;border-radius:8px;padding:0;background:#2563eb;color:#fff;font-size:14px;font-weight:800;cursor:pointer';
 
   var stopButton = document.createElement('button');
   stopButton.type = 'button';
-  stopButton.textContent = '■ Stop';
+  stopButton.className = 'bible-speech-button bible-speech-stop';
+  stopButton.textContent = '■';
+  stopButton.setAttribute('aria-label', 'Stop reading');
   stopButton.title = 'Stop reading';
-  stopButton.style.cssText = 'border:0;border-radius:8px;padding:7px 10px;background:#475569;color:#fff;font-size:13px;font-weight:800;cursor:pointer';
+  stopButton.style.cssText = 'border:0;border-radius:8px;padding:0;background:#475569;color:#fff;font-size:14px;font-weight:800;cursor:pointer';
 
   var speedSelect = document.createElement('select');
+  speedSelect.className = 'bible-speech-speed';
   speedSelect.title = 'Reading speed';
   speedSelect.setAttribute('aria-label', 'Reading speed');
-  speedSelect.style.cssText = 'border:0;border-radius:8px;padding:6px 7px;background:#fff;color:#0f172a;font-size:13px;font-weight:800;cursor:pointer';
+  speedSelect.style.cssText = 'border:0;border-radius:8px;padding:0 3px;background:#fff;color:#0f172a;font-size:11px;font-weight:800;cursor:pointer';
   [
-    { value: '0.5', label: 'Speed 0.5×' },
-    { value: '0.75', label: 'Speed 0.75×' },
-    { value: '1', label: 'Speed 1.0×' },
-    { value: '1.25', label: 'Speed 1.25×' },
-    { value: '1.5', label: 'Speed 1.5×' }
+    { value: '0.5', label: '0.5×' },
+    { value: '0.75', label: '0.75×' },
+    { value: '1', label: '1.0×' },
+    { value: '1.25', label: '1.25×' },
+    { value: '1.5', label: '1.5×' }
   ].forEach(function(optionData) {
     var option = document.createElement('option');
     option.value = optionData.value;
@@ -6208,8 +6216,9 @@ function initBibleSpeechControls() {
 
   var autoNextButton = document.createElement('button');
   autoNextButton.type = 'button';
+  autoNextButton.className = 'bible-speech-button bible-speech-auto-next';
   autoNextButton.title = 'Automatically move to the next item after reading';
-  autoNextButton.style.cssText = 'border:0;border-radius:8px;padding:7px 10px;color:#fff;font-size:13px;font-weight:800;cursor:pointer';
+  autoNextButton.style.cssText = 'border:0;border-radius:8px;padding:0;color:#fff;font-size:14px;font-weight:800;cursor:pointer';
 
   var speechSpeedKey = 'bibleSpeechSpeed';
   var speechAutoNextKey = 'bibleSpeechAutoNext';
@@ -6222,7 +6231,9 @@ function initBibleSpeechControls() {
   var bibleSpeechRunId = 0;
 
   function updateAutoNextButton_() {
-    autoNextButton.textContent = 'Auto Next ' + (bibleAutoNextEnabled ? 'ON' : 'OFF');
+    autoNextButton.textContent = '⏭';
+    autoNextButton.title = 'Auto next ' + (bibleAutoNextEnabled ? 'on' : 'off');
+    autoNextButton.setAttribute('aria-label', 'Automatically move to the next item: ' + (bibleAutoNextEnabled ? 'on' : 'off'));
     autoNextButton.setAttribute('aria-pressed', bibleAutoNextEnabled ? 'true' : 'false');
     autoNextButton.style.background = bibleAutoNextEnabled ? '#16a34a' : '#64748b';
   }
