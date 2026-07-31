@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
-import './bible-explorer.js?v=8.63-library1';
+import './bible-explorer.js?v=8.65-accessibility-nav1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -191,7 +191,7 @@ function clearAuthAndRedirect(reason) {
   localStorage.removeItem('quiz_current_subject_v1');
   var rawReason = String(reason || '').replace(/[^A-Z0-9_\-]/gi, '').slice(0, 40);
   var authReason = rawReason.indexOf('AUTH_') === 0 ? 'LOGIN_REQUIRED' : rawReason;
-  window.location.replace('./login.html?v=8.64-auth-expiry1' + (authReason ? '&auth_error=' + encodeURIComponent(authReason) : ''));
+  window.location.replace('./login.html?v=8.65-accessibility-nav1' + (authReason ? '&auth_error=' + encodeURIComponent(authReason) : ''));
 }
 
 function applyUserRolePolicy() {
@@ -5428,6 +5428,15 @@ function attachKeyboardEvents() {
     if (!DOM.quizContent || DOM.quizContent.style.display === 'none' || DOM.quizContent.style.display === '') return;
     if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
     var key = event.key;
+    if (/^[1-4]$/.test(key)) {
+      var choice = DOM.questionContainer &&
+        DOM.questionContainer.querySelector('.choice:not(.disabled)[data-choice="' + key + '"]');
+      if (choice) {
+        event.preventDefault();
+        choice.click();
+      }
+      return;
+    }
     if (key === 'n' || key === 'N' || key === 'L') {
       event.preventDefault();
       if (currentIndex < currentQuestions.length - 1) goNext();
@@ -6673,8 +6682,40 @@ function biblePeopleGraphPayload_(person, relationships) {
     });
   }
 
+  function addPartnerGroup() {
+    var members = groups.partner;
+    if (!members.length) return;
+    var positions = [-5, 5, -9, 9, -12, 12];
+    objects.push({
+      id: 'title_partner',
+      type: 'text',
+      position: [-10.5, 1.35],
+      value: 'SPOUSE / PARTNER',
+      attributes: { color: '#64748b', fontSize: 11 }
+    });
+    members.forEach(function(relationship, index) {
+      var coords = [positions[index] || (5 + index * 3), 0];
+      var id = 'partner_' + index;
+      objects.push({
+        id: id,
+        type: 'point',
+        coords: coords,
+        name: biblePeopleRelationshipName_(relationship, person.PERSON_ID) +
+          ' (' + biblePeopleRelationshipRole_(relationship, person.PERSON_ID) + ')',
+        attributes: { size: 4, strokeColor: '#be185d', fillColor: '#f9a8d4', label: { fontSize: 12, color: '#831843', offset: [8, -16] } }
+      });
+      objects.push({
+        id: 'line_' + id,
+        type: 'segment',
+        from: [0, 0],
+        to: coords,
+        attributes: { strokeColor: '#f472b6', strokeWidth: 1.8 }
+      });
+    });
+  }
+
   addGroup('parent', 7, { stroke: '#6d28d9', fill: '#c4b5fd', text: '#4c1d95', line: '#a78bfa' }, 'PARENTS');
-  addGroup('partner', 3.7, { stroke: '#be185d', fill: '#f9a8d4', text: '#831843', line: '#f472b6' }, 'SPOUSE / PARTNER');
+  addPartnerGroup();
   addGroup('sibling', -3.7, { stroke: '#1d4ed8', fill: '#93c5fd', text: '#1e3a8a', line: '#60a5fa' }, 'SIBLINGS');
   addGroup('child', -7, { stroke: '#047857', fill: '#6ee7b7', text: '#064e3b', line: '#34d399' }, 'CHILDREN');
   addGroup('other', -9.5, { stroke: '#475569', fill: '#cbd5e1', text: '#334155', line: '#94a3b8' }, 'OTHER');
@@ -6779,9 +6820,10 @@ function biblePeopleRenderDetail_(detail) {
       : '') +
     '</section><section class="bible-person-section"><h4>Relationships (' + relationships.length + ')</h4>' +
     '<div class="bible-person-grid">' + relationships.slice(0, relationshipLimit).map(function(relationship) {
-      return '<div class="bible-relationship"><strong>' +
+      return '<button type="button" class="bible-relationship" data-related-person-id="' +
+        escapeHtml(relationship.RELATED_ID) + '"><strong>' +
         escapeHtml(biblePeopleRelationshipName_(relationship, person.PERSON_ID)) +
-        '</strong>' + escapeHtml(biblePeopleRelationshipRole_(relationship, person.PERSON_ID)) + '</div>';
+        '</strong>' + escapeHtml(biblePeopleRelationshipRole_(relationship, person.PERSON_ID)) + '</button>';
     }).join('') + '</div></section>' +
     '<section class="bible-person-section"><h4>Relationship graph</h4><div class="bible-person-graph">' + graphHtml + '</div></section>' +
     '</article>';
@@ -6793,8 +6835,14 @@ function biblePeopleRenderDetail_(detail) {
     });
     biblePeopleRelationshipScene.setScene(sceneFromGraphicObjects(relationshipGraphic));
   }
+  host.querySelectorAll('[data-related-person-id]').forEach(function(button) {
+    button.addEventListener('click', function() {
+      biblePeopleLoadDetail_(button.getAttribute('data-related-person-id'));
+    });
+  });
   host.querySelectorAll('[data-context-place-name]').forEach(function(button) {
     button.addEventListener('click', function() {
+      window.__bibleContextReturn = { kind: 'person', personId: person.PERSON_ID };
       biblePeopleClose_();
       if (typeof window.openBibleContext === 'function') {
         window.openBibleContext({
@@ -6806,6 +6854,7 @@ function biblePeopleRenderDetail_(detail) {
   });
   host.querySelectorAll('[data-context-event-reference]').forEach(function(button) {
     button.addEventListener('click', function() {
+      window.__bibleContextReturn = { kind: 'person', personId: person.PERSON_ID };
       biblePeopleClose_();
       if (typeof window.openBibleContext === 'function') {
         window.openBibleContext({
@@ -6895,6 +6944,8 @@ function biblePeopleSearchSubmit_(event) {
 
 window.openBiblePerson = function(personId) {
   biblePeopleOpen_();
+  var back = document.getElementById('biblePeopleBack');
+  if (back) back.hidden = !(window.__bibleContextReturn && window.__bibleContextReturn.kind === 'context');
   biblePeopleLoadDetail_(personId);
 };
 
@@ -6903,11 +6954,22 @@ function initBiblePeopleExplorer() {
   var toggle = document.getElementById('biblePeopleToggle');
   var panel = document.getElementById('biblePeoplePanel');
   var close = document.getElementById('biblePeopleClose');
+  var back = document.getElementById('biblePeopleBack');
   var form = document.getElementById('biblePeopleSearchForm');
   if (!toggle || !panel || !close || !form) return;
   biblePeopleExplorerInitialized = true;
   toggle.addEventListener('click', biblePeopleOpen_);
   close.addEventListener('click', biblePeopleClose_);
+  if (back) {
+    back.addEventListener('click', function() {
+      var target = window.__bibleContextReturn;
+      window.__bibleContextReturn = null;
+      biblePeopleClose_();
+      if (target && target.kind === 'context' && typeof window.openBibleContext === 'function') {
+        window.openBibleContext(target.options || { tab: 'places' });
+      }
+    });
+  }
   form.addEventListener('submit', biblePeopleSearchSubmit_);
   var input = document.getElementById('biblePeopleSearchInput');
   if (input) {

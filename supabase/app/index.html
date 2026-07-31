@@ -251,7 +251,10 @@
         <span class="bible-people-kicker">BIBLE REFERENCE</span>
         <h2 id="biblePeopleTitle">Bible People</h2>
       </div>
-      <button type="button" id="biblePeopleClose" class="bible-people-close" aria-label="Close Bible People">&times;</button>
+      <div class="bible-context-head-actions">
+        <button type="button" id="biblePeopleBack" class="bible-context-back" hidden>← Back</button>
+        <button type="button" id="biblePeopleClose" class="bible-people-close" aria-label="Close Bible People">&times;</button>
+      </div>
     </header>
     <form id="biblePeopleSearchForm" class="bible-people-search" role="search">
       <label for="biblePeopleSearchInput">Search by name or alias</label>
@@ -278,7 +281,10 @@
   <div class="bible-people-dialog bible-explore-dialog" role="dialog" aria-modal="true" aria-labelledby="bibleExploreTitle">
     <header class="bible-people-head">
       <div><span class="bible-people-kicker">BIBLE CONTEXT</span><h2 id="bibleExploreTitle">Atlas &amp; Bible Study</h2></div>
-      <button type="button" id="bibleExploreClose" class="bible-people-close" aria-label="Close Bible Atlas">&times;</button>
+      <div class="bible-context-head-actions">
+        <button type="button" id="bibleExploreBack" class="bible-context-back" hidden>← Back</button>
+        <button type="button" id="bibleExploreClose" class="bible-people-close" aria-label="Close Bible Atlas">&times;</button>
+      </div>
     </header>
     <nav class="bible-explore-tabs" aria-label="Bible context sections">
       <button type="button" class="is-active" data-bible-explore-tab="places">Places</button>
@@ -1893,6 +1899,10 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-person-section{margin-top:24px}.bible-person-section h4{margin-bottom:10px;font-size:16px}.bible-person-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
   .bible-reference-grid{display:flex;flex-wrap:wrap;align-items:flex-start;gap:7px}
   .bible-reference,.bible-relationship{border:1px solid #e2e8f0;border-radius:9px;padding:9px 10px;background:#f8fafc;font-size:12px;color:#334155}
+  button.bible-relationship{width:100%;text-align:left;cursor:pointer;font-family:inherit}
+  button.bible-relationship:hover,button.bible-relationship:focus-visible{border-color:#60a5fa;background:#eff6ff;outline:none}
+  .bible-context-head-actions{display:flex;align-items:center;gap:8px}
+  .bible-context-back{border:1px solid #94a3b8;border-radius:8px;padding:7px 11px;background:#fff;color:#1e3a8a;font:inherit;font-weight:800;cursor:pointer}
   .bible-reference{display:inline-flex;flex:0 0 auto;max-width:100%;white-space:nowrap;line-height:1.2}
   .bible-relationship strong{display:block;color:#172033;margin-bottom:3px}.bible-reference-more{margin-top:10px;color:#64748b;font-size:12px}
   .bible-person-graph{min-height:390px;margin-top:12px;border:1px solid #dbe3ee;border-radius:12px;overflow:hidden}
@@ -1985,9 +1995,9 @@ html:not(.admin-user) .admin-preview-panel {
 </style>
 
 <script src="./supabase-config.js?v=8.60-supabase-storage1"></script>
-<script src="./supabase-provider.js?v=8.64-auth-expiry1"></script>
+<script src="./supabase-provider.js?v=8.65-accessibility-nav1"></script>
 <script type="module">
-import { initialize } from './main.js?v=8.64-auth-expiry1';
+import { initialize } from './main.js?v=8.65-accessibility-nav1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

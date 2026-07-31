@@ -322,6 +322,10 @@ function renderPlaceDetail(place) {
   });
   host.querySelectorAll('[data-related-person-id]').forEach((button) => {
     button.addEventListener('click', () => {
+      window.__bibleContextReturn = {
+        kind: 'context',
+        options: { tab: 'places', placeName: place.name }
+      };
       close();
       if (typeof window.openBiblePerson === 'function') {
         window.openBiblePerson(button.dataset.relatedPersonId);
@@ -1030,6 +1034,8 @@ async function renderLibrary(options = {}) {
 
 async function openContext(options = {}) {
   open();
+  const back = document.getElementById('bibleExploreBack');
+  if (back) back.hidden = !(window.__bibleContextReturn && window.__bibleContextReturn.kind === 'person');
   await loadData();
   const tab = options.tab || 'places';
   selectTab(tab);
@@ -1116,10 +1122,21 @@ function init() {
   const toggle = document.getElementById('bibleExploreToggle');
   const panel = document.getElementById('bibleExplorePanel');
   const closeButton = document.getElementById('bibleExploreClose');
+  const backButton = document.getElementById('bibleExploreBack');
   if (!toggle || !panel || !closeButton) return;
   initialized = true;
   toggle.addEventListener('click', open);
   closeButton.addEventListener('click', close);
+  if (backButton) {
+    backButton.addEventListener('click', () => {
+      const target = window.__bibleContextReturn;
+      window.__bibleContextReturn = null;
+      close();
+      if (target?.kind === 'person' && typeof window.openBiblePerson === 'function') {
+        window.openBiblePerson(target.personId);
+      }
+    });
+  }
   panel.addEventListener('click', (event) => { if (event.target === panel) close(); });
   document.querySelectorAll('[data-bible-explore-tab]').forEach((button) => {
     button.addEventListener('click', () => {

@@ -9,12 +9,11 @@
     return config.enabled === true && !!baseUrl && !!publishableKey;
   }
 
-  function headers_() {
+  function headers_(accessToken) {
     var headers = {
       apikey: publishableKey,
       Accept: 'application/json'
     };
-    var accessToken = currentAccessToken_();
     if (accessToken) headers.Authorization = 'Bearer ' + accessToken;
     return headers;
   }
@@ -28,6 +27,29 @@
     }
   }
 
+  async function validAccessToken_() {
+    var token = currentAccessToken_();
+    if (!window.BibleSupabaseAuth || typeof window.BibleSupabaseAuth.getSession !== 'function') {
+      return token;
+    }
+    var session = await window.BibleSupabaseAuth.getSession();
+    if (!session || !session.access_token) return token;
+    token = String(session.access_token);
+    try {
+      var user = JSON.parse(localStorage.getItem('quiz_current_user_v1') || 'null');
+      if (user && user.session_token !== token) {
+        user.session_token = token;
+        if (session.refresh_token) user.refresh_token = session.refresh_token;
+        localStorage.setItem('quiz_current_user_v1', JSON.stringify(user));
+        if (typeof currentUser === 'object' && currentUser) {
+          currentUser.session_token = token;
+          if (session.refresh_token) currentUser.refresh_token = session.refresh_token;
+        }
+      }
+    } catch (_) {}
+    return token;
+  }
+
   function response_(payload, status) {
     return new Response(JSON.stringify(payload), {
       status: status || 200,
@@ -36,8 +58,9 @@
   }
 
   async function rest_(table, query, signal) {
+    var accessToken = await validAccessToken_();
     var result = await fetch(baseUrl + '/rest/v1/' + table + '?' + query, {
-      headers: headers_(),
+      headers: headers_(accessToken),
       signal: signal
     });
     if (!result.ok) {
@@ -58,11 +81,12 @@
     if (!configured_()) {
       throw new Error('Supabase content storage is not configured.');
     }
+    var accessToken = await validAccessToken_();
     var result = await fetch(
       baseUrl + '/storage/v1/object/authenticated/bible-content/' +
         encodeStoragePath_(relativePath),
       {
-        headers: headers_(),
+        headers: headers_(accessToken),
         signal: signal
       }
     );
@@ -101,10 +125,11 @@
 
   async function callQuestionFunction_(payload, signal) {
     var functionName = String(config.questionFunction || 'bible-content');
+    var accessToken = await validAccessToken_();
     var result = await fetch(baseUrl + '/functions/v1/' + functionName, {
       method: 'POST',
-      headers: Object.assign({}, headers_(), {
-        Authorization: 'Bearer ' + (currentAccessToken_() || publishableKey),
+      headers: Object.assign({}, headers_(accessToken), {
+        Authorization: 'Bearer ' + (accessToken || publishableKey),
         'Content-Type': 'application/json;charset=utf-8'
       }),
       body: JSON.stringify(payload),
