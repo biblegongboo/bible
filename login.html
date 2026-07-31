@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GongBoo.org v8.0D - Login</title>
+    <script>
+      // The Sheets/GAS login is retained only as a rollback artifact.  Always
+      // send public Bible visitors to the active Supabase authentication flow.
+      window.location.replace('./supabase/app/login.html?v=8.80-compact-mobile-header1');
+    </script>
     <style>
         * {
             margin: 0;

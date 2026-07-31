@@ -2,6 +2,11 @@
 <meta charset="UTF-8">
 <link rel="icon" href="data:,">
 <script>
+// The Sheets/GAS runtime is retained as a rollback artifact.  The public
+// Bible entry point is the Supabase application.
+window.location.replace('./supabase/app/index.html?v=8.80-compact-mobile-header1');
+</script>
+<script>
 (function () {
   try {
     const user = JSON.parse(localStorage.getItem('quiz_current_user_v1') || 'null');
