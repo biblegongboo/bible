@@ -5622,7 +5622,7 @@ function resumeProgress(saved) {
 // ========================================================================
 // BLOCK 1500: 퀴즈 시작 (원본 B013 + 백그라운드 로딩)
 // ========================================================================
-async function startQuizWithNumber(uiStartNumber) {
+async function startQuizWithNumber(uiStartNumber, options) {
   if (IS_TRIAL_USER) {
     uiStartNumber = TRIAL_START;
     if (DOM.startNumberInput) DOM.startNumberInput.value = String(TRIAL_START);
@@ -5635,12 +5635,13 @@ async function startQuizWithNumber(uiStartNumber) {
     uiStartNumber = 1;
   }
   
-  var setNumber = Math.ceil(uiStartNumber / QUESTIONS_PER_SET);
-  var setStart = (setNumber - 1) * QUESTIONS_PER_SET + 1;
-  
   var startNum = uiStartNumber;
-  if (uiStartNumber < setStart || uiStartNumber > Math.min(setNumber * QUESTIONS_PER_SET, TOTAL_QUESTIONS)) {
-    startNum = setStart;
+  if (!(options && options.exactStart)) {
+    var setNumber = Math.ceil(uiStartNumber / QUESTIONS_PER_SET);
+    var setStart = (setNumber - 1) * QUESTIONS_PER_SET + 1;
+    if (uiStartNumber < setStart || uiStartNumber > Math.min(setNumber * QUESTIONS_PER_SET, TOTAL_QUESTIONS)) {
+      startNum = setStart;
+    }
   }
   
   currentStartNumber = startNum;
@@ -7052,29 +7053,32 @@ function bibleCatalogMatchesReference_(chapter, parts) {
       parseInt(chapter.CHAPTER, 10) === parts.chapter);
 }
 
+async function bibleQuizNumberForSource_(sourceCode) {
+  var params = new URLSearchParams();
+  params.set('action', 'source_lookup');
+  params.set('source_code', sourceCode);
+  params.set('sheet', DATA_SHEET);
+  var response = await fetchQuizApi_(params);
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+  var data = await response.json();
+  if (data && (data.status === 'error' || data.success === false)) {
+    throwQuizApiError_(data, 'The linked Scripture reference could not be found.');
+  }
+  var row = data && Array.isArray(data.data) ? data.data[0] : null;
+  // An older deployed function treats an unknown action as a normal range
+  // request.  Ignore that unrelated first row and use the catalog fallback
+  // until the direct-lookup function deployment has reached production.
+  if (!row || String(row.SOURCE_CODE || row.source_code || '').toLowerCase() !==
+      String(sourceCode || '').toLowerCase()) return 0;
+  return Math.max(1, parseInt(row.N || row.n, 10) || 0);
+}
+
 async function openBibleScriptureReference_(sourceCode) {
   var parts = bibleSourceCodeParts_(sourceCode);
   if (!parts) {
     alert('This Scripture reference is not recognized: ' + sourceCode);
     return false;
   }
-  if (!BIBLE_CHAPTER_CATALOG.length) {
-    try {
-      await loadBibleChapterCatalog_();
-      updateSetSelector();
-    } catch (error) {
-      alert('The Bible chapter catalog could not be loaded. ' + error.message);
-      return false;
-    }
-  }
-  var catalogIndex = BIBLE_CHAPTER_CATALOG.findIndex(function(chapter) {
-    return bibleCatalogMatchesReference_(chapter, parts);
-  });
-  if (catalogIndex < 0) {
-    alert('This Bible chapter is not available yet: ' + parts.sourceCode);
-    return false;
-  }
-
   // A reference can be clicked inside the full-screen People or Atlas
   // dialog.  Close that dialog before starting the quiz; otherwise the
   // question really changes behind the dialog and looks like a dead link.
@@ -7088,14 +7092,43 @@ async function openBibleScriptureReference_(sourceCode) {
     document.body.classList.remove('bible-people-open');
   }
 
-  if (DOM.setSelector) {
-    DOM.setSelector.selectedIndex = catalogIndex;
-    DOM.setSelector.dispatchEvent(new Event('change', { bubbles: true }));
+  // Ask the protected API for the exact quiz number first.  This avoids
+  // relying on a catalog range or a modal click handler to infer where a
+  // reference belongs.  The catalog path remains as a safe fallback while
+  // an older deployed Edge Function is still being refreshed.
+  var start = 0;
+  try {
+    start = await bibleQuizNumberForSource_(parts.sourceCode);
+  } catch (error) {
+    console.warn('Direct Scripture lookup unavailable; using catalog fallback.', error);
   }
-  var chapter = BIBLE_CHAPTER_CATALOG[catalogIndex];
-  var start = Math.max(1, parseInt(chapter.START_ROW, 10) ||
-    parseInt(chapter.START, 10) || 1);
-  var loaded = await startQuizWithNumber(start);
+  if (!start) {
+    if (!BIBLE_CHAPTER_CATALOG.length) {
+      try {
+        await loadBibleChapterCatalog_();
+        updateSetSelector();
+      } catch (error) {
+        alert('The Bible chapter catalog could not be loaded. ' + error.message);
+        return false;
+      }
+    }
+    var catalogIndex = BIBLE_CHAPTER_CATALOG.findIndex(function(chapter) {
+      return bibleCatalogMatchesReference_(chapter, parts);
+    });
+    if (catalogIndex < 0) {
+      alert('This Bible chapter is not available yet: ' + parts.sourceCode);
+      return false;
+    }
+    if (DOM.setSelector) {
+      DOM.setSelector.selectedIndex = catalogIndex;
+      DOM.setSelector.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    var chapter = BIBLE_CHAPTER_CATALOG[catalogIndex];
+    start = Math.max(1, parseInt(chapter.START_ROW, 10) ||
+      parseInt(chapter.START, 10) || 1);
+  }
+
+  var loaded = await startQuizWithNumber(start, { exactStart: true });
   if (!loaded) return false;
 
   // Quiz rows are normalized by load50Questions() into lower-camel-case

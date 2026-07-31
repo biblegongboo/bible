@@ -104,6 +104,23 @@ Deno.serve(async (request) => {
       })),
     });
   }
+  if (payload.action === "source_lookup") {
+    const sourceCode = String(payload.source_code || "").trim();
+    if (!/^(OT|NT)-.+-\d{2,3}-\d{2,3}$/i.test(sourceCode)) {
+      return json({ status: "error", message: "A valid Scripture reference is required." }, 400);
+    }
+    const { data: sourceRows, error: sourceError } = await admin
+      .from("bible_questions")
+      .select("n,source_code")
+      .eq("source_code", sourceCode)
+      .order("n", { ascending: true })
+      .limit(1);
+    if (sourceError) return json({ status: "error", message: sourceError.message }, 500);
+    return json({
+      status: "success",
+      data: (sourceRows || []).map((row) => ({ N: row.n, SOURCE_CODE: row.source_code })),
+    });
+  }
   if (requestedSubject === "BIBLE_NT") {
     return json(payload.total === "true" || payload.total === true
       ? { status: "success", total: 0 }
