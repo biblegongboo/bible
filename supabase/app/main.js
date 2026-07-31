@@ -223,6 +223,16 @@ function initBibleGuide_() {
   });
 }
 
+function initBibleGroupAdmin_() {
+  var button = document.getElementById('bibleGroupAdminToggle');
+  if (!button || button.dataset.bound) return;
+  button.hidden = !IS_ADMIN_USER;
+  button.dataset.bound = '1';
+  button.addEventListener('click', function() {
+    window.open('./group-admin.html?v=1', '_blank', 'noopener,noreferrer');
+  });
+}
+
 function initBibleTapFeedback_() {
   var header = document.querySelector('.quiz-header');
   if (!header || header.dataset.tapFeedbackBound) return;
@@ -5770,6 +5780,7 @@ function initialize() {
   initBibleTapFeedback_();
   initBibleLogout_();
   initBibleGuide_();
+  initBibleGroupAdmin_();
   initBiblePeopleExplorer();
 
   // Keep the initial quiz screen responsive.  Non-SAT subjects prepare the
