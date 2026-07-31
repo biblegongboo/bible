@@ -1352,7 +1352,8 @@ function updateBibleReadingModeUI_() {
   if (DOM.bibleQuizToggle) {
     DOM.bibleQuizToggle.classList.toggle('is-on', bibleQuizVisible);
     DOM.bibleQuizToggle.setAttribute('aria-pressed', bibleQuizVisible ? 'true' : 'false');
-    DOM.bibleQuizToggle.textContent = bibleQuizVisible ? '📝 Qz ON' : '📝 Qz OFF';
+    DOM.bibleQuizToggle.textContent = 'Qz';
+    DOM.bibleQuizToggle.title = bibleQuizVisible ? 'Quiz display: on' : 'Quiz display: off';
   }
 }
 
@@ -1364,8 +1365,11 @@ function updateBiblePassageControls_() {
     DOM.biblePassageToggle.classList.toggle('is-on', visible);
     DOM.biblePassageToggle.setAttribute('aria-pressed', visible ? 'true' : 'false');
     DOM.biblePassageToggle.textContent = locked
-      ? '🔒 PSG later'
-      : (visible ? '📖 PSG ON' : '📕 PSG OFF');
+      ? 'PSG'
+      : 'PSG';
+    DOM.biblePassageToggle.title = locked
+      ? 'Passage becomes available after submission'
+      : (visible ? 'Passage display: on' : 'Passage display: off');
   }
   updateBibleReadingModeUI_();
   if (DOM.biblePrimaryTextSelector) DOM.biblePrimaryTextSelector.value = biblePrimaryText;
@@ -6498,7 +6502,10 @@ function initBibleSpeechControls() {
   wrap.appendChild(autoNextButton);
   var quizHeader = document.querySelector('.quiz-header');
   var learningModePanel = quizHeader && quizHeader.querySelector('.learning-mode-panel');
-  if (quizHeader && learningModePanel) {
+  var actionRow = document.getElementById('bibleHeaderActionRow');
+  if (actionRow) {
+    actionRow.insertBefore(wrap, actionRow.firstChild);
+  } else if (quizHeader && learningModePanel) {
     quizHeader.insertBefore(wrap, learningModePanel);
   } else if (quizHeader) {
     quizHeader.appendChild(wrap);

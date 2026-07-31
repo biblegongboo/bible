@@ -60,9 +60,11 @@
     <div class="quiz-tools" aria-label="Quiz tools">
       <button type="button" id="calculatorToggle" class="quiz-tool-toggle" aria-label="Open calculator" aria-controls="calculatorPanel" aria-expanded="false">🧮</button>
     </div>
-    <div class="bible-header-nav" aria-label="Bible reference tools">
-      <button type="button" id="bibleExploreToggle" class="quiz-tool-toggle bible-explore-toggle persistent-explore-toggle" aria-label="Open Bible Atlas" title="Bible Atlas" aria-controls="bibleExplorePanel" aria-expanded="false">🌐</button>
-      <button type="button" id="biblePeopleToggle" class="quiz-tool-toggle bible-people-toggle persistent-people-toggle" aria-label="Open Bible People" title="Bible People" aria-controls="biblePeoplePanel" aria-expanded="false">👤</button>
+    <div id="bibleHeaderActionRow" class="bible-header-action-row">
+      <div class="bible-header-nav" aria-label="Bible reference tools">
+        <button type="button" id="bibleExploreToggle" class="quiz-tool-toggle bible-explore-toggle persistent-explore-toggle" aria-label="Open Bible Atlas" title="Bible Atlas" aria-controls="bibleExplorePanel" aria-expanded="false">🌐</button>
+        <button type="button" id="biblePeopleToggle" class="quiz-tool-toggle bible-people-toggle persistent-people-toggle" aria-label="Open Bible People" title="Bible People" aria-controls="biblePeoplePanel" aria-expanded="false"><span class="header-person-icon" aria-hidden="true"></span></button>
+      </div>
     </div>
     <button type="button" id="timerToggle" class="quiz-tool-toggle quiz-timer-toggle persistent-timer-toggle" aria-label="Open timer" aria-controls="timerPanel" aria-expanded="false"><span aria-hidden="true">⏱️</span></button>
     <section id="calculatorPanel" class="quiz-tool-panel calculator-panel" aria-label="Scientific calculator" hidden>
@@ -109,10 +111,10 @@
       <div id="modeDescription" class="mode-description" hidden></div>
       <div id="biblePassageControls" class="bible-passage-controls" aria-label="Bible language controls">
         <button type="button" id="biblePassageToggle" class="bible-passage-toggle" aria-pressed="false">
-          📖 PSG OFF
+          PSG
         </button>
         <button type="button" id="bibleQuizToggle" class="bible-quiz-toggle is-on" aria-pressed="true">
-          📝 Qz ON
+          Qz
         </button>
         <label for="biblePrimaryTextSelector">First language</label>
         <select id="biblePrimaryTextSelector" aria-label="First language">
@@ -1932,8 +1934,12 @@ html:not(.admin-user) .admin-preview-panel {
   .quiz-header{padding:8px 16px 8px}
   .sat-logo{padding:0;min-height:28px;flex-wrap:nowrap}
   .sat-title{font-size:clamp(1.1rem,2.5vw,1.45rem);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .bible-header-nav{position:relative;z-index:4;display:flex;justify-content:center;align-items:center;gap:5px;margin:3px auto 0}
-  .persistent-people-toggle,.persistent-explore-toggle{position:static!important;z-index:auto;width:28px!important;min-width:28px!important;height:27px!important;min-height:27px!important;padding:0!important;font-size:14px!important}
+  .bible-header-action-row{position:relative;z-index:4;display:flex;justify-content:center;align-items:center;gap:12px;margin:4px auto 1px}
+  .bible-header-nav{position:relative;z-index:4;display:flex;justify-content:center;align-items:center;gap:5px;margin:0}
+  .persistent-people-toggle,.persistent-explore-toggle{position:static!important;z-index:auto;width:28px!important;min-width:28px!important;height:27px!important;min-height:27px!important;padding:0!important;font-size:14px!important;background:rgba(255,255,255,.2)!important;border-color:rgba(255,255,255,.55)!important;color:#f8fafc!important}
+  .header-person-icon{position:relative;display:inline-block;width:13px;height:14px;vertical-align:middle}
+  .header-person-icon::before{content:'';position:absolute;top:0;left:4px;width:6px;height:6px;border-radius:50%;background:#f8fafc;box-shadow:0 0 5px rgba(255,255,255,.55)}
+  .header-person-icon::after{content:'';position:absolute;bottom:0;left:1px;width:12px;height:7px;border-radius:8px 8px 3px 3px;background:#f8fafc;box-shadow:0 0 5px rgba(255,255,255,.45)}
   .learning-mode-panel{max-width:600px;margin:5px auto 0}
   .mode-buttons{width:min(252px,100%);margin:0 auto;gap:3px;padding:3px;border-radius:10px;overflow:visible}
   .mode-btn{position:relative;min-height:29px;padding:4px 6px;border-radius:8px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1971,8 +1977,8 @@ html:not(.admin-user) .admin-preview-panel {
   .mode-exam:hover::after,.mode-exam:focus-visible::after{transform:translate(0,0)}
   .bible-passage-controls{
     display:grid;
-    grid-template-columns:auto auto minmax(82px,112px) minmax(64px,82px);
-    width:min(350px,100%);
+    grid-template-columns:42px 38px 75px 54px;
+    width:224px;
     gap:5px;
     margin:5px auto 0;
   }
@@ -1981,7 +1987,7 @@ html:not(.admin-user) .admin-preview-panel {
     width:100%;
     min-width:0;
     min-height:30px;
-    padding:4px 7px;
+    padding:4px 4px;
     border-radius:8px;
     font-size:12px;
   }
@@ -1993,17 +1999,18 @@ html:not(.admin-user) .admin-preview-panel {
     .quiz-header{padding:7px 8px 8px}
     .sat-logo{padding:0;justify-content:center;max-width:none}
     .sat-title{font-size:clamp(.92rem,4vw,1.08rem);white-space:nowrap;text-align:center}
-    .bible-header-nav{margin-top:3px}
+    .bible-header-action-row{gap:9px;margin:4px auto 1px}
+    .bible-header-nav{margin:0}
     .bible-header-nav .quiz-tool-toggle{height:26px!important;min-height:26px!important;font-size:11px!important;padding:0 7px!important}
     .learning-mode-panel{margin-top:5px}
     .mode-buttons{width:min(250px,100%)}
     .mode-btn{min-height:28px;font-size:11px;padding:3px 4px}
-    .bible-passage-controls{grid-template-columns:auto auto minmax(82px,112px) minmax(64px,82px);gap:4px;width:min(350px,100%)}
+    .bible-passage-controls{grid-template-columns:42px 38px 75px 54px;gap:4px;width:224px}
     .bible-passage-toggle,.bible-quiz-toggle,
     #biblePrimaryTextSelector,#bibleSecondaryTextSelector{width:100%;font-size:11px}
   }
   body.bible-people-open{overflow:hidden}
-  .bible-speech-controls{width:auto!important;max-width:100%!important;display:flex!important;flex-wrap:nowrap!important;align-items:center;justify-content:center;gap:4px!important;margin:4px auto 1px!important;padding:4px!important}
+  .bible-speech-controls{width:auto!important;max-width:100%!important;display:flex!important;flex-wrap:nowrap!important;align-items:center;justify-content:center;gap:4px!important;margin:0!important;padding:4px!important}
   .bible-speech-controls .bible-speech-button{width:31px!important;min-width:31px!important;height:29px!important;min-height:29px!important;padding:0!important;font-size:14px!important;line-height:1!important}
   .bible-speech-controls .bible-speech-speed{width:58px!important;min-width:58px!important;height:29px!important;min-height:29px!important;padding:0 3px!important;font-size:11px!important;text-align:center}
   @media(max-width:600px){.bible-speech-controls{gap:3px!important;padding:3px!important}.bible-speech-controls .bible-speech-button{width:29px!important;min-width:29px!important;height:27px!important;min-height:27px!important;font-size:13px!important}.bible-speech-controls .bible-speech-speed{width:54px!important;min-width:54px!important;height:27px!important;min-height:27px!important;font-size:10px!important}}
@@ -2013,7 +2020,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-config.js?v=8.60-supabase-storage1"></script>
 <script src="./supabase-provider.js?v=8.76-people-sort1"></script>
 <script type="module">
-import { initialize } from './main.js?v=8.81-icon-header1';
+import { initialize } from './main.js?v=8.82-single-row-controls1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
