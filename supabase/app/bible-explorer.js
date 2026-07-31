@@ -1,5 +1,5 @@
 import { VectorMap25D } from './graphics/map25d/vector-map25d.js?v=8.51-patristic-reader1';
-import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
+import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.68-timeline-cursor1';
 
 let initialized = false;
 let dataPromise = null;
@@ -827,7 +827,7 @@ function renderTimeline(index = 0, selectedEventIndex = 0) {
     label: `${row[0]}. ${row[1]}`,
     color: rowIndex % 2 ? '#fbbf24' : '#60a5fa',
     stroke: '#1e3a8a',
-    radius: 4,
+    radius: 5.5,
     priority: rows.length - rowIndex,
     metadata: { reference: row[2], date: row[3] }
   }));
@@ -838,7 +838,8 @@ function renderTimeline(index = 0, selectedEventIndex = 0) {
   const timelineHost = output.querySelector('.bible-timeline-25d');
   activeTimelineScene = new VectorScene25D(timelineHost, {
     ariaLabel: 'Interactive Bible timeline',
-    labelFontSize: 11
+    labelFontSize: 11,
+    selectableLabels: true
   });
   activeTimelineScene.setScene({
     nodes,

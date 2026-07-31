@@ -158,8 +158,10 @@ export class VectorScene25D {
     for (const node of this.scene.nodes.slice().sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0))) {
       const point = this.toScreen([node.x, node.y]);
       if (point.x < -40 || point.x > width + 40 || point.y < -40 || point.y > height + 40) continue;
+      const selectNode = () =>
+        this.host.dispatchEvent(new CustomEvent('scene25d:select', { detail: { node }, bubbles: true }));
       const circle = makeSvg('circle', { cx: point.x, cy: point.y, r: node.radius || 4, fill: node.color || '#60a5fa', stroke: node.stroke || '#1d4ed8', 'stroke-width': 1.5, class: 'scene25d-node' });
-      circle.addEventListener('click', () => this.host.dispatchEvent(new CustomEvent('scene25d:select', { detail: { node }, bubbles: true })));
+      circle.addEventListener('click', selectNode);
       this.nodeLayer.appendChild(circle);
       const font = this.options.labelFontSize, estimated = Math.max(24, String(node.label || '').length * font * 0.56);
       const candidates = [[8, -8], [8, 18], [-estimated - 8, -8], [-estimated - 8, 18]];
@@ -170,8 +172,14 @@ export class VectorScene25D {
       }
       if (!placement) continue;
       boxes.push(placement.box);
-      const text = makeSvg('text', { x: point.x + placement.dx, y: point.y + placement.dy, 'font-size': font, class: 'scene25d-label' });
+      const text = makeSvg('text', {
+        x: point.x + placement.dx,
+        y: point.y + placement.dy,
+        'font-size': font,
+        class: this.options.selectableLabels ? 'scene25d-label scene25d-label-selectable' : 'scene25d-label'
+      });
       text.textContent = node.label;
+      if (this.options.selectableLabels) text.addEventListener('click', selectNode);
       this.labelLayer.appendChild(text);
     }
     for (const item of this.scene.texts) {
