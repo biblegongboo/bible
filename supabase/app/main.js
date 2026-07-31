@@ -7106,12 +7106,16 @@ async function openBibleScriptureReference_(sourceCode) {
 
 window.openBibleScriptureReference = openBibleScriptureReference_;
 
+// Capture phase is intentional: reference buttons can be nested in People,
+// Atlas, Timeline, and Library panels.  Some of those panels own bubbling
+// click handlers, so resolving the Scripture link before bubbling makes the
+// same button work consistently in every context.
 document.addEventListener('click', function(event) {
   var referenceButton = event.target.closest('[data-bible-source-code]');
   if (!referenceButton) return;
   event.preventDefault();
   openBibleScriptureReference_(referenceButton.dataset.bibleSourceCode);
-});
+}, true);
 
 async function loadBibleChapterCatalog_() {
   var params = new URLSearchParams();
