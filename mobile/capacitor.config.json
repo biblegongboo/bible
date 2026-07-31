@@ -1,0 +1,17 @@
+{
+  "appId": "org.gongboo.bible",
+  "appName": "GongBoo Bible",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://biblegongboo.github.io/bible/supabase/app/",
+    "cleartext": false,
+    "allowNavigation": [
+      "biblegongboo.github.io",
+      "*.supabase.co"
+    ]
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
