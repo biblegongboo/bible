@@ -210,6 +210,26 @@ function initBibleLogout_() {
   });
 }
 
+function initBibleTapFeedback_() {
+  var header = document.querySelector('.quiz-header');
+  if (!header || header.dataset.tapFeedbackBound) return;
+  header.dataset.tapFeedbackBound = '1';
+  header.addEventListener('click', function(event) {
+    var button = event.target.closest(
+      '.quiz-tool-toggle, .mode-btn, .bible-passage-toggle, .bible-quiz-toggle'
+    );
+    if (!button || button.disabled) return;
+    button.classList.remove('bible-tap-feedback');
+    // Restart the animation for every press, including two deliberate
+    // consecutive presses on Play, Replay, or a mode selector.
+    void button.offsetWidth;
+    button.classList.add('bible-tap-feedback');
+    window.setTimeout(function() {
+      button.classList.remove('bible-tap-feedback');
+    }, 360);
+  });
+}
+
 function applyUserRolePolicy() {
   IS_ADMIN_USER = isAdminUser(currentUser);
   IS_TRIAL_USER = isTrialUser(currentUser);
@@ -5734,6 +5754,7 @@ function initialize() {
   initAdminPreviewTool();
   initTimer();
   attachEvents();
+  initBibleTapFeedback_();
   initBibleLogout_();
   initBiblePeopleExplorer();
 
