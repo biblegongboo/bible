@@ -15,3 +15,5 @@ factory-output/commentary-remaining-ready/
 factory-output/commentary-remaining-build.log
 factory-output/commentary-remaining-build.err.log
 factory-output/inspect-hymn-errors.cjs
+/content/
+/factory-output/
