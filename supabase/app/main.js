@@ -352,8 +352,9 @@ function updateSubjectTitle(setNumber) {
   var englishName = currentSubject === 'BIBLE_OT'
     ? 'Old Testament'
     : (currentSubject === 'BIBLE_NT' ? 'New Testament' : String(subjectConfig.NAME || currentSubject));
-  if (title) title.textContent = 'BIBLE · ' + englishName +
-    (IS_TRIAL_USER ? ' · Sample' : ' · Set ' + (setNumber || 1));
+  if (title) title.textContent = currentSubject === 'BIBLE_OT' || currentSubject === 'BIBLE_NT'
+    ? 'Bib · ' + (currentSubject === 'BIBLE_OT' ? 'OT' : 'NT')
+    : 'GongBoo · ' + englishName + (IS_TRIAL_USER ? ' · Sample' : ' · Set ' + (setNumber || 1));
 }
 
 // ========================================================================
@@ -7118,6 +7119,31 @@ var BIBLE_CHAPTER_CATALOG = [];
 var bibleLegacyDetectTotalQuestions_ = detectTotalQuestions;
 var bibleLegacyUpdateSetSelector_ = updateSetSelector;
 
+function bibleShortBookName_(bookName) {
+  var normalized = String(bookName || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  var names = {
+    'genesis': 'Gen', 'exodus': 'Ex', 'leviticus': 'Lev', 'numbers': 'Num', 'deuteronomy': 'Deut',
+    'joshua': 'Josh', 'judges': 'Judg', 'ruth': 'Ruth', '1 samuel': '1 Sam', '2 samuel': '2 Sam',
+    '1 kings': '1 Kgs', '2 kings': '2 Kgs', '1 chronicles': '1 Chr', '2 chronicles': '2 Chr',
+    'ezra': 'Ezra', 'nehemiah': 'Neh', 'esther': 'Est', 'job': 'Job', 'psalms': 'Ps', 'proverbs': 'Prov',
+    'ecclesiastes': 'Eccl', 'song of solomon': 'Song', 'isaiah': 'Isa', 'jeremiah': 'Jer', 'lamentations': 'Lam',
+    'ezekiel': 'Ezek', 'daniel': 'Dan', 'hosea': 'Hos', 'joel': 'Joel', 'amos': 'Amos', 'obadiah': 'Obad',
+    'jonah': 'Jonah', 'micah': 'Mic', 'nahum': 'Nah', 'habakkuk': 'Hab', 'zephaniah': 'Zeph',
+    'haggai': 'Hag', 'zechariah': 'Zech', 'malachi': 'Mal', 'matthew': 'Matt', 'mark': 'Mark',
+    'luke': 'Luke', 'john': 'John', 'acts': 'Acts', 'romans': 'Rom', '1 corinthians': '1 Cor',
+    '2 corinthians': '2 Cor', 'galatians': 'Gal', 'ephesians': 'Eph', 'philippians': 'Phil',
+    'colossians': 'Col', '1 thessalonians': '1 Thess', '2 thessalonians': '2 Thess', '1 timothy': '1 Tim',
+    '2 timothy': '2 Tim', 'titus': 'Titus', 'philemon': 'Phlm', 'hebrews': 'Heb', 'james': 'Jas',
+    '1 peter': '1 Pet', '2 peter': '2 Pet', '1 john': '1 John', '2 john': '2 John', '3 john': '3 John',
+    'jude': 'Jude', 'revelation': 'Rev'
+  };
+  return names[normalized] || String(bookName || 'Bible').slice(0, 5);
+}
+
+function bibleSetHeaderTitle_(bookName, chapter) {
+  return 'Bib · ' + bibleShortBookName_(bookName) + ' ' + (parseInt(chapter, 10) || 1);
+}
+
 function bibleSourceCodeParts_(sourceCode) {
   var match = String(sourceCode || '').trim().match(
     /^(OT|NT)-(.+)-(\d{2,3})-(\d{2,3})$/i
@@ -7308,8 +7334,9 @@ updateSetSelector = function() {
     );
     option.dataset.limit = String(chapter.QUESTION_COUNT);
     option.dataset.code = String(chapter.CODE || '');
-    option.textContent = bookName + ' Chapter ' + chapter.CHAPTER +
-      ' (' + chapter.QUESTION_COUNT + ')';
+    option.dataset.bookName = bookName;
+    option.dataset.chapter = String(chapter.CHAPTER || '');
+    option.textContent = bookName + ' Chapter ' + chapter.CHAPTER;
     selector.appendChild(option);
   });
 
@@ -7338,6 +7365,9 @@ document.addEventListener('change', function(event) {
   currentStartNumber = start;
   if (DOM.startNumberInput) DOM.startNumberInput.value = String(start);
   var title = document.querySelector('.sat-title');
-  if (title) title.textContent = 'BIBLE · ' + option.textContent;
+  if (title) title.textContent = bibleSetHeaderTitle_(
+    option.dataset.bookName,
+    option.dataset.chapter
+  );
   console.log('Bible chapter selected:', option.dataset.code, 'start', start, 'count', limit);
 }, true);
