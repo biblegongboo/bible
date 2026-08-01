@@ -7,6 +7,8 @@ const corsHeaders = {
   "Content-Type": "application/json;charset=utf-8",
 };
 
+const passwordResetRedirect = "https://biblegongboo.github.io/bible/supabase/app/reset-password.html";
+
 function json(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), { status, headers: corsHeaders });
 }
@@ -151,7 +153,8 @@ Deno.serve(async (request) => {
     if (!organizationId || !displayName || !email.includes("@") || !validPin(pin)) return json({ message: "Name, email, and a 4–12 digit PIN are required." }, 400);
     const { data: organization } = await service.from("learning_organizations").select("id,active").eq("id", organizationId).maybeSingle();
     if (!organization?.active) return json({ message: "The organization is unavailable." }, 400);
-    const { data: createdUser, error: createError } = await service.auth.admin.createUser({ email, password: pin, email_confirm: true, user_metadata: { organization_admin: true, display_name: displayName } });
+    const storedPassword = pin.length < 6 ? "GB!" + pin : pin;
+    const { data: createdUser, error: createError } = await service.auth.admin.createUser({ email, password: storedPassword, email_confirm: true, user_metadata: { organization_admin: true, display_name: displayName } });
     if (createError || !createdUser.user) return json({ message: createError?.message || "Unable to create the organization administrator." }, 409);
     const userId = createdUser.user.id;
     const { error: profileError } = await service.from("member_profiles").update({ display_name: displayName, account_type: "personal", payment_status: "a", is_trial: false, active: true, access_subjects: ["BIBLE_OT", "BIBLE_NT"] }).eq("id", userId);
@@ -159,6 +162,54 @@ Deno.serve(async (request) => {
     const { error: assignmentError } = await service.from("learning_organization_admins").insert({ organization_id: organizationId, user_id: userId, active: true });
     if (assignmentError) { await service.auth.admin.deleteUser(userId); return json({ message: assignmentError.message }, 409); }
     return json({ status: "success", administrator: { id: userId, display_name: displayName, login_email: email } });
+  }
+
+  if (action === "delete_organization") {
+    const accessToken = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+    const authClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const systemAdmin = await requireAdmin(authClient, service, accessToken);
+    const organizationId = String(payload.organization_id || "").trim();
+    if (!systemAdmin) return json({ message: "System administrator access is required." }, 403);
+    const { error } = await service.from("learning_organizations").update({ active: false }).eq("id", organizationId);
+    if (error) return json({ message: "Unable to remove the organization." }, 500);
+    return json({ status: "success" });
+  }
+
+  if (action === "delete_member") {
+    const accessToken = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+    const authClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const memberId = String(payload.member_id || "").trim();
+    const { data: member } = await service.from("learning_organization_members").select("id,organization_id,auth_user_id").eq("id", memberId).maybeSingle();
+    if (!member) return json({ message: "The member was not found." }, 404);
+    const adminUser = await requireOrganizationAdmin(authClient, service, accessToken, member.organization_id);
+    if (!adminUser) return json({ message: "Organization administrator access is required." }, 403);
+    const { error: deleteMemberError } = await service.from("learning_organization_members").delete().eq("id", member.id);
+    if (deleteMemberError) return json({ message: "Unable to remove the member." }, 500);
+    if (member.auth_user_id) await service.auth.admin.deleteUser(member.auth_user_id);
+    return json({ status: "success" });
+  }
+
+  if (action === "send_password_reset") {
+    const accessToken = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+    const authClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const organizationId = String(payload.organization_id || "").trim();
+    const email = String(payload.login_email || "").trim().toLowerCase();
+    const adminUser = await requireOrganizationAdmin(authClient, service, accessToken, organizationId);
+    if (!adminUser) return json({ message: "Organization administrator access is required." }, 403);
+    const { data: member } = await service.from("learning_organization_members").select("id").eq("organization_id", organizationId).ilike("login_email", email).maybeSingle();
+    let allowed = !!member;
+    if (!allowed) {
+      const { data: assignments } = await service.from("learning_organization_admins").select("user_id").eq("organization_id", organizationId).eq("active", true);
+      for (const assignment of assignments || []) {
+        const { data: adminAccount } = await service.auth.admin.getUserById(assignment.user_id);
+        if (adminAccount.user?.email?.toLowerCase() === email) { allowed = true; break; }
+      }
+    }
+    if (!allowed) return json({ message: "This email is not registered for the organization." }, 404);
+    const anonymous = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { error } = await anonymous.auth.resetPasswordForEmail(email, { redirectTo: passwordResetRedirect });
+    if (error) return json({ message: "Unable to send password reset email." }, 500);
+    return json({ status: "success" });
   }
 
   return json({ message: "Unknown action." }, 400);
