@@ -30,6 +30,21 @@ async function requireAdmin(
   return profile?.active && profile.account_type === "admin" ? authData.user : null;
 }
 
+async function requireOrganizationAdmin(
+  authClient: ReturnType<typeof createClient>,
+  service: ReturnType<typeof createClient>,
+  accessToken: string,
+  organizationId: string,
+) {
+  const { data: authData, error: authError } = await authClient.auth.getUser(accessToken);
+  if (authError || !authData.user) return null;
+  const { data: profile } = await service.from("member_profiles").select("account_type,active").eq("id", authData.user.id).maybeSingle();
+  if (profile?.active && profile.account_type === "admin") return authData.user;
+  const { data: assignment } = await service.from("learning_organization_admins")
+    .select("user_id").eq("organization_id", organizationId).eq("user_id", authData.user.id).eq("active", true).maybeSingle();
+  return assignment ? authData.user : null;
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return json({ message: "Method not allowed." }, 405);
@@ -76,13 +91,13 @@ Deno.serve(async (request) => {
   if (action === "create_member") {
     const accessToken = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
     const authClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const adminUser = await requireAdmin(authClient, service, accessToken);
-    if (!adminUser) return json({ message: "Administrator access is required." }, 403);
     const organizationId = String(payload.organization_id || "").trim();
     const memberName = String(payload.member_name || "").trim();
     const loginEmail = String(payload.login_email || "").trim().toLowerCase();
     const memo = String(payload.memo || "").trim();
     const pin = String(payload.pin || "").trim();
+    const adminUser = await requireOrganizationAdmin(authClient, service, accessToken, organizationId);
+    if (!adminUser) return json({ message: "Organization administrator access is required." }, 403);
     if (!organizationId || !memberName || !loginEmail || !loginEmail.includes("@") || !validPin(pin)) {
       return json({ message: "Member name, email, and a 4–12 digit PIN are required." }, 400);
     }
@@ -122,6 +137,28 @@ Deno.serve(async (request) => {
       return json({ message: memberError.message }, 409);
     }
     return json({ status: "success", member });
+  }
+
+  if (action === "create_organization_admin") {
+    const accessToken = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+    const authClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const systemAdmin = await requireAdmin(authClient, service, accessToken);
+    if (!systemAdmin) return json({ message: "System administrator access is required." }, 403);
+    const organizationId = String(payload.organization_id || "").trim();
+    const displayName = String(payload.display_name || "").trim();
+    const email = String(payload.login_email || "").trim().toLowerCase();
+    const pin = String(payload.pin || "").trim();
+    if (!organizationId || !displayName || !email.includes("@") || !validPin(pin)) return json({ message: "Name, email, and a 4–12 digit PIN are required." }, 400);
+    const { data: organization } = await service.from("learning_organizations").select("id,active").eq("id", organizationId).maybeSingle();
+    if (!organization?.active) return json({ message: "The organization is unavailable." }, 400);
+    const { data: createdUser, error: createError } = await service.auth.admin.createUser({ email, password: pin, email_confirm: true, user_metadata: { organization_admin: true, display_name: displayName } });
+    if (createError || !createdUser.user) return json({ message: createError?.message || "Unable to create the organization administrator." }, 409);
+    const userId = createdUser.user.id;
+    const { error: profileError } = await service.from("member_profiles").update({ display_name: displayName, account_type: "personal", payment_status: "a", is_trial: false, active: true, access_subjects: ["BIBLE_OT", "BIBLE_NT"] }).eq("id", userId);
+    if (profileError) { await service.auth.admin.deleteUser(userId); return json({ message: "Unable to prepare the administrator profile." }, 500); }
+    const { error: assignmentError } = await service.from("learning_organization_admins").insert({ organization_id: organizationId, user_id: userId, active: true });
+    if (assignmentError) { await service.auth.admin.deleteUser(userId); return json({ message: assignmentError.message }, 409); }
+    return json({ status: "success", administrator: { id: userId, display_name: displayName, login_email: email } });
   }
 
   return json({ message: "Unknown action." }, 400);
