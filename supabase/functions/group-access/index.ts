@@ -54,24 +54,22 @@ Deno.serve(async (request) => {
   }
 
   if (action === "login") {
-    const organizationId = String(payload.organization_id || "").trim();
-    const memberName = String(payload.member_name || "").trim();
+    const loginEmail = String(payload.login_email || "").trim().toLowerCase();
     const pin = String(payload.pin || "").trim();
-    if (!organizationId || !memberName || !validPin(pin)) {
-      return json({ message: "Organization, member name, and a 4–12 digit PIN are required." }, 400);
+    if (!loginEmail || !loginEmail.includes("@") || !validPin(pin)) {
+      return json({ message: "Email and a 4–12 digit PIN are required." }, 400);
     }
     const { data: member } = await service
       .from("learning_organization_members")
-      .select("auth_user_id,active,organization_id")
-      .eq("organization_id", organizationId)
-      .ilike("member_name", memberName)
+      .select("auth_user_id,active,login_email")
+      .ilike("login_email", loginEmail)
       .maybeSingle();
-    if (!member?.active || !member.auth_user_id) return json({ message: "Organization, member name, or PIN is incorrect." }, 401);
+    if (!member?.active || !member.auth_user_id) return json({ message: "Email or PIN is incorrect." }, 401);
     const { data: authUser, error: authUserError } = await service.auth.admin.getUserById(member.auth_user_id);
-    if (authUserError || !authUser.user?.email) return json({ message: "Organization, member name, or PIN is incorrect." }, 401);
+    if (authUserError || !authUser.user?.email) return json({ message: "Email or PIN is incorrect." }, 401);
     const anonymous = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: sessionData, error: signInError } = await anonymous.auth.signInWithPassword({ email: authUser.user.email, password: pin });
-    if (signInError || !sessionData.session) return json({ message: "Organization, member name, or PIN is incorrect." }, 401);
+    if (signInError || !sessionData.session) return json({ message: "Email or PIN is incorrect." }, 401);
     return json({ status: "success", session: sessionData.session });
   }
 
@@ -82,16 +80,18 @@ Deno.serve(async (request) => {
     if (!adminUser) return json({ message: "Administrator access is required." }, 403);
     const organizationId = String(payload.organization_id || "").trim();
     const memberName = String(payload.member_name || "").trim();
+    const loginEmail = String(payload.login_email || "").trim().toLowerCase();
     const memo = String(payload.memo || "").trim();
     const pin = String(payload.pin || "").trim();
-    if (!organizationId || !memberName || !validPin(pin)) return json({ message: "Member name and a 4–12 digit PIN are required." }, 400);
+    if (!organizationId || !memberName || !loginEmail || !loginEmail.includes("@") || !validPin(pin)) {
+      return json({ message: "Member name, email, and a 4–12 digit PIN are required." }, 400);
+    }
     const { data: organization } = await service.from("learning_organizations").select("id,seat_limit,active").eq("id", organizationId).maybeSingle();
     if (!organization?.active) return json({ message: "The organization is unavailable." }, 400);
     const { count } = await service.from("learning_organization_members").select("id", { count: "exact", head: true }).eq("organization_id", organizationId).eq("active", true);
     if ((count || 0) >= organization.seat_limit) return json({ message: "The organization seat limit has been reached." }, 409);
-    const internalEmail = `group-${crypto.randomUUID()}@members.gongboo.invalid`;
     const { data: createdUser, error: createUserError } = await service.auth.admin.createUser({
-      email: internalEmail,
+      email: loginEmail,
       password: pin,
       email_confirm: true,
       user_metadata: { group_member: true, display_name: memberName },
@@ -113,6 +113,7 @@ Deno.serve(async (request) => {
     const { data: member, error: memberError } = await service.from("learning_organization_members").insert({
       organization_id: organizationId,
       member_name: memberName,
+      login_email: loginEmail,
       memo,
       auth_user_id: userId,
     }).select("id,member_name,memo,active,created_at").single();
