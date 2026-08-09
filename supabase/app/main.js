@@ -6623,7 +6623,15 @@ function biblePeopleLoadNameIndex_() {
 
 function biblePeopleLoadContextLinks_() {
   if (bibleContextLinksPromise) return bibleContextLinksPromise;
-  bibleContextLinksPromise = fetch('./content/bible-context-links.json?v=8.48-entity-context1')
+  // Context links were moved out of the public repository into authenticated
+  // Supabase Storage.  Keep the old static-file fallback only for local
+  // standalone previews so people/place/event connections do not disappear
+  // after the public repository cleanup.
+  var contextRequest = (window.BibleSupabaseProvider &&
+    typeof window.BibleSupabaseProvider.fetchContent === 'function')
+    ? window.BibleSupabaseProvider.fetchContent('content/bible-context-links.json')
+    : fetch('./content/bible-context-links.json?v=8.88-context-storage1');
+  bibleContextLinksPromise = contextRequest
     .then(function(response) {
       if (!response.ok) throw new Error('Bible context links could not be loaded.');
       return response.json();
