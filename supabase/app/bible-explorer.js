@@ -844,7 +844,7 @@ function timelineEventForRow(row) {
   ) || null;
 }
 
-function renderTimelineEventDetail(timeline, rowIndex) {
+function renderTimelineEventDetail(timeline, rowIndex, options = {}) {
   const output = document.getElementById('bibleTimelineOutput');
   const selection = output?.querySelector('.bible-timeline-selection');
   const rows = Array.isArray(timeline?.graphic?.rows) ? timeline.graphic.rows : [];
@@ -860,7 +860,9 @@ function renderTimelineEventDetail(timeline, rowIndex) {
   }));
   const places = (event?.place_ids || []).map((placeId) =>
     data.places.find((place) => place.id === placeId)).filter(Boolean);
-  selection.innerHTML = `<article class="bible-person-card">
+  selection.dataset.timelineEventIndex = String(rowIndex);
+  selection.classList.toggle('is-revealed', Boolean(options.reveal));
+  selection.innerHTML = `<article class="bible-person-card" data-timeline-event-detail="active">
     <div class="bible-person-title"><div><h3>${escapeHtml(row[1])}</h3>
       <p>${escapeHtml(row[2] || 'No reference')} · ${escapeHtml(row[3] || 'No source date')}</p></div></div>
     <section class="bible-person-section"><h4>Related people</h4>
@@ -897,6 +899,10 @@ function renderTimelineEventDetail(timeline, rowIndex) {
   });
   const eventSelector = document.getElementById('bibleTimelineEventSelector');
   if (eventSelector) eventSelector.value = String(rowIndex);
+  if (options.reveal) {
+    selection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.setTimeout(() => selection.classList.remove('is-revealed'), 1700);
+  }
 }
 
 function renderTimeline(index = 0, selectedEventIndex = 0) {
@@ -949,7 +955,7 @@ function renderTimeline(index = 0, selectedEventIndex = 0) {
   timelineHost.addEventListener('scene25d:select', (event) => {
     const node = event.detail.node;
     const rowIndex = Number(String(node.id || '').replace('event_', '')) || 0;
-    renderTimelineEventDetail(timeline, rowIndex);
+    renderTimelineEventDetail(timeline, rowIndex, { reveal: true });
   });
   if (rows.length) renderTimelineEventDetail(timeline, eventSelector?.value || 0);
   setStatus(`${timeline.event_count} events loaded in Scripture order.`);
@@ -1460,7 +1466,7 @@ function init() {
   document.getElementById('bibleTimelineSelector').addEventListener('change', (event) => renderTimeline(event.target.value));
   document.getElementById('bibleTimelineEventSelector').addEventListener('change', (event) =>
     renderTimelineEventDetail(data.timelines[Number(document.getElementById('bibleTimelineSelector').value) || 0],
-      event.target.value));
+      event.target.value, { reveal: true }));
   document.getElementById('biblePatristicSearch').addEventListener('input', (event) => renderPatristic(event.target.value));
   document.querySelectorAll('[data-knowledge-section]').forEach((button) => {
     button.addEventListener('click', () => renderKnowledge({ section: button.dataset.knowledgeSection }));
