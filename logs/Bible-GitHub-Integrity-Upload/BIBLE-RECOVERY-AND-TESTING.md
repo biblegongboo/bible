@@ -71,9 +71,26 @@ python scripts/verify_deployed_bible_browser_smoke.py
 ```
 
 The browser test signs in, chooses a Bible subject, verifies the application
-shell, People, Abraham to Sodom context, Atlas/Sodom, Journeys, Timeline, Early
-Church, Study, and Library. It saves a JSON result and, on failure, a screenshot
-and page capture under `smoke-artifacts/`. Use `--headed` to watch the test run.
+shell, People, Abraham to Sodom context, Atlas/Sodom, Journeys, Timeline, and
+Early Church. It then opens every visible Study item (Verse Topics, Words,
+Dictionary, Topics, Books) and every Library item (Commentary, Church Fathers,
+Dictionaries, Sermons, Hymns, Historical Works), requiring a rendered result
+for each. It saves a JSON result and, on failure, a screenshot and page capture
+under `smoke-artifacts/`. Use `--headed` to watch the test run.
+
+## What the two sample checks cover
+
+`verify_bible_sample_health.mjs` is the fast source/data representative check.
+It covers People, People-to-Atlas context, Places, all 2.5D map layers,
+Journeys, Timeline, every Study data family, all 66 Word shards, semantic
+categories, Early Church reader/index, and Library image/book/chapter/dictionary/topic
+indexes.
+
+`verify_deployed_bible_browser_smoke.py` is the deployed user-interface check.
+It opens every visible content category above. Therefore a missing category is
+reported even when a few familiar samples such as Abraham and Sodom still work.
+The separate full-integrity and live-Storage checks remain required before a
+large release because they validate every record/object rather than a sample.
 
 ## Recovery baseline
 

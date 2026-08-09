@@ -100,6 +100,31 @@ def main() -> int:
             driver.find_element(By.CSS_SELECTOR, f'[data-bible-explore-tab="{tab}"]').click()
             check(label, lambda selector=required: wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, selector))))
 
+        # Every visible Study sub-menu must load a representative result list.
+        driver.find_element(By.CSS_SELECTOR, '[data-bible-explore-tab="knowledge"]').click()
+        for label, section, result_id in [
+            ("verse topics", "entities", "bibleKnowledgeEntityResults"),
+            ("words", "words", "bibleWordResults"),
+            ("dictionary", "dictionary", "bibleDictionaryResults"),
+            ("topics", "topics", "bibleTopicResults"),
+            ("books", "books", "bibleBookResults"),
+        ]:
+            driver.find_element(By.CSS_SELECTOR, f'[data-knowledge-section="{section}"]').click()
+            check(f"study: {label}", lambda element_id=result_id: wait.until(lambda d: len(d.find_element(By.ID, element_id).find_elements(By.CSS_SELECTOR, "*")) > 0))
+
+        # Every Library category must load at least one rendered source record.
+        driver.find_element(By.CSS_SELECTOR, '[data-bible-explore-tab="library"]').click()
+        for label, section in [
+            ("commentary", "verse"),
+            ("church fathers", "church-father-quotes"),
+            ("dictionaries", "reference"),
+            ("sermons", "sermon"),
+            ("hymns", "hymn"),
+            ("historical works", "historical-work"),
+        ]:
+            driver.find_element(By.CSS_SELECTOR, f'[data-library-section="{section}"]').click()
+            check(f"library: {label}", lambda: wait.until(lambda d: len(d.find_element(By.ID, "bibleLibraryResults").find_elements(By.CSS_SELECTOR, "*")) > 0))
+
     except Exception as error:  # report a screenshot and DOM state without credentials
         result["status"] = "failed"
         result["failures"].append(str(error))
