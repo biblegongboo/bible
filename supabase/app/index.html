@@ -1915,6 +1915,7 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-knowledge-more{text-align:center;background:#eff6ff;border-top:1px solid #bfdbfe;border-bottom:1px solid #bfdbfe}
   .bible-people-empty{min-height:500px;display:grid;place-content:center;gap:7px;text-align:center;padding:30px;color:#64748b}.bible-people-empty strong{font-size:20px;color:#334155}
   .bible-person-card{padding:24px}.bible-person-title{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;border-bottom:1px solid #e2e8f0;padding-bottom:17px}
+  .bible-museum-preview{margin-top:18px;border:1px solid #dbe3ee;border-radius:12px;overflow:hidden;background:#f8fafc}.bible-museum-preview>p{padding:12px;margin:0;color:#64748b}.bible-museum-preview img{display:block;width:100%;max-height:460px;object-fit:contain;background:#f1f5f9}.bible-museum-preview img~p{margin:0;padding:8px 12px;color:#475569;line-height:1.5}.bible-museum-credit{font-size:12px;color:#64748b}
   .bible-person-title h3{font-size:28px;margin:0}.bible-person-title p{margin:4px 0 0;color:#64748b}.bible-person-id{font:700 11px ui-monospace,Consolas,monospace;color:#64748b;background:#f1f5f9;border-radius:8px;padding:7px 9px}
   .bible-person-description{margin:18px 0;line-height:1.65;color:#334155}.bible-person-meta{display:flex;flex-wrap:wrap;gap:7px;margin:13px 0}
   .bible-person-chip{display:inline-flex;padding:6px 9px;border-radius:999px;background:#e0ecff;color:#1e40af;font-size:12px;font-weight:800}
@@ -2044,9 +2045,9 @@ html:not(.admin-user) .admin-preview-panel {
 
 <script src="./supabase-config.js?v=8.60-supabase-storage1"></script>
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
-<script src="./supabase-provider.js?v=8.89-met-museum1"></script>
+<script src="./supabase-provider.js?v=8.90-met-preview1"></script>
 <script type="module">
-import { initialize } from './main.js?v=8.89-met-museum1';
+import { initialize } from './main.js?v=8.90-met-preview1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
