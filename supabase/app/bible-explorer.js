@@ -1217,6 +1217,19 @@ function museumEmpty(title, text = '') {
   return knowledgeEmpty(title, text);
 }
 
+const metArtworkPreviewCache = new Map();
+
+async function loadMetArtworkPreview(record) {
+  const objectId = Number(record && record.met_object_id);
+  if (!Number.isFinite(objectId) || objectId <= 0) return null;
+  if (!metArtworkPreviewCache.has(objectId)) {
+    metArtworkPreviewCache.set(objectId, fetch(`https://collectionapi.metmuseum.org/public/collection/v1/objects/${objectId}`)
+      .then((response) => response.ok ? response.json() : null)
+      .catch(() => null));
+  }
+  return metArtworkPreviewCache.get(objectId);
+}
+
 async function renderMuseum(selectedIndex = 0) {
   const results = document.getElementById('bibleMuseumResults');
   const detail = document.getElementById('bibleMuseumDetail');
@@ -1256,8 +1269,23 @@ async function renderMuseum(selectedIndex = 0) {
         ${record.timeline_100y ? `<p><strong>Timeline:</strong> ${escapeHtml(record.timeline_100y.split('|').join(' · '))}</p>` : ''}
         ${record.region_tags ? `<p><strong>Region:</strong> ${escapeHtml(record.region_tags.split('|').join(' · '))}</p>` : ''}
         ${record.topic_tags ? `<p><strong>Topics:</strong> ${escapeHtml(record.topic_tags.split('|').join(' · '))}</p>` : ''}
-        <a class="bible-patristic-read-button" href="${escapeHtml(record.object_url)}" target="_blank" rel="noopener noreferrer">View original at The Met ↗</a>
+        <section class="bible-museum-preview" data-met-preview="${escapeHtml(record.met_object_id)}"><p>Loading public artwork preview…</p></section>
+        <p class="bible-museum-credit">Metadata and image, when supplied: The Metropolitan Museum of Art Open Access.</p>
       </article>`;
+      loadMetArtworkPreview(record).then((preview) => {
+        const target = detail.querySelector(`[data-met-preview="${record.met_object_id}"]`);
+        if (!target) return;
+        if (!preview) {
+          target.innerHTML = '<p>No public image preview was supplied for this work.</p>';
+          return;
+        }
+        const artist = [preview.artistDisplayName, preview.artistDisplayBio].filter(Boolean).join(' · ');
+        const image = preview.primaryImageSmall || preview.primaryImage;
+        target.innerHTML = `${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(preview.title || record.title || 'Met artwork')}" loading="lazy">` : '<p>No public image preview was supplied for this work.</p>'}
+          ${artist ? `<p><strong>Artist:</strong> ${escapeHtml(artist)}</p>` : ''}
+          ${preview.medium ? `<p><strong>Material:</strong> ${escapeHtml(preview.medium)}</p>` : ''}
+          ${preview.creditLine ? `<p><strong>Collection credit:</strong> ${escapeHtml(preview.creditLine)}</p>` : ''}`;
+      });
     };
     results.innerHTML = rows.map((record, index) => `<button type="button" class="bible-person-result" data-met-result="${index}">
       <strong>${escapeHtml(record.title || 'Untitled work')}</strong>
