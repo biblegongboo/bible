@@ -1217,6 +1217,12 @@ function museumEmpty(title, text = '') {
   return knowledgeEmpty(title, text);
 }
 
+function museumDisplayTitle(record) {
+  const title = String(record && record.title || '').trim();
+  const objectName = String(record && record.object_name || '').trim();
+  return (!title || /^untitled work$/i.test(title)) ? objectName : title;
+}
+
 const metArtworkPreviewCache = new Map();
 
 async function loadMetArtworkPreview(record) {
@@ -1256,9 +1262,14 @@ async function renderMuseum(selectedIndex = 0) {
       return;
     }
     const show = (record) => {
+      const displayTitle = museumDisplayTitle(record);
+      const objectName = String(record.object_name || '').trim();
+      const subtitle = displayTitle && displayTitle !== objectName
+        ? (objectName || record.culture || 'Met collection object')
+        : (record.culture || record.object_date || 'Met collection object');
       detail.innerHTML = `<article class="bible-person-card bible-museum-card">
-        <div class="bible-person-title"><div>${record.title ? `<h3>${escapeHtml(record.title)}</h3>` : ''}
-          <p>${escapeHtml(record.object_name || record.culture || 'Met collection object')}</p></div>
+        <div class="bible-person-title"><div>${displayTitle ? `<h3>${escapeHtml(displayTitle)}</h3>` : ''}
+          <p>${escapeHtml(subtitle)}</p></div>
           <span class="bible-person-id">MET ${escapeHtml(record.met_object_id)}</span></div>
         <div class="bible-person-meta">
           ${record.object_date ? `<span class="bible-person-chip">${escapeHtml(record.object_date)}</span>` : ''}
@@ -1287,10 +1298,12 @@ async function renderMuseum(selectedIndex = 0) {
           ${preview.creditLine ? `<p><strong>Collection credit:</strong> ${escapeHtml(preview.creditLine)}</p>` : ''}`;
       });
     };
-    results.innerHTML = rows.map((record, index) => `<button type="button" class="bible-person-result" data-met-result="${index}">
-      ${record.title ? `<strong>${escapeHtml(record.title)}</strong>` : ''}
-      <span>${escapeHtml(record.object_name || record.object_date || record.culture || 'Met collection')}</span>
-      ${record.object_name && record.object_date ? `<span>${escapeHtml(record.object_date)}</span>` : ''}</button>`).join('');
+    results.innerHTML = rows.map((record, index) => {
+      const displayTitle = museumDisplayTitle(record);
+      return `<button type="button" class="bible-person-result" data-met-result="${index}">
+        ${displayTitle ? `<strong>${escapeHtml(displayTitle)}</strong>` : ''}
+        <span>${escapeHtml(record.object_date || record.culture || 'Met collection')}</span></button>`;
+    }).join('');
     results.querySelectorAll('[data-met-result]').forEach((button) => button.addEventListener('click', () => show(rows[Number(button.dataset.metResult)])));
     show(rows[Math.min(Math.max(0, selectedIndex), rows.length - 1)]);
     setStatus(`${rows.length} Met artworks loaded. Refine the filters to explore the full catalog.`);
