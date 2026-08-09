@@ -1275,6 +1275,7 @@ async function renderMuseum(selectedIndex = 0) {
           ${record.object_date ? `<span class="bible-person-chip">${escapeHtml(record.object_date)}</span>` : ''}
           ${record.culture ? `<span class="bible-person-chip">${escapeHtml(record.culture)}</span>` : ''}
           ${String(record.is_public_domain) === 'true' ? '<span class="bible-person-chip">Public domain</span>' : ''}
+          <span class="bible-person-chip bible-museum-image-status" data-met-image-status="${escapeHtml(record.met_object_id)}">Checking image…</span>
         </div>
         ${record.bible_era_tags ? `<p><strong>Bible-era context:</strong> ${escapeHtml(record.bible_era_tags.split('|').join(' · '))}</p>` : ''}
         ${record.timeline_100y ? `<p><strong>Timeline:</strong> ${escapeHtml(record.timeline_100y.split('|').join(' · '))}</p>` : ''}
@@ -1285,9 +1286,11 @@ async function renderMuseum(selectedIndex = 0) {
       </article>`;
       loadMetArtworkPreview(record).then((preview) => {
         const target = detail.querySelector(`[data-met-preview="${record.met_object_id}"]`);
+        const imageStatus = detail.querySelector(`[data-met-image-status="${record.met_object_id}"]`);
         if (!target) return;
         if (!preview) {
           target.innerHTML = '<p>No public image preview was supplied for this work.</p>';
+          if (imageStatus) imageStatus.textContent = 'No public image';
           return;
         }
         const artist = [preview.artistDisplayName, preview.artistDisplayBio].filter(Boolean).join(' · ');
@@ -1296,6 +1299,7 @@ async function renderMuseum(selectedIndex = 0) {
           ${artist ? `<p><strong>Artist:</strong> ${escapeHtml(artist)}</p>` : ''}
           ${preview.medium ? `<p><strong>Material:</strong> ${escapeHtml(preview.medium)}</p>` : ''}
           ${preview.creditLine ? `<p><strong>Collection credit:</strong> ${escapeHtml(preview.creditLine)}</p>` : ''}`;
+        if (imageStatus) imageStatus.textContent = image ? '🖼 Image available' : 'No public image';
       });
     };
     results.innerHTML = rows.map((record, index) => {
