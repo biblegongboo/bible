@@ -1213,6 +1213,66 @@ async function renderLibrary(options = {}) {
   }
 }
 
+function museumEmpty(title, text = '') {
+  return knowledgeEmpty(title, text);
+}
+
+async function renderMuseum(selectedIndex = 0) {
+  const results = document.getElementById('bibleMuseumResults');
+  const detail = document.getElementById('bibleMuseumDetail');
+  const search = document.getElementById('bibleMuseumSearch');
+  const era = document.getElementById('bibleMuseumEra');
+  const region = document.getElementById('bibleMuseumRegion');
+  const topic = document.getElementById('bibleMuseumTopic');
+  if (!results || !detail || !search || !era || !region || !topic) return;
+  const version = beginSearchRender('museum');
+  results.innerHTML = museumEmpty('Loading Met Museum catalog');
+  detail.innerHTML = museumEmpty('Select an artwork', 'The full Met catalog is searchable by title, era, region, and cultural topic.');
+  try {
+    if (!window.BibleSupabaseProvider || typeof window.BibleSupabaseProvider.metMuseumSearch !== 'function') {
+      throw new Error('Museum catalog is not configured yet.');
+    }
+    const rows = await window.BibleSupabaseProvider.metMuseumSearch({
+      query: search.value, era: era.value, region: region.value, topic: topic.value, limit: 60
+    });
+    if (!isCurrentSearchRender('museum', version)) return;
+    if (!rows.length) {
+      results.innerHTML = museumEmpty('No matching artwork found');
+      detail.innerHTML = museumEmpty('Try another title or clear one of the filters.');
+      setStatus('No Met artworks matched the current filters.');
+      return;
+    }
+    const show = (record) => {
+      detail.innerHTML = `<article class="bible-person-card bible-museum-card">
+        <div class="bible-person-title"><div><h3>${escapeHtml(record.title || 'Untitled work')}</h3>
+          <p>${escapeHtml(record.object_name || record.culture || 'Met collection object')}</p></div>
+          <span class="bible-person-id">MET ${escapeHtml(record.met_object_id)}</span></div>
+        <div class="bible-person-meta">
+          ${record.object_date ? `<span class="bible-person-chip">${escapeHtml(record.object_date)}</span>` : ''}
+          ${record.culture ? `<span class="bible-person-chip">${escapeHtml(record.culture)}</span>` : ''}
+          ${String(record.is_public_domain) === 'true' ? '<span class="bible-person-chip">Public domain</span>' : ''}
+        </div>
+        ${record.bible_era_tags ? `<p><strong>Bible-era context:</strong> ${escapeHtml(record.bible_era_tags.split('|').join(' · '))}</p>` : ''}
+        ${record.timeline_100y ? `<p><strong>Timeline:</strong> ${escapeHtml(record.timeline_100y.split('|').join(' · '))}</p>` : ''}
+        ${record.region_tags ? `<p><strong>Region:</strong> ${escapeHtml(record.region_tags.split('|').join(' · '))}</p>` : ''}
+        ${record.topic_tags ? `<p><strong>Topics:</strong> ${escapeHtml(record.topic_tags.split('|').join(' · '))}</p>` : ''}
+        <a class="bible-patristic-read-button" href="${escapeHtml(record.object_url)}" target="_blank" rel="noopener noreferrer">View original at The Met ↗</a>
+      </article>`;
+    };
+    results.innerHTML = rows.map((record, index) => `<button type="button" class="bible-person-result" data-met-result="${index}">
+      <strong>${escapeHtml(record.title || 'Untitled work')}</strong>
+      <span>${escapeHtml(record.object_date || record.culture || 'Met collection')}</span></button>`).join('');
+    results.querySelectorAll('[data-met-result]').forEach((button) => button.addEventListener('click', () => show(rows[Number(button.dataset.metResult)])));
+    show(rows[Math.min(Math.max(0, selectedIndex), rows.length - 1)]);
+    setStatus(`${rows.length} Met artworks loaded. Refine the filters to explore the full catalog.`);
+  } catch (error) {
+    if (!isCurrentSearchRender('museum', version)) return;
+    results.innerHTML = museumEmpty('Museum catalog is temporarily unavailable');
+    detail.innerHTML = museumEmpty('Museum catalog is not ready yet', error.message);
+    setStatus(error.message, true);
+  }
+}
+
 async function openContext(options = {}, navigationOptions = {}) {
   open();
   if (!navigationOptions.skipHistory) {
@@ -1248,6 +1308,8 @@ async function openContext(options = {}, navigationOptions = {}) {
     renderKnowledge(options);
   } else if (tab === 'library') {
     renderLibrary(options);
+  } else if (tab === 'museum') {
+    renderMuseum();
   }
 }
 
@@ -1288,6 +1350,7 @@ function populate() {
   if (activeTab === 'patristic') requestAnimationFrame(() => renderPatristic());
   if (activeTab === 'knowledge') requestAnimationFrame(() => renderKnowledge());
   if (activeTab === 'library') requestAnimationFrame(() => renderLibrary());
+  if (activeTab === 'museum') requestAnimationFrame(() => renderMuseum());
 }
 
 function open() {
@@ -1334,6 +1397,7 @@ function init() {
       if (selectedTab === 'patristic') document.getElementById('biblePatristicDetail').innerHTML = '<div class="bible-people-empty"><strong>Loading Early Church works...</strong></div>';
       if (selectedTab === 'knowledge') document.getElementById('bibleKnowledgeEntityDetail').innerHTML = '<div class="bible-people-empty"><strong>Loading Bible study data...</strong></div>';
       if (selectedTab === 'library') document.getElementById('bibleLibraryDetail').innerHTML = '<div class="bible-people-empty"><strong>Loading Bible library...</strong></div>';
+      if (selectedTab === 'museum') document.getElementById('bibleMuseumDetail').innerHTML = '<div class="bible-people-empty"><strong>Loading Met Museum catalog...</strong></div>';
       loadData().then(() => requestAnimationFrame(() => {
         if (selectedTab === 'places') renderPlaceResults(document.getElementById('biblePlaceSearch').value);
         if (selectedTab === 'journeys') renderJourney(document.getElementById('bibleJourneySelector').value);
@@ -1341,6 +1405,7 @@ function init() {
         if (selectedTab === 'patristic') renderPatristic(document.getElementById('biblePatristicSearch').value);
         if (selectedTab === 'knowledge') renderKnowledge();
         if (selectedTab === 'library') renderLibrary();
+        if (selectedTab === 'museum') renderMuseum();
       })).catch((error) => setStatus(error.message, true));
     });
   });
@@ -1365,6 +1430,9 @@ function init() {
   document.getElementById('bibleWordSearch').addEventListener('input', (event) => renderWordSearch(event.target.value));
   document.getElementById('bibleDictionarySearch').addEventListener('input', (event) => renderDictionary(event.target.value));
   document.getElementById('bibleBookSearch').addEventListener('input', (event) => renderBooks(event.target.value));
+  ['bibleMuseumSearch', 'bibleMuseumEra', 'bibleMuseumRegion', 'bibleMuseumTopic'].forEach((id) => {
+    document.getElementById(id)?.addEventListener(id === 'bibleMuseumSearch' ? 'input' : 'change', () => renderMuseum());
+  });
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !panel.hidden) close(); });
 }
 
