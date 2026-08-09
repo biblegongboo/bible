@@ -149,6 +149,24 @@
     return callQuestionFunction_({ action: 'catalog', sheet: 'BIBLE-OT' }, signal);
   }
 
+  async function metMuseumSearch_(payload, signal) {
+    var query = String(payload && payload.query || '').trim();
+    var limit = Math.min(100, Math.max(1, parseInt(payload && payload.limit, 10) || 60));
+    var parts = [
+      'select=met_object_id,title,object_name,culture,period,object_date,year_begin,year_end,region_tags,topic_tags,bible_era_tags,timeline_100y,is_public_domain,object_url',
+      'order=title.asc',
+      'limit=' + limit
+    ];
+    if (query) parts.push('title=ilike.' + encodeURIComponent(query + '*'));
+    ['era', 'region', 'topic'].forEach(function(name) {
+      var value = String(payload && payload[name] || '').trim();
+      if (value) parts.push(name === 'era' ? 'bible_era_tags=ilike.' + encodeURIComponent('*' + value + '*') :
+        name === 'region' ? 'region_tags=ilike.' + encodeURIComponent('*' + value + '*') :
+        'topic_tags=ilike.' + encodeURIComponent('*' + value + '*'));
+    });
+    return rest_('met_museum_objects', parts.join('&'), signal);
+  }
+
   async function peopleSearch_(payload, signal) {
     var query = String(payload.q || '').trim();
     var limit = Math.min(100, Math.max(1, parseInt(payload.limit, 10) || 30));
@@ -301,6 +319,7 @@
   window.BibleSupabaseProvider = Object.freeze({
     isConfigured: configured_,
     request: request_,
-    fetchContent: fetchContent_
+    fetchContent: fetchContent_,
+    metMuseumSearch: metMuseumSearch_
   });
 })();
