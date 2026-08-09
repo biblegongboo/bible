@@ -301,6 +301,7 @@
       <button type="button" data-bible-explore-tab="patristic">Early Church</button>
       <button type="button" data-bible-explore-tab="knowledge">Study</button>
       <button type="button" data-bible-explore-tab="library">Library</button>
+      <button type="button" data-bible-explore-tab="museum">Museum</button>
     </nav>
     <div id="bibleExploreStatus" class="bible-people-status" aria-live="polite">Loading Bible context data...</div>
     <section class="bible-explore-view is-active" data-bible-explore-view="places">
@@ -386,6 +387,18 @@
       <div class="bible-people-layout bible-explore-layout">
         <aside id="bibleLibraryResults" class="bible-people-results" aria-label="Library sources"></aside>
         <main id="bibleLibraryDetail" class="bible-people-detail"></main>
+      </div>
+    </section>
+    <section class="bible-explore-view" data-bible-explore-view="museum">
+      <div class="bible-explore-toolbar bible-museum-toolbar">
+        <input id="bibleMuseumSearch" type="search" autocomplete="off" placeholder="Search Met artwork title…">
+        <select id="bibleMuseumEra" aria-label="Filter museum by Bible era"><option value="">All eras</option><option>Patriarchal era</option><option>Exodus and Judges</option><option>United and divided monarchy</option><option>Exile and Persian return</option><option>Hellenistic era</option><option>New Testament Roman era</option></select>
+        <select id="bibleMuseumRegion" aria-label="Filter museum by region"><option value="">All regions</option><option>Egypt</option><option>Levant and Canaan</option><option>Mesopotamia</option><option>Persia</option><option>Greek world</option><option>Roman world</option></select>
+        <select id="bibleMuseumTopic" aria-label="Filter museum by topic"><option value="">All topics</option><option>Clothing and textiles</option><option>Homes and daily life</option><option>Food and agriculture</option><option>Cities and architecture</option><option>Military and politics</option><option>Religion and ritual</option><option>Economy and work</option><option>Writing and language</option><option>Environment and animals</option></select>
+      </div>
+      <div class="bible-people-layout bible-explore-layout">
+        <aside id="bibleMuseumResults" class="bible-people-results" aria-label="Met Museum artwork results"></aside>
+        <main id="bibleMuseumDetail" class="bible-people-detail"></main>
       </div>
     </section>
   </div>
@@ -2031,9 +2044,9 @@ html:not(.admin-user) .admin-preview-panel {
 
 <script src="./supabase-config.js?v=8.60-supabase-storage1"></script>
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
-<script src="./supabase-provider.js?v=8.76-people-sort1"></script>
+<script src="./supabase-provider.js?v=8.89-met-museum1"></script>
 <script type="module">
-import { initialize } from './main.js?v=8.87-guide-storage1';
+import { initialize } from './main.js?v=8.89-met-museum1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
