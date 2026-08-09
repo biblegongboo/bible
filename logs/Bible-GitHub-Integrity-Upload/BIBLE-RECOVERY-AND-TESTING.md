@@ -35,6 +35,46 @@ It checks every person-context → event/place/Scripture-place reference, every
 event → person/place reference, all core content files, every journey and
 timeline payload, reader files, and the last runtime Storage migration report.
 
+## Live Supabase Storage check
+
+Use this after a Storage upload or before declaring a deployment healthy. It
+reads the local secret only from a local environment file, compares every
+canonical runtime file against `bible_content_assets`, then downloads and
+SHA-256 checks each live Storage object. No key or user data is written to a
+report or GitHub.
+
+```powershell
+node scripts/verify_supabase_live_storage.mjs
+```
+
+For a quicker asset-index-only check, use:
+
+```powershell
+node scripts/verify_supabase_live_storage.mjs --metadata-only
+```
+
+If the private data worktree is elsewhere, specify it explicitly:
+
+```powershell
+node scripts/verify_supabase_live_storage.mjs --private-root "C:\\path\\to\\biblegongboo_repo"
+```
+
+## Deployed browser smoke test
+
+Create one dedicated non-personal smoke-test account. Store its credentials
+only as local environment variables; do not put them in source files.
+
+```powershell
+$env:BIBLE_SMOKE_EMAIL = "smoke-test@example.invalid"
+$env:BIBLE_SMOKE_PASSWORD = "local-password-only"
+python scripts/verify_deployed_bible_browser_smoke.py
+```
+
+The browser test signs in, chooses a Bible subject, verifies the application
+shell, People, Abraham to Sodom context, Atlas/Sodom, Journeys, Timeline, Early
+Church, Study, and Library. It saves a JSON result and, on failure, a screenshot
+and page capture under `smoke-artifacts/`. Use `--headed` to watch the test run.
+
 ## Recovery baseline
 
 Create or refresh the source-to-runtime inventory after source data changes.
