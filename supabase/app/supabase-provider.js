@@ -154,7 +154,6 @@
     var limit = Math.min(100, Math.max(1, parseInt(payload && payload.limit, 10) || 60));
     var parts = [
       'select=met_object_id,title,object_name,culture,period,object_date,year_begin,year_end,region_tags,topic_tags,bible_era_tags,timeline_100y,is_public_domain,object_url',
-      'title=not.eq.',
       'order=title.asc',
       'limit=' + limit
     ];
