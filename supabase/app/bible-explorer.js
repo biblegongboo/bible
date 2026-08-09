@@ -1288,7 +1288,7 @@ async function renderMuseum(selectedIndex = 0) {
       });
     };
     results.innerHTML = rows.map((record, index) => `<button type="button" class="bible-person-result" data-met-result="${index}">
-      <strong>${escapeHtml(record.title || 'Untitled work')}</strong>
+      <strong>${escapeHtml(record.title)}</strong>
       <span>${escapeHtml(record.object_date || record.culture || 'Met collection')}</span></button>`).join('');
     results.querySelectorAll('[data-met-result]').forEach((button) => button.addEventListener('click', () => show(rows[Number(button.dataset.metResult)])));
     show(rows[Math.min(Math.max(0, selectedIndex), rows.length - 1)]);
