@@ -1257,7 +1257,7 @@ async function renderMuseum(selectedIndex = 0) {
     }
     const show = (record) => {
       detail.innerHTML = `<article class="bible-person-card bible-museum-card">
-        <div class="bible-person-title"><div><h3>${escapeHtml(record.title || 'Untitled work')}</h3>
+        <div class="bible-person-title"><div>${record.title ? `<h3>${escapeHtml(record.title)}</h3>` : ''}
           <p>${escapeHtml(record.object_name || record.culture || 'Met collection object')}</p></div>
           <span class="bible-person-id">MET ${escapeHtml(record.met_object_id)}</span></div>
         <div class="bible-person-meta">
@@ -1288,8 +1288,9 @@ async function renderMuseum(selectedIndex = 0) {
       });
     };
     results.innerHTML = rows.map((record, index) => `<button type="button" class="bible-person-result" data-met-result="${index}">
-      <strong>${escapeHtml(record.title)}</strong>
-      <span>${escapeHtml(record.object_date || record.culture || 'Met collection')}</span></button>`).join('');
+      ${record.title ? `<strong>${escapeHtml(record.title)}</strong>` : ''}
+      <span>${escapeHtml(record.object_name || record.object_date || record.culture || 'Met collection')}</span>
+      ${record.object_name && record.object_date ? `<span>${escapeHtml(record.object_date)}</span>` : ''}</button>`).join('');
     results.querySelectorAll('[data-met-result]').forEach((button) => button.addEventListener('click', () => show(rows[Number(button.dataset.metResult)])));
     show(rows[Math.min(Math.max(0, selectedIndex), rows.length - 1)]);
     setStatus(`${rows.length} Met artworks loaded. Refine the filters to explore the full catalog.`);
