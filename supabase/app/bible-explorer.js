@@ -1,4 +1,4 @@
-import { VectorMap25D } from './graphics/map25d/vector-map25d.js?v=8.51-patristic-reader1';
+import { VectorMap25D } from './graphics/map25d/vector-map25d.js?v=9.01-map-labels1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.69-timeline-click1';
 
 let initialized = false;

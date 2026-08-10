@@ -2018,6 +2018,7 @@ html:not(.admin-user) .admin-preview-panel {
     font-size:12px;
   }
   .bible-inline-entity-link{border:0;border-radius:7px;padding:1px 4px;margin:0 1px;font:inherit;font-weight:800;cursor:pointer;text-decoration:underline;text-underline-offset:2px}.bible-inline-person{background:#e0ecff;color:#1e40af}.bible-inline-place{background:#dcfce7;color:#166534}
+  .bible-map25d-host .map25d-label-selectable{pointer-events:auto;cursor:pointer}.bible-map25d-host .map25d-label-selectable:hover,.bible-map25d-host .map25d-label-selectable:focus{fill:#1d4ed8;outline:none}
   .bible-guide-toggle{width:26px;min-width:26px;min-height:30px;padding:0;border:1px solid #93c5fd;border-radius:50%;background:#eff6ff;color:#1d4ed8;font-size:15px;font-weight:900;line-height:1;cursor:pointer}
   .persistent-timer-toggle{width:30px!important;height:30px!important;min-width:30px!important}
   html:not([data-study-mode="exam"]) #timerToggle,
@@ -2051,7 +2052,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.94-met-image-status1"></script>
 <script type="module">
-import { initialize } from './main.js?v=9.00-role-ux1';
+import { initialize } from './main.js?v=9.01-map-labels1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

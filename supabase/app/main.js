@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
-import './bible-explorer.js?v=9.00-role-ux1';
+import './bible-explorer.js?v=9.01-map-labels1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -7094,7 +7094,8 @@ function biblePeopleRenderDetail_(detail) {
     var relationshipHost = host.querySelector('.bible-relationship-25d');
     biblePeopleRelationshipScene = new VectorScene25D(relationshipHost, {
       ariaLabel: 'Interactive Bible relationship graph',
-      labelFontSize: 12
+      labelFontSize: 12,
+      selectableLabels: true
     });
     biblePeopleRelationshipScene.setScene(sceneFromGraphicObjects(relationshipGraphic));
     relationshipHost.addEventListener('scene25d:select', function(event) {

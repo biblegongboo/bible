@@ -413,13 +413,14 @@ export class VectorMap25D {
         tabindex: 0,
         'aria-label': `${place.name}, ${place.verse_reference_count || 0} references`
       });
-      point.addEventListener('click', () => {
+      const selectPlace = () => {
         this.selectedId = place.id;
         this.scheduleRender();
         this.host.dispatchEvent(
           new CustomEvent('map25d:select', { detail: { place }, bubbles: true })
         );
-      });
+      };
+      point.addEventListener('click', selectPlace);
       this.pointLayer.appendChild(point);
 
       const shouldLabel =
@@ -457,9 +458,19 @@ export class VectorMap25D {
         x: place.screen.x + placement.offsetX,
         y: place.screen.y + placement.offsetY,
         class: selected ? 'map25d-label is-selected' : 'map25d-label',
-        'font-size': fontSize
+        'font-size': fontSize,
+        tabindex: 0,
+        role: 'button',
+        'aria-label': `Open ${place.name}`
       });
       text.textContent = place.name;
+      text.classList.add('map25d-label-selectable');
+      text.addEventListener('click', selectPlace);
+      text.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        selectPlace();
+      });
       this.labelLayer.appendChild(text);
     }
 
