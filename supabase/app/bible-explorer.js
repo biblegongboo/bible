@@ -1,4 +1,4 @@
-import { VectorMap25D } from './graphics/map25d/vector-map25d.js?v=9.01-map-labels1';
+import { VectorMap25D } from './graphics/map25d/vector-map25d.js?v=9.03-map-pointer-select1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.69-timeline-click1';
 
 let initialized = false;

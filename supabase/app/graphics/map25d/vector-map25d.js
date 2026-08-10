@@ -190,6 +190,17 @@ export class VectorMap25D {
     this.scheduleRender();
   }
 
+  selectPlaceById(placeId) {
+    const place = this.projectedPlaces.find((item) => item.id === placeId);
+    if (!place) return false;
+    this.selectedId = place.id;
+    this.scheduleRender();
+    this.host.dispatchEvent(
+      new CustomEvent('map25d:select', { detail: { place }, bubbles: true })
+    );
+    return true;
+  }
+
   bindInteraction() {
     this.svg.addEventListener(
       'wheel',
@@ -206,18 +217,24 @@ export class VectorMap25D {
       { passive: false }
     );
     this.svg.addEventListener('pointerdown', (event) => {
+      const selectableTarget = event.target.closest?.('[data-map25d-place-id]');
       this.drag = {
         pointerId: event.pointerId,
         x: event.clientX,
         y: event.clientY,
         centerX: this.camera.centerX,
-        centerY: this.camera.centerY
+        centerY: this.camera.centerY,
+        placeId: selectableTarget?.getAttribute('data-map25d-place-id') || '',
+        moved: false
       };
       this.svg.setPointerCapture(event.pointerId);
       this.svg.classList.add('is-dragging');
     });
     this.svg.addEventListener('pointermove', (event) => {
       if (!this.drag || this.drag.pointerId !== event.pointerId) return;
+      if (Math.hypot(event.clientX - this.drag.x, event.clientY - this.drag.y) > 5) {
+        this.drag.moved = true;
+      }
       const scale = 256 * 2 ** this.camera.zoom;
       this.camera.centerX = this.drag.centerX - (event.clientX - this.drag.x) / scale;
       this.camera.centerY = this.drag.centerY - (event.clientY - this.drag.y) / scale;
@@ -225,8 +242,11 @@ export class VectorMap25D {
     });
     const endDrag = (event) => {
       if (!this.drag || this.drag.pointerId !== event.pointerId) return;
+      const selectedPlaceId = this.drag.placeId;
+      const wasClick = !this.drag.moved;
       this.drag = null;
       this.svg.classList.remove('is-dragging');
+      if (wasClick && selectedPlaceId) this.selectPlaceById(selectedPlaceId);
     };
     this.svg.addEventListener('pointerup', endDrag);
     this.svg.addEventListener('pointercancel', endDrag);
@@ -411,16 +431,14 @@ export class VectorMap25D {
         r: selected ? 6 : this.options.pointRadius,
         class: selected ? 'map25d-point is-selected' : 'map25d-point',
         tabindex: 0,
-        'aria-label': `${place.name}, ${place.verse_reference_count || 0} references`
+        'aria-label': `${place.name}, ${place.verse_reference_count || 0} references`,
+        'data-map25d-place-id': place.id
       });
-      const selectPlace = () => {
-        this.selectedId = place.id;
-        this.scheduleRender();
-        this.host.dispatchEvent(
-          new CustomEvent('map25d:select', { detail: { place }, bubbles: true })
-        );
-      };
-      point.addEventListener('click', selectPlace);
+      point.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        this.selectPlaceById(place.id);
+      });
       this.pointLayer.appendChild(point);
 
       const shouldLabel =
@@ -461,15 +479,15 @@ export class VectorMap25D {
         'font-size': fontSize,
         tabindex: 0,
         role: 'button',
-        'aria-label': `Open ${place.name}`
+        'aria-label': `Open ${place.name}`,
+        'data-map25d-place-id': place.id
       });
       text.textContent = place.name;
       text.classList.add('map25d-label-selectable');
-      text.addEventListener('click', selectPlace);
       text.addEventListener('keydown', (event) => {
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault();
-        selectPlace();
+        this.selectPlaceById(place.id);
       });
       this.labelLayer.appendChild(text);
     }
