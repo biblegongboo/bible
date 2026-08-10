@@ -145,8 +145,13 @@
     return result;
   }
 
-  async function catalog_(signal) {
-    return callQuestionFunction_({ action: 'catalog', sheet: 'BIBLE-OT' }, signal);
+  async function catalog_(payload, signal) {
+    // The current subject is supplied by main.js.  Do not hard-code OT here:
+    // it caused a selected New Testament session to receive the OT catalog.
+    return callQuestionFunction_({
+      action: 'catalog',
+      sheet: String(payload && payload.sheet || 'BIBLE-OT')
+    }, signal);
   }
 
   async function metMuseumSearch_(payload, signal) {
@@ -307,7 +312,7 @@
       }, 503);
     }
     var action = String(payload.action || '');
-    if (action === 'catalog') return catalog_(signal);
+    if (action === 'catalog') return catalog_(payload, signal);
     if (action === 'people_search') return peopleSearch_(payload, signal);
     if (action === 'person_detail') return personDetail_(payload, signal);
 
