@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
-import './bible-explorer.js?v=8.99-context-links2';
+import './bible-explorer.js?v=9.00-role-ux1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -260,9 +260,14 @@ function applyUserRolePolicy() {
   TRIAL_LIMIT = Math.max(1, parseInt(currentUser && currentUser.trial_limit, 10) || 20);
   document.documentElement.classList.toggle('admin-user', IS_ADMIN_USER);
   document.documentElement.classList.toggle('trial-user', IS_TRIAL_USER);
-  ['bibleGroupAdminToggle', 'adminPreviewToggle', 'superGraphicStudioLink', 'adminPreviewPanel'].forEach(function(id) {
+  var groupAdminToggle = document.getElementById('bibleGroupAdminToggle');
+  if (groupAdminToggle) groupAdminToggle.hidden = !IS_ADMIN_USER;
+  // Preview/template controls are never part of the published learner UI.
+  ['adminPreviewToggle', 'superGraphicStudioLink', 'adminPreviewPanel'].forEach(function(id) {
     var element = document.getElementById(id);
-    if (element) element.hidden = !IS_ADMIN_USER;
+    if (!element) return;
+    element.hidden = true;
+    element.style.display = 'none';
   });
 }
 

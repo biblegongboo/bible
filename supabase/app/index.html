@@ -1386,11 +1386,12 @@
 
 /* ===== 복사 방지: 일반 회원만 적용 / admin은 복사 허용 ===== */
 html:not(.admin-user) body * {
-  -webkit-user-select: none !important;
-  user-select: none !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
 }
 html:not(.admin-user) body ::selection {
-  background: transparent !important;
+  background: Highlight !important;
+  color: HighlightText !important;
 }
 
 /* 관리자 계정: 텍스트 선택·복사 허용 */
@@ -2050,7 +2051,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.94-met-image-status1"></script>
 <script type="module">
-import { initialize } from './main.js?v=8.99-context-links2';
+import { initialize } from './main.js?v=9.00-role-ux1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
