@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
-import './bible-explorer.js?v=9.03-context-navigation2';
+import './bible-explorer.js?v=8.98-nt-catalog1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -191,7 +191,7 @@ function clearAuthAndRedirect(reason) {
   localStorage.removeItem('quiz_current_subject_v1');
   var rawReason = String(reason || '').replace(/[^A-Z0-9_\-]/gi, '').slice(0, 40);
   var authReason = rawReason.indexOf('AUTH_') === 0 ? 'LOGIN_REQUIRED' : rawReason;
-  window.location.replace('./login.html?v=8.71-context-history1' + (authReason ? '&auth_error=' + encodeURIComponent(authReason) : ''));
+  window.location.replace('./login.html?v=8.98-nt-catalog1' + (authReason ? '&auth_error=' + encodeURIComponent(authReason) : ''));
 }
 
 function initBibleLogout_() {
@@ -260,42 +260,18 @@ function applyUserRolePolicy() {
   TRIAL_LIMIT = Math.max(1, parseInt(currentUser && currentUser.trial_limit, 10) || 20);
   document.documentElement.classList.toggle('admin-user', IS_ADMIN_USER);
   document.documentElement.classList.toggle('trial-user', IS_TRIAL_USER);
-  var groupAdminToggle = document.getElementById('bibleGroupAdminToggle');
-  if (groupAdminToggle) groupAdminToggle.hidden = !IS_ADMIN_USER;
-  // Preview/template controls are never part of the published learner UI.
-  ['adminPreviewToggle', 'superGraphicStudioLink', 'adminPreviewPanel'].forEach(function(id) {
-    var element = document.getElementById(id);
-    if (!element) return;
-    element.hidden = true;
-    element.style.display = 'none';
-  });
+  ['bibleGroupAdminToggle', 'adminPreviewToggle', 'superGraphicStudioLink', 'adminPreviewPanel']
+    .forEach(function(id) {
+      var element = document.getElementById(id);
+      if (element) element.hidden = !IS_ADMIN_USER;
+    });
 }
 
 function applyCopyProtectionPolicy() {
-  // Keep Chrome translation, selection, and accessibility available to normal users.
+  // Keep ordinary browser behavior intact. Blocking selection/context-menu
+  // prevented Chrome's translation and accessibility tools from operating.
+  // Administrative screens remain role-gated separately.
   return;
-  if (window.__gongbooCopyProtectionInstalled) return;
-  window.__gongbooCopyProtectionInstalled = true;
-  ['copy', 'cut', 'paste', 'contextmenu', 'selectstart'].forEach(function(type) {
-    document.addEventListener(type, function(event) {
-      if (IS_ADMIN_USER) return;
-      var tag = event.target && event.target.tagName;
-      if ((type === 'paste' || type === 'cut') && (tag === 'INPUT' || tag === 'TEXTAREA')) return;
-      event.preventDefault();
-    }, true);
-  });
-  document.addEventListener('keydown', function(event) {
-    if (IS_ADMIN_USER) return;
-    var key = String(event.key || '').toUpperCase();
-    var ctrlOrCommand = event.ctrlKey || event.metaKey;
-    var blocked = key === 'F12' ||
-      (ctrlOrCommand && event.shiftKey && ['I', 'J', 'C'].indexOf(key) !== -1) ||
-      (ctrlOrCommand && ['U', 'S', 'P'].indexOf(key) !== -1);
-    if (!blocked) return;
-    event.preventDefault();
-    event.stopPropagation();
-    if (typeof showToast === 'function') showToast('This function is restricted.', 'warn');
-  }, true);
 }
 
 function getSessionToken_() {
@@ -359,6 +335,18 @@ function applySubjectConfig() {
     currentUser = JSON.parse(localStorage.getItem('quiz_current_user_v1') || 'null');
     availableSubjects = JSON.parse(localStorage.getItem('quiz_available_subjects_v1') || '[]');
     subjectConfig = JSON.parse(localStorage.getItem('quiz_current_subject_v1') || 'null');
+    // An explicit subject query overrides an older remembered Testament.
+    var requestedSubject = String(new URLSearchParams(window.location.search).get('subject') || '')
+      .trim().replace(/-/g, '_').toUpperCase();
+    if (requestedSubject) {
+      var requestedConfig = availableSubjects.find(function(subject) {
+        return String(subject && subject.CODE || '').trim().replace(/-/g, '_').toUpperCase() === requestedSubject;
+      });
+      if (requestedConfig) {
+        subjectConfig = requestedConfig;
+        localStorage.setItem('quiz_current_subject_v1', JSON.stringify(requestedConfig));
+      }
+    }
   } catch (e) {
     currentUser = null;
     availableSubjects = [];
@@ -5285,9 +5273,6 @@ function bibleEscapeRegExp_(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// Make unambiguous names in the English source passage directly useful:
-// people open People, and source-linked places open Atlas. Korean translation
-// text is deliberately untouched.
 function attachBibleEnglishEntityLinks_(q) {
   var root = DOM.questionContainer;
   var sourceCode = getBibleSourceCode_(q);
@@ -6010,17 +5995,6 @@ function previewGraphic(graphicData) {
 // BLOCK 1595: Admin on-page JSON and LaTeX preview
 // ========================================================================
 function initAdminPreviewTool() {
-    // The JSON/LaTex editor is an internal development tool, not part of the
-    // Bible learning application.  Keep it unavailable in the published app
-    // for every account type, including the system administrator account.
-    ['adminPreviewToggle', 'superGraphicStudioLink', 'adminPreviewPanel'].forEach(function(id) {
-        var element = document.getElementById(id);
-        if (!element) return;
-        element.hidden = true;
-        element.style.display = 'none';
-    });
-    return;
-
     if (!IS_ADMIN_USER || window.__gongbooAdminPreviewInstalled) return;
     var toggle = document.getElementById('adminPreviewToggle');
     var studioLink = document.getElementById('superGraphicStudioLink');
@@ -6704,7 +6678,11 @@ var biblePeopleRelationshipScene = null;
 
 function biblePeopleLoadNameIndex_() {
   if (biblePeopleNameIndexPromise) return biblePeopleNameIndexPromise;
-  biblePeopleNameIndexPromise = fetch('./content/people-index.json?v=8.38-family-roles1')
+  var nameIndexRequest = (window.BibleSupabaseProvider &&
+    typeof window.BibleSupabaseProvider.fetchContent === 'function')
+    ? window.BibleSupabaseProvider.fetchContent('content/people-index.json')
+    : fetch('./content/people-index.json?v=8.88-context-storage1');
+  biblePeopleNameIndexPromise = nameIndexRequest
     .then(function(response) {
       if (!response.ok) throw new Error('Bible person names could not be loaded.');
       return response.json();
@@ -7094,16 +7072,11 @@ function biblePeopleRenderDetail_(detail) {
     var relationshipHost = host.querySelector('.bible-relationship-25d');
     biblePeopleRelationshipScene = new VectorScene25D(relationshipHost, {
       ariaLabel: 'Interactive Bible relationship graph',
-      labelFontSize: 12,
-      selectableLabels: true
+      labelFontSize: 12
     });
     biblePeopleRelationshipScene.setScene(sceneFromGraphicObjects(relationshipGraphic));
     relationshipHost.addEventListener('scene25d:select', function(event) {
-      var nodeMetadata = event && event.detail && event.detail.node && event.detail.node.metadata;
-      // sceneFromGraphicObjects preserves the original graphic object under
-      // node.metadata, so the relationship id is one level deeper.
-      var relatedId = nodeMetadata && (nodeMetadata.personId ||
-        (nodeMetadata.metadata && nodeMetadata.metadata.personId));
+      var relatedId = event && event.detail && event.detail.node && event.detail.node.metadata && event.detail.node.metadata.personId;
       if (relatedId) biblePeopleLoadDetail_(relatedId);
     });
   }
@@ -7226,13 +7199,6 @@ window.openBiblePerson = function(personId, navigationOptions) {
     window.BibleReferenceNavigation.push({ kind: 'person', personId: personId });
   }
   biblePeopleLoadDetail_(personId);
-};
-
-// Atlas uses this to open the People directory without relying on a simulated
-// DOM click.  Keeping this public helper makes the cross-panel shortcut work
-// after either panel has been opened, closed, or rebuilt.
-window.openBiblePeople = function() {
-  biblePeopleOpen_();
 };
 
 function initBiblePeopleExplorer() {
