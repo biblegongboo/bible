@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
-import './bible-explorer.js?v=8.97-runtime-links1';
+import './bible-explorer.js?v=8.98-no-preview1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -5928,6 +5928,17 @@ function previewGraphic(graphicData) {
 // BLOCK 1595: Admin on-page JSON and LaTeX preview
 // ========================================================================
 function initAdminPreviewTool() {
+    // The JSON/LaTex editor is an internal development tool, not part of the
+    // Bible learning application.  Keep it unavailable in the published app
+    // for every account type, including the system administrator account.
+    ['adminPreviewToggle', 'superGraphicStudioLink', 'adminPreviewPanel'].forEach(function(id) {
+        var element = document.getElementById(id);
+        if (!element) return;
+        element.hidden = true;
+        element.style.display = 'none';
+    });
+    return;
+
     if (!IS_ADMIN_USER || window.__gongbooAdminPreviewInstalled) return;
     var toggle = document.getElementById('adminPreviewToggle');
     var studioLink = document.getElementById('superGraphicStudioLink');
