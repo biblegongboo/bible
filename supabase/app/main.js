@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
-import './bible-explorer.js?v=9.02-runtime-fixes1';
+import './bible-explorer.js?v=9.03-context-navigation2';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -7226,6 +7226,13 @@ window.openBiblePerson = function(personId, navigationOptions) {
     window.BibleReferenceNavigation.push({ kind: 'person', personId: personId });
   }
   biblePeopleLoadDetail_(personId);
+};
+
+// Atlas uses this to open the People directory without relying on a simulated
+// DOM click.  Keeping this public helper makes the cross-panel shortcut work
+// after either panel has been opened, closed, or rebuilt.
+window.openBiblePeople = function() {
+  biblePeopleOpen_();
 };
 
 function initBiblePeopleExplorer() {

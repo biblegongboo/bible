@@ -106,6 +106,27 @@ function normalizedSearch(value) {
   return String(value ?? '').trim().toLocaleLowerCase();
 }
 
+// Map and journey sources do not always use the exact same displayed form as
+// the Atlas directory (for example a numeric duplicate suffix or a parenthetic
+// qualifier). Resolve the visible label once, consistently, before navigating.
+function findPlaceForVisibleLabel(label) {
+  const target = normalizedSearch(label)
+    .replace(/\s*\([^)]*\)\s*/g, ' ')
+    .replace(/\s+\d+$/, '')
+    .trim();
+  if (!target) return null;
+  const candidates = data.places.map((place) => ({
+    place,
+    name: normalizedSearch(place.name)
+      .replace(/\s*\([^)]*\)\s*/g, ' ')
+      .replace(/\s+\d+$/, '')
+      .trim()
+  }));
+  return candidates.find(({ name }) => name === target)?.place ||
+    candidates.find(({ name }) => name.startsWith(target) || target.startsWith(name))?.place ||
+    candidates.find(({ name }) => name.includes(target) || target.includes(name))?.place || null;
+}
+
 function startsWithSearch(value, needle) {
   if (Array.isArray(value)) return value.some((item) => startsWithSearch(item, needle));
   return normalizedSearch(value).startsWith(needle);
@@ -397,12 +418,13 @@ function renderPlaceDetail(place) {
       mapStatus.textContent = `Zoom ${event.detail.zoom.toFixed(2)} · ${event.detail.visiblePlaces} places · ${event.detail.visibleLabels} labels · ${event.detail.visibleRoads || 0} ancient roads`;
     });
     mapHost.addEventListener('map25d:select', (event) => {
-      if (!mapStatus) return;
       const selected = event.detail.place;
       const linkedPlace = data.places.find((item) => item.id === selected.id) ||
-        data.places.find((item) => normalizeName(item.name) === normalizeName(selected.name));
+        findPlaceForVisibleLabel(selected.name);
       if (linkedPlace && linkedPlace.id !== place.id) renderPlaceDetail(linkedPlace);
-      mapStatus.textContent = `${selected.name} · ${selected.verse_reference_count || 0} verse references · ${selected.candidate_count || 0} location candidate(s)`;
+      if (mapStatus) {
+        mapStatus.textContent = `${selected.name} · ${selected.verse_reference_count || 0} verse references · ${selected.candidate_count || 0} location candidate(s)`;
+      }
     });
     host.querySelector('[data-map25d-fit]')?.addEventListener('click', () => {
       activePlaceMap.fitToData();
@@ -410,7 +432,11 @@ function renderPlaceDetail(place) {
     });
     host.querySelector('[data-open-people]')?.addEventListener('click', () => {
       close();
-      document.getElementById('biblePeopleToggle')?.click();
+      if (typeof window.openBiblePeople === 'function') {
+        window.openBiblePeople();
+      } else {
+        document.getElementById('biblePeopleToggle')?.click();
+      }
     });
   } else if (mapStatus) {
     mapStatus.textContent = 'Vector map data is unavailable.';
@@ -842,7 +868,7 @@ function renderJourney(index = 0) {
   sceneHost.addEventListener('scene25d:select', (event) => {
     const nodeName = String(event?.detail?.node?.label || event?.detail?.node?.name || '')
       .replace(/\s*\([^)]*\)\s*$/, '').trim();
-    const place = data.places.find((item) => normalizedSearch(item.name) === normalizedSearch(nodeName));
+    const place = findPlaceForVisibleLabel(nodeName);
     if (!place) return;
     selectTab('places');
     renderPlaceResults(place.name);
@@ -917,10 +943,7 @@ function renderTimelineEventDetail(timeline, rowIndex, options = {}) {
   });
   const eventSelector = document.getElementById('bibleTimelineEventSelector');
   if (eventSelector) eventSelector.value = String(rowIndex);
-  if (options.reveal) {
-    selection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    window.setTimeout(() => selection.classList.remove('is-revealed'), 1700);
-  }
+  if (options.reveal) window.setTimeout(() => selection.classList.remove('is-revealed'), 1700);
 }
 
 function renderTimeline(index = 0, selectedEventIndex = 0) {
@@ -974,7 +997,6 @@ function renderTimeline(index = 0, selectedEventIndex = 0) {
     const node = event.detail.node;
     const rowIndex = Number(String(node.id || '').replace('event_', '')) || 0;
     renderTimelineEventDetail(timeline, rowIndex, { reveal: true });
-    timelineHost.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
   if (rows.length) renderTimelineEventDetail(timeline, eventSelector?.value || 0);
   setStatus(`${timeline.event_count} events loaded in Scripture order.`);
