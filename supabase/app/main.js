@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
-import './bible-explorer.js?v=9.01-map-labels1';
+import './bible-explorer.js?v=9.02-runtime-fixes1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -7099,7 +7099,11 @@ function biblePeopleRenderDetail_(detail) {
     });
     biblePeopleRelationshipScene.setScene(sceneFromGraphicObjects(relationshipGraphic));
     relationshipHost.addEventListener('scene25d:select', function(event) {
-      var relatedId = event && event.detail && event.detail.node && event.detail.node.metadata && event.detail.node.metadata.personId;
+      var nodeMetadata = event && event.detail && event.detail.node && event.detail.node.metadata;
+      // sceneFromGraphicObjects preserves the original graphic object under
+      // node.metadata, so the relationship id is one level deeper.
+      var relatedId = nodeMetadata && (nodeMetadata.personId ||
+        (nodeMetadata.metadata && nodeMetadata.metadata.personId));
       if (relatedId) biblePeopleLoadDetail_(relatedId);
     });
   }

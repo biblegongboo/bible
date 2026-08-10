@@ -842,7 +842,7 @@ function renderJourney(index = 0) {
   sceneHost.addEventListener('scene25d:select', (event) => {
     const nodeName = String(event?.detail?.node?.label || event?.detail?.node?.name || '')
       .replace(/\s*\([^)]*\)\s*$/, '').trim();
-    const place = data.places.find((item) => normalizeSearch(item.name) === normalizeSearch(nodeName));
+    const place = data.places.find((item) => normalizedSearch(item.name) === normalizedSearch(nodeName));
     if (!place) return;
     selectTab('places');
     renderPlaceResults(place.name);
