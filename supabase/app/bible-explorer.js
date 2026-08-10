@@ -356,6 +356,7 @@ function renderPlaceDetail(place) {
       <div class="bible-map25d-toolbar">
         <strong>2.5D Vector Bible Map</strong>
         <span>Wheel to zoom · Drag to move · Select a point</span>
+        <button type="button" data-open-people aria-label="Open Bible People" title="Open Bible People">👤 People</button>
         <button type="button" data-map25d-fit>Fit all</button>
       </div>
       <div class="bible-map25d-host" data-map25d-host></div>
@@ -398,11 +399,18 @@ function renderPlaceDetail(place) {
     mapHost.addEventListener('map25d:select', (event) => {
       if (!mapStatus) return;
       const selected = event.detail.place;
+      const linkedPlace = data.places.find((item) => item.id === selected.id) ||
+        data.places.find((item) => normalizeName(item.name) === normalizeName(selected.name));
+      if (linkedPlace && linkedPlace.id !== place.id) renderPlaceDetail(linkedPlace);
       mapStatus.textContent = `${selected.name} · ${selected.verse_reference_count || 0} verse references · ${selected.candidate_count || 0} location candidate(s)`;
     });
     host.querySelector('[data-map25d-fit]')?.addEventListener('click', () => {
       activePlaceMap.fitToData();
       activePlaceMap.scheduleRender();
+    });
+    host.querySelector('[data-open-people]')?.addEventListener('click', () => {
+      close();
+      document.getElementById('biblePeopleToggle')?.click();
     });
   } else if (mapStatus) {
     mapStatus.textContent = 'Vector map data is unavailable.';
@@ -827,9 +835,19 @@ function renderJourney(index = 0) {
   output.append(title, note, sceneHost);
   activeJourneyScene = new VectorScene25D(sceneHost, {
     ariaLabel: 'Interactive Bible journey',
-    labelFontSize: 12
+    labelFontSize: 12,
+    selectableLabels: true
   });
   activeJourneyScene.setScene(sceneFromGraphicObjects(journey.graphic));
+  sceneHost.addEventListener('scene25d:select', (event) => {
+    const nodeName = String(event?.detail?.node?.label || event?.detail?.node?.name || '')
+      .replace(/\s*\([^)]*\)\s*$/, '').trim();
+    const place = data.places.find((item) => normalizeSearch(item.name) === normalizeSearch(nodeName));
+    if (!place) return;
+    selectTab('places');
+    renderPlaceResults(place.name);
+    renderPlaceDetail(place);
+  });
   setStatus('Journey route loaded.');
 }
 
@@ -956,6 +974,7 @@ function renderTimeline(index = 0, selectedEventIndex = 0) {
     const node = event.detail.node;
     const rowIndex = Number(String(node.id || '').replace('event_', '')) || 0;
     renderTimelineEventDetail(timeline, rowIndex, { reveal: true });
+    timelineHost.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
   if (rows.length) renderTimelineEventDetail(timeline, eventSelector?.value || 0);
   setStatus(`${timeline.event_count} events loaded in Scripture order.`);

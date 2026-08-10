@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
-import './bible-explorer.js?v=8.96-timeline-event-reveal1';
+import './bible-explorer.js?v=8.97-runtime-links1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -260,9 +260,15 @@ function applyUserRolePolicy() {
   TRIAL_LIMIT = Math.max(1, parseInt(currentUser && currentUser.trial_limit, 10) || 20);
   document.documentElement.classList.toggle('admin-user', IS_ADMIN_USER);
   document.documentElement.classList.toggle('trial-user', IS_TRIAL_USER);
+  ['bibleGroupAdminToggle', 'adminPreviewToggle', 'superGraphicStudioLink', 'adminPreviewPanel'].forEach(function(id) {
+    var element = document.getElementById(id);
+    if (element) element.hidden = !IS_ADMIN_USER;
+  });
 }
 
 function applyCopyProtectionPolicy() {
+  // Keep Chrome translation, selection, and accessibility available to normal users.
+  return;
   if (window.__gongbooCopyProtectionInstalled) return;
   window.__gongbooCopyProtectionInstalled = true;
   ['copy', 'cut', 'paste', 'contextmenu', 'selectstart'].forEach(function(type) {
@@ -6818,7 +6824,8 @@ function biblePeopleGraphPayload_(person, relationships) {
         coords: coords,
         name: biblePeopleRelationshipName_(relationship, person.PERSON_ID) +
           ' (' + biblePeopleRelationshipRole_(relationship, person.PERSON_ID) + ')',
-        attributes: { size: 4, strokeColor: color.stroke, fillColor: color.fill, label: { fontSize: 12, color: color.text, offset: [8, 8] } }
+        attributes: { size: 4, strokeColor: color.stroke, fillColor: color.fill, label: { fontSize: 12, color: color.text, offset: [8, 8] } },
+        metadata: { personId: relationship.RELATED_ID }
       });
       objects.push({
         id: 'line_' + id,
@@ -6850,7 +6857,8 @@ function biblePeopleGraphPayload_(person, relationships) {
         coords: coords,
         name: biblePeopleRelationshipName_(relationship, person.PERSON_ID) +
           ' (' + biblePeopleRelationshipRole_(relationship, person.PERSON_ID) + ')',
-        attributes: { size: 4, strokeColor: '#be185d', fillColor: '#f9a8d4', label: { fontSize: 12, color: '#831843', offset: [8, -16] } }
+        attributes: { size: 4, strokeColor: '#be185d', fillColor: '#f9a8d4', label: { fontSize: 12, color: '#831843', offset: [8, -16] } },
+        metadata: { personId: relationship.RELATED_ID }
       });
       objects.push({
         id: 'line_' + id,
@@ -6943,7 +6951,7 @@ function biblePeopleRenderDetail_(detail) {
     (references.length > referenceLimit ? '<div class="bible-reference-more">Showing the first ' + referenceLimit + ' of ' + references.length + ' references.</div>' : '') +
     '</section><section class="bible-person-section"><h4>People · Places · Events</h4>' +
     '<div class="bible-person-meta">' +
-      '<button type="button" class="bible-person-chip" data-context-tab="places">Atlas</button>' +
+      '<button type="button" class="bible-person-chip" data-context-tab="places" title="Open Atlas">🌐 Atlas</button>' +
       '<button type="button" class="bible-person-chip" data-context-tab="timeline">Timeline</button>' +
       '<button type="button" class="bible-person-chip" data-context-tab="journeys">Journeys</button>' +
     '</div>' +
@@ -6996,6 +7004,10 @@ function biblePeopleRenderDetail_(detail) {
       labelFontSize: 12
     });
     biblePeopleRelationshipScene.setScene(sceneFromGraphicObjects(relationshipGraphic));
+    relationshipHost.addEventListener('scene25d:select', function(event) {
+      var relatedId = event && event.detail && event.detail.node && event.detail.node.metadata && event.detail.node.metadata.personId;
+      if (relatedId) biblePeopleLoadDetail_(relatedId);
+    });
   }
   host.querySelectorAll('[data-related-person-id]').forEach(function(button) {
     button.addEventListener('click', function() {
