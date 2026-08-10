@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
-import './bible-explorer.js?v=8.98-no-preview1';
+import './bible-explorer.js?v=8.99-context-links2';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -5276,6 +5276,80 @@ function attachBiblePlacesButton_(q) {
   }
 }
 
+function bibleEscapeRegExp_(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Make unambiguous names in the English source passage directly useful:
+// people open People, and source-linked places open Atlas. Korean translation
+// text is deliberately untouched.
+function attachBibleEnglishEntityLinks_(q) {
+  var root = DOM.questionContainer;
+  var sourceCode = getBibleSourceCode_(q);
+  if (!root || !/^(OT|NT)-/.test(sourceCode || '') || !root.querySelector('.language-line-en')) return;
+  Promise.all([biblePeopleLoadNameIndex_(), biblePeopleLoadContextLinks_()]).then(function(results) {
+    if (DOM.questionContainer !== root) return;
+    var people = results[0] || {};
+    var context = results[1] || {};
+    var names = {};
+    Object.keys(people).forEach(function(personId) {
+      var name = String(people[personId] && people[personId].name || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+      var key = name.toLowerCase();
+      if (!name || name.length < 3 || /^(god|lord|man|woman|king|son|father)$/i.test(name)) return;
+      names[key] = names[key] === undefined ? { name: key, kind: 'person', id: personId } : null;
+    });
+    var sourcePlaces = (context.source_to_places && context.source_to_places[sourceCode]) || [];
+    sourcePlaces.forEach(function(placeId) {
+      var place = context.geocoding_places && context.geocoding_places[placeId];
+      if (place && place.name) names[String(place.name).toLowerCase()] = { name: String(place.name).toLowerCase(), kind: 'place', nameToOpen: place.name };
+    });
+    var fullText = Array.from(root.querySelectorAll('.language-line-en')).map(function(node) { return node.textContent || ''; }).join(' ').toLowerCase();
+    var candidates = Object.keys(names).map(function(key) { return names[key]; }).filter(Boolean)
+      .filter(function(item) { return fullText.indexOf(item.name) >= 0; })
+      .sort(function(a, b) { return b.name.length - a.name.length; }).slice(0, 24);
+    if (!candidates.length) return;
+    var lookup = {};
+    candidates.forEach(function(item) { lookup[item.name] = item; });
+    var matcher = new RegExp('\\b(' + Object.keys(lookup).map(bibleEscapeRegExp_).join('|') + ')\\b', 'gi');
+    root.querySelectorAll('.language-line-en').forEach(function(block) {
+      var walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+      var textNodes = [];
+      while (walker.nextNode()) textNodes.push(walker.currentNode);
+      textNodes.forEach(function(textNode) {
+        if (!textNode.parentElement || textNode.parentElement.closest('button,a')) return;
+        var text = textNode.nodeValue;
+        matcher.lastIndex = 0;
+        if (!matcher.test(text)) return;
+        matcher.lastIndex = 0;
+        var fragment = document.createDocumentFragment();
+        var cursor = 0;
+        text.replace(matcher, function(match, name, offset) {
+          fragment.appendChild(document.createTextNode(text.slice(cursor, offset)));
+          var item = lookup[String(name).toLowerCase()];
+          var button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'bible-inline-entity-link bible-inline-' + item.kind;
+          button.textContent = match;
+          button.title = item.kind === 'person' ? 'Open Bible People' : 'Open Atlas';
+          button.addEventListener('click', function() {
+            if (item.kind === 'person') {
+              biblePeopleOpen_();
+              biblePeopleLoadDetail_(item.id);
+            } else if (typeof window.openBibleContext === 'function') {
+              window.openBibleContext({ tab: 'places', placeName: item.nameToOpen });
+            }
+          });
+          fragment.appendChild(button);
+          cursor = offset + match.length;
+          return match;
+        });
+        fragment.appendChild(document.createTextNode(text.slice(cursor)));
+        textNode.parentNode.replaceChild(fragment, textNode);
+      });
+    });
+  }).catch(function(error) { console.warn('Bible entity links unavailable:', error.message); });
+}
+
 function renderCurrentQuestion() {
   console.log('🔴 renderCurrentQuestion START');
   updateBiblePassageControls_();
@@ -5333,6 +5407,7 @@ function renderCurrentQuestion() {
     DOM.nextBtn.innerHTML = 'NEXT VERSE (N)';
     DOM.prevBtn.disabled = reading.position === 0;
     attachBiblePlacesButton_(q);
+    attachBibleEnglishEntityLinks_(q);
     if (window.MathJax && MathJax.typesetPromise) {
       MathJax.typesetPromise([DOM.questionContainer]).catch(console.warn);
     }
@@ -5344,6 +5419,7 @@ function renderCurrentQuestion() {
   if (isSubjective) {
     renderSubjectiveQuestion(q, answered, headerText, passageHtml);
     attachBiblePlacesButton_(q);
+    attachBibleEnglishEntityLinks_(q);
     return;
   }
   
@@ -5406,6 +5482,7 @@ function renderCurrentQuestion() {
 
   DOM.questionContainer.innerHTML = html;
   attachBiblePlacesButton_(q);
+  attachBibleEnglishEntityLinks_(q);
   console.log('✅ Question rendered');
   
   if (window.MathJax && MathJax.typesetPromise) {
