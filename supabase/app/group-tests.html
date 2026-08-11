@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GongBoo Bible · Group Tests</title>
+  <style>
+    :root{font-family:Inter,Arial,sans-serif;color:#14213d;background:#f4f8ff}*{box-sizing:border-box}body{margin:0}.head{background:#15223d;color:#fff;padding:18px max(16px,calc((100vw - 1100px)/2));border-bottom:4px solid #38bdf8}.head p{margin:0 0 5px;color:#facc15;font-size:11px;font-weight:900;letter-spacing:.14em}.head h1{margin:0;font-size:clamp(22px,4vw,30px)}.wrap{width:min(1100px,calc(100% - 28px));margin:20px auto}.notice{padding:12px 14px;border:1px solid #bfdbfe;border-radius:11px;background:#eff6ff;color:#1e3a8a;margin-bottom:15px}.notice.error{border-color:#fecaca;background:#fff1f2;color:#b91c1c}.grid{display:grid;grid-template-columns:minmax(280px,.85fr) minmax(0,1.45fr);gap:16px}.card{background:#fff;border:1px solid #dbeafe;border-radius:15px;padding:18px;box-shadow:0 8px 24px rgba(15,23,42,.06)}h2{margin:0 0 12px;font-size:20px}h3{margin:14px 0 8px;font-size:16px}.meta{display:block;color:#64748b;font-size:12px;margin-top:3px}.list{list-style:none;margin:10px 0 0;padding:0;border-top:1px solid #e2e8f0;max-height:470px;overflow:auto}.list li{padding:10px 2px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;gap:8px;align-items:center}.choose{flex:1;text-align:left}.selected{background:#eef6ff}label{font-size:12px;font-weight:800;color:#334155}input,select,textarea,button{font:inherit}input,select,textarea{width:100%;padding:9px;border:1px solid #bfd0e5;border-radius:8px;background:#fff}textarea{min-height:64px;resize:vertical}.form{display:grid;grid-template-columns:1fr 1fr;gap:8px}.full{grid-column:1/-1}.actions{display:flex;gap:7px;flex-wrap:wrap}button{border:0;border-radius:8px;padding:9px 11px;background:#f59e0b;color:#fff;font-weight:900;cursor:pointer}.secondary{background:#e8f0ff;color:#1d4ed8}.danger{background:#e2e8f0;color:#334155}.success{background:#16a34a}.test-question{padding:14px 0;border-bottom:1px solid #e2e8f0}.option{display:block;margin:7px 0;padding:9px;border:1px solid #dbeafe;border-radius:8px;cursor:pointer}.option:has(input:checked){border-color:#2563eb;background:#eff6ff}.score{font-size:32px;font-weight:900;color:#166534}.hidden{display:none}@media(max-width:760px){.grid,.form{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header class="head"><p>GONGBOO BIBLE · GROUP LEARNING</p><h1>Tests & Scores</h1></header>
+<main class="wrap">
+  <div id="notice" class="notice">Checking your access…</div>
+  <div id="app" class="grid hidden">
+    <section id="managerCard" class="card hidden">
+      <h2>Manager: Create Test</h2>
+      <form id="examForm" class="form">
+        <div class="full"><label>Organization</label><select id="organization" required></select></div>
+        <div><label>Room</label><select id="room" required></select></div>
+        <div><label>Test Title</label><input id="title" maxlength="120" required placeholder="Genesis 1 Review"></div>
+        <div><label>Testament</label><select id="subject"><option value="BIBLE_OT">Old Testament</option><option value="BIBLE_NT">New Testament</option></select></div>
+        <div><label>First Question Number</label><input id="start" type="number" min="1" required></div>
+        <div><label>Last Question Number</label><input id="end" type="number" min="1" required></div>
+        <div><label>Time Limit (minutes, optional)</label><input id="minutes" type="number" min="1" max="600"></div>
+        <div><label>Publish Now</label><select id="publish"><option value="yes">Yes — students can take it</option><option value="no">No — save as draft</option></select></div>
+        <div class="full"><label>Instructions (optional)</label><textarea id="instructions" maxlength="2000"></textarea></div>
+        <div class="full actions"><button>Create Test</button><button type="button" id="refreshManager" class="secondary">Refresh</button></div>
+      </form>
+      <h3>Created Tests</h3><ul id="managerTests" class="list"></ul>
+    </section>
+    <section class="card">
+      <h2 id="studentTitle">My Tests</h2>
+      <div id="testArea"><p class="meta">Loading available tests…</p></div>
+    </section>
+  </div>
+</main>
+<script src="./supabase-config.js"></script><script src="./supabase-auth.js"></script>
+<script>
+(()=>{'use strict';
+const cfg=window.BIBLE_SUPABASE_CONFIG||{},base=String(cfg.url||'').replace(/\/+$/,''),key=String(cfg.publishableKey||'');
+const state={orgs:[],rooms:[],managerTests:[],myTests:[],activeExam:null,questions:[]};
+const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function msg(text,error=false){$('notice').textContent=text;$('notice').className='notice'+(error?' error':'')}
+async function session(){const s=await window.BibleSupabaseAuth.getSession();if(!s?.access_token)throw Error('Please log in first.');return s}
+async function rpc(name,body={}){const s=await session(),r=await fetch(base+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:key,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.message||d.error||'Request failed.');return d}
+function managerRender(){const org=$('organization');org.innerHTML=state.orgs.map(x=>`<option value="${x.id}">${esc(x.organization_name)}</option>`).join('');if(state.orgs[0])org.value=state.orgs[0].id;roomRender();$('managerTests').innerHTML=state.managerTests.map(x=>`<li><button class="secondary choose-score" data-id="${x.id}">${esc(x.title)}<span class="meta">${esc(x.room_name)} · ${x.subject_code} #${x.question_start}–${x.question_end} · ${x.status}</span></button><span class="meta">${x.graded_count}/${x.attempt_count} graded</span></li>`).join('')||'<li class="meta">No tests created yet.</li>';document.querySelectorAll('.choose-score').forEach(b=>b.onclick=()=>showScores(b.dataset.id))}
+function roomRender(){const selected=$('organization').value;const rooms=state.rooms.filter(x=>x.organization_id===selected&&x.active);$('room').innerHTML=rooms.map(x=>`<option value="${x.id}">${esc(x.room_name)}</option>`).join('')||'<option value="">Create a room first</option>'}
+async function loadManager(){state.orgs=await rpc('list_my_learning_organizations');if(!state.orgs.length){$('managerCard').classList.add('hidden');return}state.rooms=[];state.managerTests=[];for(const org of state.orgs){const [rooms,tests]=await Promise.all([rpc('list_learning_rooms',{p_organization_id:org.id}),rpc('list_learning_exams',{p_organization_id:org.id})]);state.rooms.push(...rooms);state.managerTests.push(...tests)}$('managerCard').classList.remove('hidden');managerRender()}
+function studentRender(){if(!state.myTests.length){$('testArea').innerHTML='<p class="meta">No published tests are assigned to you right now.</p>';return}$('testArea').innerHTML='<ul class="list">'+state.myTests.map(x=>`<li><button class="secondary choose-test" data-id="${x.id}">${esc(x.title)}<span class="meta">${esc(x.organization_name)} · ${esc(x.room_name)} · ${x.subject_code} #${x.question_start}–${x.question_end}</span></button>${x.score!=null?`<b>${x.score}%</b>`:'<span class="meta">Ready</span>'}</li>`).join('')+'</ul>';document.querySelectorAll('.choose-test').forEach(b=>b.onclick=()=>startExam(b.dataset.id))}
+async function loadStudent(){state.myTests=await rpc('list_my_learning_exams');studentRender()}
+async function showScores(id){try{const rows=await rpc('list_learning_exam_scores',{p_exam_id:id});$('testArea').innerHTML='<h3>Scores</h3><ul class="list">'+(rows.map(x=>`<li><span><b>#${x.registration_number??'-'} ${esc(x.member_name)}</b><span class="meta">${esc(x.login_email||'')} · ${x.status}</span></span><b>${x.score??'—'}${x.score!=null?'%':''}</b></li>`).join('')||'<li class="meta">No attempts yet.</li>')+'</ul>'}catch(e){msg(e.message,true)}}
+async function startExam(id){try{const result=await rpc('start_learning_exam',{p_exam_id:id});state.activeExam=id;state.questions=result.questions||[];$('testArea').innerHTML='<h3>'+esc(result.title)+'</h3>'+(result.time_limit_minutes?`<p class="meta">Time limit: ${result.time_limit_minutes} minutes</p>`:'')+'<form id="answerForm">'+state.questions.map((q,i)=>`<section class="test-question"><b>${i+1}. ${esc(q.question_en)}</b>${q.question_ko?`<span class="meta">${esc(q.question_ko)}</span>`:''}<div>${(q.options_en||[]).map((o,j)=>`<label class="option"><input required type="radio" name="q${q.n}" value="${j+1}"> ${j+1}. ${esc(o)}</label>`).join('')}</div></section>`).join('')+'<button class="success">Submit for Automatic Grading</button></form>';$('answerForm').onsubmit=submitExam}catch(e){msg(e.message,true)}}
+async function submitExam(e){e.preventDefault();try{const answers=state.questions.map(q=>({n:q.n,answer:Number(new FormData(e.target).get('q'+q.n))}));const result=await rpc('submit_learning_exam',{p_exam_id:state.activeExam,p_answers:answers});$('testArea').innerHTML=`<p class="score">${result.score}%</p><p><b>${result.correct_count} / ${result.question_count}</b> correct. This test has been automatically graded.</p><button id="backTests" class="secondary">Back to My Tests</button>`;$('backTests').onclick=loadStudent;await loadManager()}catch(err){msg(err.message,true)}}
+$('organization').onchange=roomRender;$('refreshManager').onclick=async()=>{try{await loadManager();msg('Manager data refreshed.')}catch(e){msg(e.message,true)}};
+$('examForm').onsubmit=async e=>{e.preventDefault();try{const orgId=$('organization').value;await rpc('create_learning_exam',{p_organization_id:orgId,p_room_id:$('room').value,p_title:$('title').value,p_subject_code:$('subject').value,p_question_start:Number($('start').value),p_question_end:Number($('end').value),p_instructions:$('instructions').value,p_time_limit_minutes:$('minutes').value?Number($('minutes').value):null,p_publish:$('publish').value==='yes'});e.target.reset();await loadManager();msg('Test created.')}catch(err){msg(err.message,true)}};
+(async()=>{try{if(!await window.BibleSupabaseAuth.restoreUser())throw Error('Please log in first.');$('app').classList.remove('hidden');await Promise.all([loadManager(),loadStudent()]);msg('Tests and scores are ready.')}catch(e){msg(e.message,true)}})();
+})();
+</script>
+</body></html>
