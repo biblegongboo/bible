@@ -1937,7 +1937,8 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-source-images figcaption,.bible-source-images a{display:none}
   /* Compact, stable header controls. Mode help is available on hover/focus
      instead of occupying a permanent row. */
-  .quiz-header{padding:7px 16px 9px}
+  .quiz-header{padding:7px 16px 9px;background:linear-gradient(135deg,#123a67,#174a7a 55%,#123a67);border-bottom-color:#62b5e5}
+  html[data-study-mode="learn"] .quiz-header,html[data-study-mode="study"] .quiz-header,html[data-study-mode="exam"] .quiz-header{border-bottom-color:#62b5e5}
   .sat-logo{display:grid;grid-template-columns:2fr 3fr;align-items:center;gap:0;padding:0;min-height:32px;width:min(420px,100%);margin:0 auto}
   .sat-title{min-width:0;padding-right:5px;font-size:clamp(1.05rem,2.5vw,1.35rem);line-height:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
   .bible-top-control-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;gap:4px;width:100%;height:32px}.bible-header-nav,.bible-top-actions{display:contents}
@@ -1968,10 +1969,8 @@ html:not(.admin-user) .admin-preview-panel {
   .learning-mode-panel{width:min(420px,100%);max-width:420px;margin:4px auto 0}
   .mode-buttons{width:min(420px,100%);margin:0 auto;gap:4px;padding:0;border:0;background:transparent;border-radius:9px;overflow:visible}
   .mode-btn{position:relative;height:36px;min-height:36px;padding:3px 6px;border-radius:8px;font-size:12px;white-space:nowrap;overflow:visible;text-overflow:ellipsis}
-  .mode-learn,.mode-study,.mode-exam{background:#edf2f7;color:#243b53;border-color:#c7d2df}
-  .mode-learn.active{background:#31a865;color:#fff;border-color:#31a865}
-  .mode-study.active{background:#347fbd;color:#fff;border-color:#347fbd}
-  .mode-exam.active{background:#d95770;color:#fff;border-color:#d95770}
+  .mode-learn,.mode-study,.mode-exam{background:#e7eef6;color:#243b53;border-color:#bdccda}
+  .mode-learn.active,.mode-study.active,.mode-exam.active{background:#e7eef6;color:#123a67;border-color:#123a67;box-shadow:inset 0 0 0 1px rgba(18,58,103,.22),inset 0 2px 5px rgba(18,58,103,.16)}
   .mode-description{display:none!important}
   .mode-btn::after{
     content:attr(data-tooltip);
@@ -2019,8 +2018,8 @@ html:not(.admin-user) .admin-preview-panel {
     border-radius:8px;
     font-size:12px;
   }
-  .bible-passage-toggle,.bible-quiz-toggle{background:#e6faef!important;border-color:#74d59c!important;color:#145c35!important}
-  #biblePrimaryTextSelector,#bibleSecondaryTextSelector{background:#fffdf7!important;border-color:#d9cfb7!important;color:#172033!important}
+  .bible-passage-toggle,.bible-quiz-toggle,
+  #biblePrimaryTextSelector,#bibleSecondaryTextSelector{background:#e6faef!important;border-color:#74d59c!important;color:#145c35!important}
   .persistent-timer-toggle{width:30px!important;height:30px!important;min-width:30px!important}
   html:not([data-study-mode="exam"]) #timerToggle,
   #timerToggle[hidden]{display:none!important}
@@ -2041,13 +2040,27 @@ html:not(.admin-user) .admin-preview-panel {
   }
   body.bible-people-open{overflow:hidden}
   .bible-speech-controls .bible-speech-button,.bible-speech-controls .bible-speech-speed{width:100%!important;min-width:0!important;height:36px!important;min-height:36px!important;padding:0!important;font-size:17px!important;line-height:1!important;border:1px solid rgba(15,23,42,.14)!important;border-radius:8px!important;box-sizing:border-box!important}
-  .bible-speech-controls .bible-speech-play{background:#ffe3a3!important;color:#7c4300!important;font-size:16px!important}
-  .bible-speech-controls .bible-speech-replay{background:#dcecff!important;color:#174a7c!important;font-size:20px!important;font-weight:900!important;-webkit-text-stroke:.35px currentColor}
-  .bible-speech-controls .bible-speech-stop{display:grid!important;place-items:center!important;background:#e7edf3!important;color:#334e68!important}
+  .bible-speech-controls .bible-speech-button,.bible-speech-controls .bible-speech-speed{background:#e6faef!important;border-color:#74d59c!important;color:#145c35!important}
+  .bible-speech-controls .bible-speech-play{font-size:16px!important}
+  .bible-speech-controls .bible-speech-replay{font-size:20px!important;font-weight:900!important;-webkit-text-stroke:.35px currentColor}
+  .bible-speech-controls .bible-speech-stop{display:grid!important;place-items:center!important}
   .bible-stop-icon{display:block;width:14px;height:14px;border-radius:1px;background:currentColor}
-  .bible-speech-controls .bible-speech-speed{background:#fffaf0!important;color:#243b53!important;font-size:13px!important;font-weight:800!important}
+  .bible-speech-controls .bible-speech-speed{font-size:13px!important;font-weight:800!important}
   .bible-speech-controls .bible-speech-auto-next{font-size:17px!important}
   .bible-speech-controls .bible-speech-speed{padding:0 3px!important;font-size:11px!important;text-align:center}
+  .mode-btn.active,
+  .bible-passage-toggle.is-on,.bible-quiz-toggle.is-on,
+  .bible-passage-toggle[aria-pressed="true"],.bible-quiz-toggle[aria-pressed="true"],
+  .bible-speech-auto-next[aria-pressed="true"],
+  .bible-speech-speed,#biblePrimaryTextSelector,#bibleSecondaryTextSelector{
+    color:#123a67!important;
+    border-color:#123a67!important;
+    box-shadow:inset 0 0 0 1px rgba(18,58,103,.22),inset 0 2px 5px rgba(18,58,103,.16)!important;
+  }
+  .mode-btn.active:hover,
+  .bible-passage-toggle.is-on:hover,.bible-quiz-toggle.is-on:hover,
+  .bible-speech-auto-next[aria-pressed="true"]:hover,
+  .bible-speech-speed:hover,#biblePrimaryTextSelector:hover,#bibleSecondaryTextSelector:hover{border-color:#123a67!important}
   .bible-timeline-selection{scroll-margin-top:16px}.bible-timeline-selection.is-revealed{outline:3px solid #f5a623;box-shadow:0 0 0 7px rgba(245,166,35,.18);transition:outline-color .2s,box-shadow .2s}
   .bible-book-picker{display:block;width:100%;margin:14px 0 10px;text-align:left}
   .bible-testament-group{min-width:0;margin:0 0 18px;padding:0;background:transparent}
@@ -2077,7 +2090,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.98-nt-catalog1"></script>
 <script type="module">
-import { initialize } from './main.js?v=9.30-mobile-header1';
+import { initialize } from './main.js?v=9.31-unified-palette1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

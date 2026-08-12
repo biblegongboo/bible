@@ -6349,9 +6349,6 @@ function initBibleSpeechControls() {
     autoNextButton.title = 'Auto next ' + (bibleAutoNextEnabled ? 'on' : 'off');
     autoNextButton.setAttribute('aria-label', 'Automatically move to the next item: ' + (bibleAutoNextEnabled ? 'on' : 'off'));
     autoNextButton.setAttribute('aria-pressed', bibleAutoNextEnabled ? 'true' : 'false');
-    autoNextButton.style.background = bibleAutoNextEnabled ? '#ccefd9' : '#e7edf3';
-    autoNextButton.style.color = bibleAutoNextEnabled ? '#17663a' : '#486581';
-    autoNextButton.style.borderColor = bibleAutoNextEnabled ? '#69bd87' : '#b8c5d1';
   }
 
   function syncBibleSpeechControlsVisibility_() {
