@@ -158,7 +158,8 @@
     var query = String(payload && payload.query || '').trim();
     var limit = Math.min(100, Math.max(1, parseInt(payload && payload.limit, 10) || 60));
     var parts = [
-      'select=met_object_id,title,object_name,culture,period,object_date,year_begin,year_end,region_tags,topic_tags,bible_era_tags,timeline_100y,is_public_domain,object_url',
+      'select=met_object_id,title,object_name,culture,period,object_date,year_begin,year_end,region_tags,topic_tags,bible_era_tags,timeline_100y,is_public_domain,object_url,image_small_url,image_original_url,image_status,medium,credit_line',
+      'image_status=eq.verified',
       'order=title.asc',
       'limit=' + limit
     ];
