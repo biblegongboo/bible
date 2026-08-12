@@ -1962,6 +1962,7 @@ html:not(.admin-user) .admin-preview-panel {
   .quiz-header button:not(:disabled):active{transform:translateY(1px) scale(.96)!important;filter:brightness(.88)}
   .quiz-header button:disabled{cursor:not-allowed;opacity:.55}
   .quiz-header button.bible-tap-feedback{animation:bible-header-tap .34s ease-out;box-shadow:0 0 0 3px rgba(255,255,255,.75),0 0 17px rgba(96,165,250,.85)!important;filter:brightness(1.18)}
+  .bible-header-tooltip{position:fixed;z-index:10000;max-width:min(270px,calc(100vw - 24px));padding:7px 10px;border:1px solid rgba(255,255,255,.3);border-radius:8px;background:#082f55;color:#fff;box-shadow:0 7px 20px rgba(3,24,46,.28);font:650 11px/1.35 system-ui,sans-serif;text-align:center;pointer-events:none;opacity:0;transform:translateY(3px);transition:opacity .12s ease,transform .12s ease}.bible-header-tooltip.is-visible{opacity:1;transform:translateY(0)}
   @keyframes bible-header-tap{0%{transform:scale(1);filter:brightness(1)}35%{transform:scale(.91);filter:brightness(.82)}100%{transform:scale(1);filter:brightness(1.18)}}
   .header-person-icon{position:relative;display:inline-block;width:17px;height:18px;vertical-align:middle}
   .header-person-icon::before{content:'';position:absolute;top:0;left:5px;width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 5px rgba(85,51,155,.24)}
@@ -1998,6 +1999,7 @@ html:not(.admin-user) .admin-preview-panel {
     transition:opacity .15s ease,transform .15s ease;
   }
   .mode-btn:hover::after,.mode-btn:focus-visible::after{opacity:1;transform:translate(-50%,0)}
+  .mode-btn::after{display:none}
   .mode-learn::after{left:0;transform:translate(0,4px)}
   .mode-learn:hover::after,.mode-learn:focus-visible::after{transform:translate(0,0)}
   .mode-exam::after{left:auto;right:0;transform:translate(0,4px)}
@@ -2091,7 +2093,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.98-nt-catalog1"></script>
 <script type="module">
-import { initialize } from './main.js?v=9.32-blue-ivory-hover1';
+import { initialize } from './main.js?v=9.33-header-tooltips1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

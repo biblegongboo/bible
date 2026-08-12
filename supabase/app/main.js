@@ -252,6 +252,65 @@ function applyUserRolePolicy() {
   document.documentElement.classList.toggle('trial-user', IS_TRIAL_USER);
 }
 
+function initBibleHeaderTooltips_() {
+  var header = document.querySelector('.quiz-header');
+  if (!header || header.dataset.tooltipBound) return;
+  header.dataset.tooltipBound = '1';
+  var tooltip = document.createElement('div');
+  tooltip.className = 'bible-header-tooltip';
+  tooltip.setAttribute('role', 'tooltip');
+  document.body.appendChild(tooltip);
+  var activeControl = null;
+
+  function tooltipText_(control) {
+    if (!control) return '';
+    var nativeTitle = control.getAttribute('title') || '';
+    if (nativeTitle) {
+      control.dataset.headerTooltipTitle = nativeTitle;
+      control.removeAttribute('title');
+    }
+    return control.getAttribute('data-tooltip') ||
+      control.dataset.headerTooltipTitle ||
+      control.getAttribute('aria-label') ||
+      String(control.textContent || '').trim();
+  }
+
+  function show_(control) {
+    var text = tooltipText_(control);
+    if (!text) return;
+    activeControl = control;
+    tooltip.textContent = text;
+    tooltip.classList.add('is-visible');
+    var rect = control.getBoundingClientRect();
+    var tipRect = tooltip.getBoundingClientRect();
+    var left = Math.max(6, Math.min(window.innerWidth - tipRect.width - 6,
+      rect.left + (rect.width - tipRect.width) / 2));
+    var top = rect.bottom + 6;
+    if (top + tipRect.height > window.innerHeight - 6) top = rect.top - tipRect.height - 6;
+    tooltip.style.left = Math.round(left) + 'px';
+    tooltip.style.top = Math.round(top) + 'px';
+  }
+
+  function hide_() {
+    activeControl = null;
+    tooltip.classList.remove('is-visible');
+  }
+
+  header.addEventListener('pointerover', function(event) {
+    var control = event.target.closest('button,select');
+    if (control && header.contains(control)) show_(control);
+  });
+  header.addEventListener('pointerout', function(event) {
+    if (activeControl && !activeControl.contains(event.relatedTarget)) hide_();
+  });
+  header.addEventListener('focusin', function(event) {
+    var control = event.target.closest('button,select');
+    if (control) show_(control);
+  });
+  header.addEventListener('focusout', hide_);
+  header.addEventListener('click', hide_);
+}
+
 function applyCopyProtectionPolicy() {
   // Keep ordinary browser behavior intact. Blocking selection/context-menu
   // prevented Chrome's translation and accessibility tools from operating.
@@ -5835,6 +5894,7 @@ function initialize() {
   initTimer();
   attachEvents();
   initBibleTapFeedback_();
+  initBibleHeaderTooltips_();
   initBibleLogout_();
   initBibleGuide_();
   initBiblePeopleExplorer();
