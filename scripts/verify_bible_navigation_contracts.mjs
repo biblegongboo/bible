@@ -18,8 +18,9 @@ const checks = [
   ['graphic selection happens before a re-render can replace the click target', vector.includes("circle.addEventListener('pointerdown', selectNode)") && vector.includes("hitTarget.addEventListener('pointerdown', selectNode)")],
   ['graphic selection retains a mouse click fallback', vector.includes("circle.addEventListener('click', selectNode)") && vector.includes("hitTarget.addEventListener('click', selectNode)")],
   ['Scripture navigation runs after component handlers', /openBibleScriptureReference_\(referenceButton\.dataset\.bibleSourceCode\);\s*}\);/.test(main)],
-  ['release HTML requests the nested-refresh main bundle', index.includes('main.js?v=9.39-nested-explorer-refresh1')]
+  ['release HTML requests the nearest-question main bundle', index.includes('main.js?v=9.40-nearest-scripture-question1')]
   ,['main requests the matching pointer-click Explorer bundle', main.includes('bible-explorer.js?v=9.25-pointer-click-selection1')]
+  ,['missing exact verse opens nearest chapter question without an alert', main.includes('opened the nearest available chapter question') && !main.includes("alert('The chapter opened, but no quiz has been created for '")]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);

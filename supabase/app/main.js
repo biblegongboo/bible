@@ -7606,9 +7606,24 @@ async function openBibleScriptureReference_(sourceCode) {
     ).toLowerCase() === parts.sourceCode.toLowerCase();
   });
   if (targetIndex < 0) {
-    alert('The chapter opened, but no quiz has been created for ' +
-      parts.sourceCode + ' yet.');
-    return true;
+    var chapterPrefix = (parts.testament + '-' + parts.book + '-' +
+      String(parts.chapter).padStart(2, '0') + '-').toLowerCase();
+    var requestedVerse = parseInt(parts.sourceCode.split('-').pop(), 10) || 1;
+    var nearestDistance = Infinity;
+    currentQuestions.forEach(function(question, index) {
+      var code = String(question.sourceCode || question.SOURCE_CODE ||
+        question.subject || question.SUBJECT || '').toLowerCase();
+      if (code.indexOf(chapterPrefix) !== 0) return;
+      var verse = parseInt(code.split('-').pop(), 10) || 1;
+      var distance = Math.abs(verse - requestedVerse);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        targetIndex = index;
+      }
+    });
+    if (targetIndex < 0) targetIndex = 0;
+    console.info('No exact quiz for ' + parts.sourceCode +
+      '; opened the nearest available chapter question.');
   }
   currentIndex = targetIndex;
   RendererManager.disposeCurrent();
