@@ -421,7 +421,15 @@ function renderPlaceDetail(place) {
       const selected = event.detail.place;
       const linkedPlace = data.places.find((item) => item.id === selected.id) ||
         findPlaceForVisibleLabel(selected.name);
-      if (linkedPlace && linkedPlace.id !== place.id) renderPlaceDetail(linkedPlace);
+      if (linkedPlace) {
+        renderPlaceDetail(linkedPlace);
+        window.requestAnimationFrame(() => {
+          document.getElementById('biblePlaceDetail')?.scrollIntoView({
+            behavior: 'auto',
+            block: 'start'
+          });
+        });
+      }
       if (mapStatus) {
         mapStatus.textContent = `${selected.name} · ${selected.verse_reference_count || 0} verse references · ${selected.candidate_count || 0} location candidate(s)`;
       }
