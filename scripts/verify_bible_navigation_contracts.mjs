@@ -15,8 +15,9 @@ const checks = [
   ['Timeline chips carry canonical destinations', explorer.includes('data-bible-person-id=') && explorer.includes('data-bible-place-id=')],
   ['Timeline centre lock remains enabled', vector.includes('lockVerticalPan')],
   ['graphic selections consume native clicks', vector.includes('event.stopPropagation();') && vector.includes('bubbles: false')],
+  ['graphic selection happens before a re-render can replace the click target', vector.includes("circle.addEventListener('pointerdown', selectNode)") && vector.includes("hitTarget.addEventListener('pointerdown', selectNode)")],
   ['Scripture navigation runs after component handlers', /openBibleScriptureReference_\(referenceButton\.dataset\.bibleSourceCode\);\s*}\);/.test(main)],
-  ['release HTML requests the exclusive-click main bundle', index.includes('main.js?v=9.36-exclusive-graphic-clicks1')]
+  ['release HTML requests the stable-pointer main bundle', index.includes('main.js?v=9.37-stable-pointer-selection1')]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);
