@@ -1901,9 +1901,11 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-reference,.bible-relationship{border:1px solid #e2e8f0;border-radius:9px;padding:9px 10px;background:#f8fafc;font-size:12px;color:#334155}
   button.bible-relationship{width:100%;text-align:left;cursor:pointer;font-family:inherit}
   button.bible-relationship:hover,button.bible-relationship:focus-visible{border-color:#60a5fa;background:#eff6ff;outline:none}
-  .bible-context-head-actions{display:flex;align-items:center;gap:8px}.bible-people-shortcut{display:grid;place-items:center;width:42px;min-width:42px;height:42px;padding:0;background:#1d4ed8;border-color:#60a5fa}.bible-people-shortcut:hover,.bible-people-shortcut:focus-visible{background:#2563eb;border-color:#bfdbfe;outline:2px solid #bfdbfe;outline-offset:2px}
+  .bible-context-head-actions{display:flex;align-items:center;gap:8px}
   .bible-context-back{border:1px solid #94a3b8;border-radius:8px;padding:7px 11px;background:#fff;color:#1e3a8a;font:inherit;font-weight:800;cursor:pointer}
   .bible-context-back:disabled{opacity:.42;cursor:not-allowed}
+  button.bible-context-back.bible-people-shortcut{display:grid;place-items:center;width:42px;min-width:42px;height:42px;padding:0;background:#1d4ed8;border-color:#60a5fa;color:#fff}
+  button.bible-context-back.bible-people-shortcut:hover,button.bible-context-back.bible-people-shortcut:focus-visible{background:#2563eb;border-color:#bfdbfe;color:#fff;outline:2px solid #bfdbfe;outline-offset:2px}
   .bible-reference{display:inline-flex;flex:0 0 auto;max-width:100%;white-space:nowrap;line-height:1.2}
   button.bible-reference{cursor:pointer;font-family:inherit;text-align:left}
   button.bible-reference:hover,button.bible-reference:focus-visible{border-color:#2563eb;background:#eff6ff;color:#1d4ed8;outline:none}
@@ -2046,7 +2048,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.98-nt-catalog1"></script>
 <script type="module">
-import { initialize } from './main.js?v=9.14-journey-people-links1';
+import { initialize } from './main.js?v=9.15-people-icon-visible1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
