@@ -1939,17 +1939,17 @@ html:not(.admin-user) .admin-preview-panel {
      instead of occupying a permanent row. */
   .quiz-header{padding:10px 16px 12px}
   .sat-logo{display:grid;grid-template-columns:2fr 3fr;align-items:center;gap:0;padding:0 0 6px;min-height:36px;width:min(420px,100%);margin:0 auto;border-bottom:1px solid rgba(255,255,255,.13)}
-  .sat-title{min-width:0;font-size:clamp(1.05rem,2.5vw,1.35rem);line-height:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
+  .sat-title{min-width:0;padding-right:5px;font-size:clamp(1.05rem,2.5vw,1.35rem);line-height:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
   .bible-top-control-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;width:100%}.bible-header-nav,.bible-top-actions{display:contents}
   .bible-header-action-row{position:relative;z-index:4;width:min(420px,100%);margin:5px auto 0}
-  .persistent-people-toggle,.persistent-explore-toggle{position:static!important;z-index:auto;display:grid!important;place-items:center!important;justify-self:center;width:32px!important;min-width:32px!important;height:32px!important;min-height:32px!important;padding:0!important;font-size:17px!important;line-height:1!important;color:#172033!important;box-shadow:0 3px 9px rgba(3,12,30,.16)!important}
+  .persistent-people-toggle,.persistent-explore-toggle{position:static!important;z-index:auto;display:grid!important;place-items:center!important;justify-self:center;width:32px!important;min-width:32px!important;height:32px!important;min-height:32px!important;padding:0!important;font-size:18px!important;line-height:1!important;color:#172033!important;box-shadow:0 3px 9px rgba(3,12,30,.16)!important}
   .persistent-explore-toggle{background:#dff7ff!important;border-color:#67cbe8!important;color:#075985!important}
   .persistent-people-toggle{background:#eee8ff!important;border-color:#b8a5ee!important;color:#55339b!important}
   .bible-speech-controls{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;width:100%!important;margin:0!important;padding:0!important}
   .bible-speech-controls[hidden]{display:none!important}
   .bible-guide-toggle,.bible-logout-toggle{position:static!important;display:grid!important;place-items:center!important;justify-self:center;width:32px!important;min-width:32px!important;height:32px!important;min-height:32px!important;padding:0!important;border-radius:9px!important;box-shadow:0 3px 9px rgba(3,12,30,.16)!important}
-  .bible-guide-toggle{border-color:#79bde8!important;background:#e5f4ff!important;color:#075985!important;font-size:16px!important}
-  .bible-logout-toggle{margin:0!important;background:#ffe8ec!important;border-color:#ef9aaa!important;color:#9f2440!important;font-size:17px!important;line-height:1!important}
+  .bible-guide-toggle{border-color:#79bde8!important;background:#e5f4ff!important;color:#075985!important;font-size:18px!important;font-weight:900!important}
+  .bible-logout-toggle{margin:0!important;background:#ffe8ec!important;border-color:#ef9aaa!important;color:#9f2440!important;font-size:20px!important;font-weight:900!important;line-height:1!important}
   /* A short visible confirmation prevents accidental double-taps on the
      compact header controls, especially on touch screens. */
   .quiz-header button{transition:transform .14s ease,filter .14s ease,box-shadow .14s ease,background .14s ease!important}
@@ -1959,15 +1959,13 @@ html:not(.admin-user) .admin-preview-panel {
   .quiz-header button:disabled{cursor:not-allowed;opacity:.55}
   .quiz-header button.bible-tap-feedback{animation:bible-header-tap .34s ease-out;box-shadow:0 0 0 3px rgba(255,255,255,.75),0 0 17px rgba(96,165,250,.85)!important;filter:brightness(1.18)}
   @keyframes bible-header-tap{0%{transform:scale(1);filter:brightness(1)}35%{transform:scale(.91);filter:brightness(.82)}100%{transform:scale(1);filter:brightness(1.18)}}
-  .header-person-icon{position:relative;display:inline-block;width:13px;height:14px;vertical-align:middle}
-  .header-person-icon::before{content:'';position:absolute;top:0;left:4px;width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 5px rgba(85,51,155,.24)}
-  .header-person-icon::after{content:'';position:absolute;bottom:0;left:1px;width:12px;height:7px;border-radius:8px 8px 3px 3px;background:currentColor;box-shadow:0 0 5px rgba(85,51,155,.2)}
+  .header-person-icon{position:relative;display:inline-block;width:17px;height:18px;vertical-align:middle}
+  .header-person-icon::before{content:'';position:absolute;top:0;left:5px;width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 5px rgba(85,51,155,.24)}
+  .header-person-icon::after{content:'';position:absolute;bottom:0;left:1px;width:16px;height:9px;border-radius:9px 9px 3px 3px;background:currentColor;box-shadow:0 0 5px rgba(85,51,155,.2)}
   .learning-mode-panel{width:min(420px,100%);max-width:420px;margin:4px auto 0}
   .mode-buttons{width:min(420px,100%);margin:0 auto;gap:4px;padding:0;border:0;background:transparent;border-radius:9px;overflow:visible}
   .mode-btn{position:relative;height:36px;min-height:36px;padding:3px 6px;border-radius:8px;font-size:12px;white-space:nowrap;overflow:visible;text-overflow:ellipsis}
-  .mode-learn{background:#e5f8ed;color:#14532d;border-color:#91d8ab}
-  .mode-study{background:#e5f2ff;color:#17466f;border-color:#8fc4eb}
-  .mode-exam{background:#ffe8ec;color:#8f243c;border-color:#efa0b0}
+  .mode-learn,.mode-study,.mode-exam{background:#edf2f7;color:#243b53;border-color:#c7d2df}
   .mode-learn.active{background:#31a865;color:#fff;border-color:#31a865}
   .mode-study.active{background:#347fbd;color:#fff;border-color:#347fbd}
   .mode-exam.active{background:#d95770;color:#fff;border-color:#d95770}
@@ -2040,7 +2038,10 @@ html:not(.admin-user) .admin-preview-panel {
   }
   body.bible-people-open{overflow:hidden}
   .bible-speech-controls .bible-speech-button,.bible-speech-controls .bible-speech-speed{width:100%!important;min-width:0!important;height:36px!important;min-height:36px!important;padding:0!important;font-size:17px!important;line-height:1!important;border:1px solid rgba(15,23,42,.14)!important;border-radius:8px!important;box-sizing:border-box!important}
-  .bible-speech-controls .bible-speech-stop{font-size:18px!important}
+  .bible-speech-controls .bible-speech-play{background:#ffe3a3!important;color:#7c4300!important;font-size:16px!important}
+  .bible-speech-controls .bible-speech-replay{background:#dcecff!important;color:#174a7c!important}
+  .bible-speech-controls .bible-speech-stop{background:#e7edf3!important;color:#334e68!important;font-size:18px!important}
+  .bible-speech-controls .bible-speech-speed{background:#fffaf0!important;color:#243b53!important;font-size:13px!important;font-weight:800!important}
   .bible-speech-controls .bible-speech-replay{font-size:19px!important}
   .bible-speech-controls .bible-speech-auto-next{font-size:17px!important}
   .bible-speech-controls .bible-speech-speed{padding:0 3px!important;font-size:11px!important;text-align:center}
@@ -2073,7 +2074,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.98-nt-catalog1"></script>
 <script type="module">
-import { initialize } from './main.js?v=9.26-header-compact1';
+import { initialize } from './main.js?v=9.27-header-optical1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
