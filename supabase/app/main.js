@@ -260,7 +260,7 @@ function applyUserRolePolicy() {
   TRIAL_LIMIT = Math.max(1, parseInt(currentUser && currentUser.trial_limit, 10) || 20);
   document.documentElement.classList.toggle('admin-user', IS_ADMIN_USER);
   document.documentElement.classList.toggle('trial-user', IS_TRIAL_USER);
-  ['bibleGroupAdminToggle', 'adminPreviewToggle', 'superGraphicStudioLink', 'adminPreviewPanel']
+  ['bibleGroupAdminToggle']
     .forEach(function(id) {
       var element = document.getElementById(id);
       if (element) element.hidden = !IS_ADMIN_USER;
@@ -5847,7 +5847,6 @@ function initialize() {
   updateSubjectTitle(1);
   initLanguageSelector();
   initModeSelector();
-  initAdminPreviewTool();
   initTimer();
   attachEvents();
   initBibleTapFeedback_();

@@ -407,39 +407,6 @@
   </div>
 </section>
 
-<!-- ===== BLOCK 05: Admin JSON Graphic and Math Preview ===== -->
-<button type="button" id="adminPreviewToggle" class="admin-preview-toggle" aria-controls="adminPreviewPanel" aria-expanded="false" hidden>JSON / LaTeX Preview</button>
-<a id="superGraphicStudioLink" class="admin-preview-toggle" href="./graphics/viewer.html" target="_blank" rel="noopener" hidden>Super Graphic Studio</a>
-<section id="adminPreviewPanel" class="admin-preview-panel" aria-label="Admin JSON graphic and math preview" hidden>
-  <div class="admin-preview-head">
-    <div><strong>ADMIN PREVIEW</strong><small>Same quiz graphic and math renderer</small></div>
-    <button type="button" id="adminPreviewClose" aria-label="Close preview">x</button>
-  </div>
-  <div class="admin-preview-grid">
-    <article class="admin-preview-card">
-      <h3>JSON Graphic</h3>
-      <textarea id="adminGraphicInput" spellcheck="false" placeholder="Paste the Google Sheet G value here"></textarea>
-      <div class="admin-preview-actions">
-        <button type="button" id="adminGraphicRender">Render</button>
-        <button type="button" id="adminGraphicFormat">Format JSON</button>
-        <button type="button" id="adminGraphicClear">Clear</button>
-      </div>
-      <div id="adminGraphicStatus" class="admin-preview-status">Waiting for JSON.</div>
-      <div id="adminGraphicOutput" class="admin-preview-output"><div class="admin-preview-empty">Graphic output appears here.</div></div>
-    </article>
-    <article class="admin-preview-card">
-      <h3>Math / LaTeX</h3>
-      <textarea id="adminMathInput" spellcheck="false" placeholder="Paste a question, choice, explanation, or LaTeX expression here"></textarea>
-      <div class="admin-preview-actions">
-        <button type="button" id="adminMathRender">Render</button>
-        <button type="button" id="adminMathClear">Clear</button>
-      </div>
-      <div id="adminMathStatus" class="admin-preview-status">Waiting for math text.</div>
-      <div id="adminMathOutput" class="admin-preview-output"><div class="admin-preview-empty">Math output appears here.</div></div>
-    </article>
-  </div>
-</section>
-
 <!-- ============================================================ -->
 <!-- BLOCK 06: CSS 스타일 (공통) -->
 <!-- ============================================================ -->
@@ -569,6 +536,7 @@
     flex-direction: column;
     align-items: center
   }
+  .card[hidden]{display:none!important}
   .card-new {
     background: #fff;
     border: 2px solid rgba(255, 255, 255, 0.3);
@@ -2077,7 +2045,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.98-nt-catalog1"></script>
 <script type="module">
-import { initialize } from './main.js?v=9.08-resume-direct-chapter1';
+import { initialize } from './main.js?v=9.09-admin-clean-flow1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
