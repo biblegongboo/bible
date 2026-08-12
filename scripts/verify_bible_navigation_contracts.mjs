@@ -18,7 +18,7 @@ const checks = [
   ['graphic selection happens before a re-render can replace the click target', vector.includes("circle.addEventListener('pointerdown', selectNode)") && vector.includes("hitTarget.addEventListener('pointerdown', selectNode)")],
   ['graphic selection retains a mouse click fallback', vector.includes("circle.addEventListener('click', selectNode)") && vector.includes("hitTarget.addEventListener('click', selectNode)")],
   ['Scripture navigation runs after component handlers', /openBibleScriptureReference_\(referenceButton\.dataset\.bibleSourceCode\);\s*}\);/.test(main)],
-  ['release HTML requests the pointer-click main bundle', index.includes('main.js?v=9.38-pointer-click-selection1')]
+  ['release HTML requests the nested-refresh main bundle', index.includes('main.js?v=9.39-nested-explorer-refresh1')]
   ,['main requests the matching pointer-click Explorer bundle', main.includes('bible-explorer.js?v=9.25-pointer-click-selection1')]
 ];
 
