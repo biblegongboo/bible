@@ -246,18 +246,6 @@
             <button class="btn-primary" id="testLoginBtn" type="submit">Login</button>
             <div id="loginResult" class="result-box"></div>
             <p style="margin:14px 0 0;text-align:center;font-size:13px"><a href="./group-login.html" style="color:#1d4ed8;font-weight:700">단체 학습 로그인 (이름 + PIN)</a></p>
-            <section id="subjectPicker" class="subject-picker" aria-labelledby="subjectPickerTitle">
-                <h2 id="subjectPickerTitle">Available Subjects</h2>
-                <p>Select a subject to start.</p>
-                <div id="trialSubjectNotice" class="trial-notice" role="status" aria-live="polite">
-                    <span class="trial-notice-title">FREE TRIAL</span>
-                    <span class="trial-notice-text">
-                        20 sample questions per subject.<br />
-                        Upgrade for full access.
-                    </span>
-                </div>
-                <div id="subjectList" class="subject-list"></div>
-            </section>
         </form>
 
         <!-- 회원가입 -->
@@ -412,14 +400,14 @@
           { CODE: 'BIBLE_OT', NAME: 'Old Testament · 구약', CATEGORY: 'BIBLE', SHEET: 'BIBLE-OT', SET_SIZE: 120, FORMAT: 'BIBLE_EN_KO', ACTIVE: 'Y', VERSION: '1.0' },
           { CODE: 'BIBLE_NT', NAME: 'New Testament · 신약', CATEGORY: 'BIBLE', SHEET: 'BIBLE-NT', SET_SIZE: 120, FORMAT: 'BIBLE_EN_KO', ACTIVE: 'Y', VERSION: '1.0' }
         ];
-                    localStorage.removeItem('quiz_current_subject_v1');
+                    localStorage.setItem('quiz_current_subject_v1', JSON.stringify(subjects[0]));
                     localStorage.setItem('quiz_current_user_v1', JSON.stringify(user));
                     localStorage.setItem('quiz_available_subjects_v1', JSON.stringify(subjects));
                     const welcomeText = user.is_trial
                         ? '✅ FREE TRIAL · 20 sample questions per subject. Upgrade for full access.'
                         : '✅ Welcome, ' + (user.name || email) + '!';
                     showResult('loginResult', welcomeText, true);
-                    renderSubjectPicker(subjects, user);
+                    window.location.href = './index.html?v=9.07-direct-bible-books1';
                 } else if (false) {
                     let msg = data.message;
                     if (data.status === 'pending') msg = '⏳ ' + msg;

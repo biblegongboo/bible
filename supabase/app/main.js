@@ -191,7 +191,7 @@ function clearAuthAndRedirect(reason) {
   localStorage.removeItem('quiz_current_subject_v1');
   var rawReason = String(reason || '').replace(/[^A-Z0-9_\-]/gi, '').slice(0, 40);
   var authReason = rawReason.indexOf('AUTH_') === 0 ? 'LOGIN_REQUIRED' : rawReason;
-  window.location.replace('./login.html?v=8.98-nt-catalog1' + (authReason ? '&auth_error=' + encodeURIComponent(authReason) : ''));
+  window.location.replace('./login.html?v=9.07-direct-bible-books1' + (authReason ? '&auth_error=' + encodeURIComponent(authReason) : ''));
 }
 
 function initBibleLogout_() {
@@ -206,7 +206,7 @@ function initBibleLogout_() {
     localStorage.removeItem('quiz_current_user_v1');
     localStorage.removeItem('quiz_available_subjects_v1');
     localStorage.removeItem('quiz_current_subject_v1');
-    window.location.replace('./login.html?v=8.83-logout1');
+    window.location.replace('./login.html?v=9.07-direct-bible-books1');
   });
 }
 
