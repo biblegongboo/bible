@@ -163,8 +163,13 @@ export class VectorScene25D {
     for (const node of this.scene.nodes.slice().sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0))) {
       const point = this.toScreen([node.x, node.y]);
       if (point.x < -40 || point.x > width + 40 || point.y < -40 || point.y > height + 40) continue;
-      const selectNode = () =>
-        this.host.dispatchEvent(new CustomEvent('scene25d:select', { detail: { node }, bubbles: true }));
+      const selectNode = (event) => {
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        this.host.dispatchEvent(new CustomEvent('scene25d:select', { detail: { node }, bubbles: false }));
+      };
       const circle = makeSvg('circle', { cx: point.x, cy: point.y, r: node.radius || 4, fill: node.color || '#60a5fa', stroke: node.stroke || '#1d4ed8', 'stroke-width': 1.5, class: 'scene25d-node' });
       circle.addEventListener('click', selectNode);
       this.nodeLayer.appendChild(circle);
@@ -196,7 +201,7 @@ export class VectorScene25D {
         hitTarget.addEventListener('keydown', (event) => {
           if (event.key !== 'Enter' && event.key !== ' ') return;
           event.preventDefault();
-          selectNode();
+          selectNode(event);
         });
         this.labelLayer.appendChild(hitTarget);
       }

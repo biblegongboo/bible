@@ -13,8 +13,10 @@ const checks = [
   ['Timeline place uses the common reveal path', /data-timeline-place-id[\s\S]{0,1800}revealPlaceDetail\(place\)/.test(explorer)],
   ['place reveal scrolls city detail into view', /function revealPlaceDetail[\s\S]{0,500}biblePlaceDetail[\s\S]{0,200}scrollIntoView/.test(explorer)],
   ['Timeline chips carry canonical destinations', explorer.includes('data-bible-person-id=') && explorer.includes('data-bible-place-id=')],
-  ['Timeline centre lock remains enabled', vector.includes('lockVerticalPan')]
-  ,['release HTML requests the navigation-contract main bundle', index.includes('main.js?v=9.35-navigation-contracts1')]
+  ['Timeline centre lock remains enabled', vector.includes('lockVerticalPan')],
+  ['graphic selections consume native clicks', vector.includes('event.stopPropagation();') && vector.includes('bubbles: false')],
+  ['Scripture navigation runs after component handlers', /openBibleScriptureReference_\(referenceButton\.dataset\.bibleSourceCode\);\s*}\);/.test(main)],
+  ['release HTML requests the exclusive-click main bundle', index.includes('main.js?v=9.36-exclusive-graphic-clicks1')]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);

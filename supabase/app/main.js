@@ -9,7 +9,7 @@
 // Super graphics are isolated from the Legacy SAT renderer.  The router only
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
-import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=9.18-relationship-hit-targets1';
+import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=9.19-exclusive-scene-clicks1';
 import './bible-explorer.js?v=9.24-navigation-contracts1';
 
 // ========================================================================
@@ -7112,6 +7112,7 @@ function biblePeopleRenderDetail_(detail) {
     });
     biblePeopleRelationshipScene.setScene(sceneFromGraphicObjects(relationshipGraphic));
     relationshipHost.addEventListener('scene25d:select', function(event) {
+      event.stopPropagation();
       var nodeMetadata = event && event.detail && event.detail.node && event.detail.node.metadata;
       var relatedId = nodeMetadata && (nodeMetadata.personId ||
         (nodeMetadata.metadata && nodeMetadata.metadata.personId));
@@ -7119,7 +7120,9 @@ function biblePeopleRenderDetail_(detail) {
     });
   }
   host.querySelectorAll('[data-related-person-id]').forEach(function(button) {
-    button.addEventListener('click', function() {
+    button.addEventListener('click', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
       biblePeopleLoadDetail_(button.getAttribute('data-related-person-id'));
     });
   });
@@ -7619,10 +7622,9 @@ async function openBibleScriptureReference_(sourceCode) {
 
 window.openBibleScriptureReference = openBibleScriptureReference_;
 
-// Capture phase is intentional: reference buttons can be nested in People,
-// Atlas, Timeline, and Library panels.  Some of those panels own bubbling
-// click handlers, so resolving the Scripture link before bubbling makes the
-// same button work consistently in every context.
+// Resolve Scripture only after the owning People/Atlas/Timeline component has
+// had the opportunity to consume its own click. Capture phase caused graphic
+// and relationship selections to fall through to unrelated verse buttons.
 document.addEventListener('click', function(event) {
   // Destination types are exclusive. People/Atlas/Timeline clicks must never
   // fall through to the global Scripture navigator during a panel re-render.
@@ -7631,7 +7633,7 @@ document.addEventListener('click', function(event) {
   if (!referenceButton) return;
   event.preventDefault();
   openBibleScriptureReference_(referenceButton.dataset.bibleSourceCode);
-}, true);
+});
 
 async function loadBibleChapterCatalog_() {
   var catalogs = await Promise.all(['bible-ot', 'bible-nt'].map(async function(sheet) {

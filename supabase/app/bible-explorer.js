@@ -1,5 +1,5 @@
 import { VectorMap25D } from './graphics/map25d/vector-map25d.js?v=9.06-map-place-hit-targets1';
-import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=9.12-timeline-center-lock1';
+import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=9.19-exclusive-scene-clicks1';
 
 let initialized = false;
 let dataPromise = null;
@@ -908,6 +908,7 @@ function renderJourney(index = 0) {
   });
   activeJourneyScene.setScene(sceneFromGraphicObjects(journey.graphic));
   sceneHost.addEventListener('scene25d:select', (event) => {
+    event.stopPropagation();
     const nodeName = String(event?.detail?.node?.label || event?.detail?.node?.name || '')
       .replace(/\s*\([^)]*\)\s*$/, '').trim();
     const place = findPlaceForVisibleLabel(nodeName);
@@ -1047,6 +1048,7 @@ function renderTimeline(index = 0, selectedEventIndex = 0) {
     texts: []
   });
   timelineHost.addEventListener('scene25d:select', (event) => {
+    event.stopPropagation();
     const node = event.detail.node;
     const rowIndex = Number(String(node.id || '').replace('event_', '')) || 0;
     renderTimelineEventDetail(timeline, rowIndex, { reveal: true });
