@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=9.18-relationship-hit-targets1';
-import './bible-explorer.js?v=9.23-sermon-library-browser2';
+import './bible-explorer.js?v=9.24-navigation-contracts1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -5365,10 +5365,13 @@ function attachBibleEnglishEntityLinks_(q) {
           button.className = 'bible-inline-entity-link bible-inline-' + item.kind;
           button.textContent = match;
           button.title = item.kind === 'person' ? 'Open Bible People' : 'Open Atlas';
-          button.addEventListener('click', function() {
+          if (item.kind === 'person') button.dataset.biblePersonId = item.id;
+          else button.dataset.biblePlaceName = item.nameToOpen;
+          button.addEventListener('click', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
             if (item.kind === 'person') {
-              biblePeopleOpen_();
-              biblePeopleLoadDetail_(item.id);
+              window.openBiblePerson(item.id);
             } else if (typeof window.openBibleContext === 'function') {
               window.openBibleContext({ tab: 'places', placeName: item.nameToOpen });
             }
@@ -7621,6 +7624,9 @@ window.openBibleScriptureReference = openBibleScriptureReference_;
 // click handlers, so resolving the Scripture link before bubbling makes the
 // same button work consistently in every context.
 document.addEventListener('click', function(event) {
+  // Destination types are exclusive. People/Atlas/Timeline clicks must never
+  // fall through to the global Scripture navigator during a panel re-render.
+  if (event.target.closest('[data-bible-person-id], [data-bible-place-id], [data-bible-place-name], [data-bible-event-id], [data-timeline-person-id], [data-timeline-place-id], [data-related-person-id]')) return;
   var referenceButton = event.target.closest('[data-bible-source-code]');
   if (!referenceButton) return;
   event.preventDefault();

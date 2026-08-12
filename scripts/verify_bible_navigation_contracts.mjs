@@ -1,0 +1,22 @@
+import fs from 'node:fs';
+
+const main = fs.readFileSync(new URL('../supabase/app/main.js', import.meta.url), 'utf8');
+const explorer = fs.readFileSync(new URL('../supabase/app/bible-explorer.js', import.meta.url), 'utf8');
+const vector = fs.readFileSync(new URL('../supabase/app/graphics/map25d/vector-scene25d.js', import.meta.url), 'utf8');
+const index = fs.readFileSync(new URL('../supabase/app/index.html', import.meta.url), 'utf8');
+
+const checks = [
+  ['inline People links have an exclusive destination', main.includes('button.dataset.biblePersonId = item.id')],
+  ['inline Atlas links have an exclusive destination', main.includes('button.dataset.biblePlaceName = item.nameToOpen')],
+  ['entity clicks stop propagation', main.includes('event.stopPropagation();')],
+  ['Scripture capture excludes non-Scripture destinations', main.includes("event.target.closest('[data-bible-person-id], [data-bible-place-id], [data-bible-place-name], [data-bible-event-id]")],
+  ['Timeline place uses the common reveal path', /data-timeline-place-id[\s\S]{0,1800}revealPlaceDetail\(place\)/.test(explorer)],
+  ['place reveal scrolls city detail into view', /function revealPlaceDetail[\s\S]{0,500}biblePlaceDetail[\s\S]{0,200}scrollIntoView/.test(explorer)],
+  ['Timeline chips carry canonical destinations', explorer.includes('data-bible-person-id=') && explorer.includes('data-bible-place-id=')],
+  ['Timeline centre lock remains enabled', vector.includes('lockVerticalPan')]
+  ,['release HTML requests the navigation-contract main bundle', index.includes('main.js?v=9.35-navigation-contracts1')]
+];
+
+const failed = checks.filter(([, ok]) => !ok);
+for (const [name, ok] of checks) console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`);
+if (failed.length) process.exit(1);

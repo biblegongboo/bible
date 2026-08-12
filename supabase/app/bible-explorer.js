@@ -483,6 +483,18 @@ function renderPlaceDetail(place) {
   });
 }
 
+function revealPlaceDetail(place) {
+  if (!place) return false;
+  selectTab('places');
+  renderPlaceResults(place.name);
+  renderPlaceDetail(place);
+  window.requestAnimationFrame(() => {
+    document.getElementById('biblePlaceDetail')?.scrollIntoView({ behavior: 'auto', block: 'start' });
+  });
+  setStatus(`${place.name} city detail opened.`);
+  return true;
+}
+
 async function renderModernPlaceContext(place, vectorPlace, host) {
   if (!host) return;
   try {
@@ -944,12 +956,12 @@ function renderTimelineEventDetail(timeline, rowIndex, options = {}) {
       <p>${escapeHtml(row[2] || 'No reference')} · ${escapeHtml(row[3] || 'No source date')}</p></div></div>
     <section class="bible-person-section"><h4>Related people</h4>
       <div class="bible-person-meta">${people.length ? people.map((person) =>
-        `<button type="button" class="bible-person-chip" data-timeline-person-id="${escapeHtml(person.id)}">${escapeHtml(person.name)}</button>`
+        `<button type="button" class="bible-person-chip" data-bible-person-id="${escapeHtml(person.id)}" data-timeline-person-id="${escapeHtml(person.id)}">${escapeHtml(person.name)}</button>`
       ).join('') : '<span class="bible-context-empty">No source-linked people are recorded.</span>'}</div>
     </section>
     <section class="bible-person-section"><h4>Related places</h4>
       <div class="bible-person-meta">${places.length ? places.map((place) =>
-        `<button type="button" class="bible-person-chip" data-timeline-place-id="${escapeHtml(place.id)}">${escapeHtml(place.name)}</button>`
+        `<button type="button" class="bible-person-chip" data-bible-place-id="${escapeHtml(place.id)}" data-timeline-place-id="${escapeHtml(place.id)}">${escapeHtml(place.name)}</button>`
       ).join('') : '<span class="bible-context-empty">No source-linked places are recorded.</span>'}</div>
     </section>
     <section class="bible-person-section"><h4>Scripture references (${uniqueReferences.length})</h4>
@@ -958,7 +970,9 @@ function renderTimelineEventDetail(timeline, rowIndex, options = {}) {
     </section>
   </article>`;
   selection.querySelectorAll('[data-timeline-person-id]').forEach((button) => {
-    button.addEventListener('click', () => {
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
       close();
       if (typeof window.openBiblePerson === 'function') {
         window.openBiblePerson(button.dataset.timelinePersonId);
@@ -966,12 +980,12 @@ function renderTimelineEventDetail(timeline, rowIndex, options = {}) {
     });
   });
   selection.querySelectorAll('[data-timeline-place-id]').forEach((button) => {
-    button.addEventListener('click', () => {
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
       const place = data.places.find((item) => item.id === button.dataset.timelinePlaceId);
       if (!place) return;
-      selectTab('places');
-      renderPlaceResults(place.name);
-      renderPlaceDetail(place);
+      revealPlaceDetail(place);
     });
   });
   const eventSelector = document.getElementById('bibleTimelineEventSelector');
