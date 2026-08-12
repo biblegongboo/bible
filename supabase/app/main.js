@@ -6305,7 +6305,7 @@ function initBibleSpeechControls() {
   var stopButton = document.createElement('button');
   stopButton.type = 'button';
   stopButton.className = 'bible-speech-button bible-speech-stop';
-  stopButton.textContent = '■';
+  stopButton.innerHTML = '<span class="bible-stop-icon" aria-hidden="true"></span>';
   stopButton.setAttribute('aria-label', 'Stop reading');
   stopButton.title = 'Stop reading';
   stopButton.style.cssText = 'border:0;border-radius:8px;padding:0;background:#475569;color:#fff;font-size:14px;font-weight:800;cursor:pointer';
@@ -6349,7 +6349,9 @@ function initBibleSpeechControls() {
     autoNextButton.title = 'Auto next ' + (bibleAutoNextEnabled ? 'on' : 'off');
     autoNextButton.setAttribute('aria-label', 'Automatically move to the next item: ' + (bibleAutoNextEnabled ? 'on' : 'off'));
     autoNextButton.setAttribute('aria-pressed', bibleAutoNextEnabled ? 'true' : 'false');
-    autoNextButton.style.background = bibleAutoNextEnabled ? '#16a34a' : '#64748b';
+    autoNextButton.style.background = bibleAutoNextEnabled ? '#ccefd9' : '#e7edf3';
+    autoNextButton.style.color = bibleAutoNextEnabled ? '#17663a' : '#486581';
+    autoNextButton.style.borderColor = bibleAutoNextEnabled ? '#69bd87' : '#b8c5d1';
   }
 
   function syncBibleSpeechControlsVisibility_() {

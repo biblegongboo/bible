@@ -55,7 +55,7 @@
         </div>
         <div class="bible-top-actions" aria-label="Help and account">
           <button type="button" id="bibleGuideToggle" class="quiz-tool-toggle bible-guide-toggle" aria-label="Open user guide" title="Quick guide">?</button>
-          <button type="button" id="bibleLogoutToggle" class="quiz-tool-toggle bible-logout-toggle" aria-label="Log out" title="Log out"><span class="bible-logout-icon" aria-hidden="true"></span></button>
+          <button type="button" id="bibleLogoutToggle" class="quiz-tool-toggle bible-logout-toggle" aria-label="Log out" title="Log out">LOG OUT</button>
         </div>
       </div>
     </div>
@@ -1940,19 +1940,16 @@ html:not(.admin-user) .admin-preview-panel {
   .quiz-header{padding:7px 16px 9px}
   .sat-logo{display:grid;grid-template-columns:2fr 3fr;align-items:center;gap:0;padding:0;min-height:32px;width:min(420px,100%);margin:0 auto}
   .sat-title{min-width:0;padding-right:5px;font-size:clamp(1.05rem,2.5vw,1.35rem);line-height:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
-  .bible-top-control-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;width:100%;height:32px;border:1px solid rgba(255,255,255,.18);border-radius:10px;background:rgba(255,255,255,.08);overflow:hidden}.bible-header-nav,.bible-top-actions{display:contents}
+  .bible-top-control-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;gap:4px;width:100%;height:32px}.bible-header-nav,.bible-top-actions{display:contents}
   .bible-header-action-row{position:relative;z-index:4;width:min(420px,100%);margin:5px auto 0}
-  .persistent-people-toggle,.persistent-explore-toggle{position:static!important;z-index:auto;display:grid!important;place-items:center!important;justify-self:stretch;width:100%!important;min-width:0!important;height:30px!important;min-height:30px!important;padding:0!important;border:0!important;border-radius:0!important;font-size:18px!important;line-height:1!important;color:#172033!important;box-shadow:none!important}
+  .persistent-people-toggle,.persistent-explore-toggle{position:static!important;z-index:auto;display:grid!important;place-items:center!important;justify-self:stretch;width:100%!important;min-width:0!important;height:32px!important;min-height:32px!important;padding:0!important;border:1px solid!important;border-radius:9px!important;font-size:18px!important;line-height:1!important;color:#172033!important;box-shadow:0 3px 9px rgba(3,12,30,.16)!important}
   .persistent-explore-toggle{background:#dff7ff!important;border-color:#67cbe8!important;color:#075985!important}
   .persistent-people-toggle{background:#eee8ff!important;border-color:#b8a5ee!important;color:#55339b!important}
   .bible-speech-controls{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;width:100%!important;margin:0!important;padding:0!important}
   .bible-speech-controls[hidden]{display:none!important}
-  .bible-guide-toggle,.bible-logout-toggle{position:static!important;display:grid!important;place-items:center!important;justify-self:stretch;width:100%!important;min-width:0!important;height:30px!important;min-height:30px!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
-  .bible-guide-toggle{background:#e5f4ff!important;color:#075985!important;font-size:18px!important;font-weight:900!important}
-  .bible-logout-toggle{margin:0!important;background:#ffe8ec!important;color:#9f2440!important;line-height:1!important}
-  .bible-logout-icon{position:relative;display:block;width:19px;height:18px;border:2px solid currentColor;border-right:0;border-radius:3px;box-sizing:border-box}
-  .bible-logout-icon::before{content:'';position:absolute;top:7px;left:7px;width:11px;height:2px;border-radius:2px;background:currentColor}
-  .bible-logout-icon::after{content:'';position:absolute;top:4px;right:-1px;width:6px;height:6px;border-top:2px solid currentColor;border-right:2px solid currentColor;transform:rotate(45deg)}
+  .bible-guide-toggle,.bible-logout-toggle{position:static!important;display:grid!important;place-items:center!important;justify-self:stretch;width:100%!important;min-width:0!important;height:32px!important;min-height:32px!important;padding:0!important;border:1px solid!important;border-radius:9px!important;box-shadow:0 3px 9px rgba(3,12,30,.16)!important}
+  .bible-guide-toggle{border-color:#79bde8!important;background:#e5f4ff!important;color:#075985!important;font-size:18px!important;font-weight:900!important}
+  .bible-logout-toggle{margin:0!important;border-color:#ef9aaa!important;background:#ffe8ec!important;color:#9f2440!important;font-size:9px!important;font-weight:900!important;line-height:1!important;letter-spacing:.15px!important;white-space:nowrap!important}
   /* A short visible confirmation prevents accidental double-taps on the
      compact header controls, especially on touch screens. */
   .quiz-header button{transition:transform .14s ease,filter .14s ease,box-shadow .14s ease,background .14s ease!important}
@@ -2030,7 +2027,7 @@ html:not(.admin-user) .admin-preview-panel {
     .sat-logo{grid-template-columns:2fr 3fr;max-width:none}
     .sat-title{font-size:clamp(.92rem,4vw,1.08rem);white-space:nowrap;text-align:left}
     .bible-header-action-row{margin:8px auto 0}
-    .persistent-people-toggle,.persistent-explore-toggle,.bible-guide-toggle,.bible-logout-toggle{width:100%!important;min-width:0!important;height:30px!important;min-height:30px!important}
+    .persistent-people-toggle,.persistent-explore-toggle,.bible-guide-toggle,.bible-logout-toggle{width:100%!important;min-width:0!important;height:32px!important;min-height:32px!important}
     .learning-mode-panel{margin-top:5px}
     .mode-buttons{width:100%;gap:4px}
     .mode-btn{height:36px;min-height:36px;font-size:12px;padding:3px}
@@ -2042,10 +2039,10 @@ html:not(.admin-user) .admin-preview-panel {
   body.bible-people-open{overflow:hidden}
   .bible-speech-controls .bible-speech-button,.bible-speech-controls .bible-speech-speed{width:100%!important;min-width:0!important;height:36px!important;min-height:36px!important;padding:0!important;font-size:17px!important;line-height:1!important;border:1px solid rgba(15,23,42,.14)!important;border-radius:8px!important;box-sizing:border-box!important}
   .bible-speech-controls .bible-speech-play{background:#ffe3a3!important;color:#7c4300!important;font-size:16px!important}
-  .bible-speech-controls .bible-speech-replay{background:#dcecff!important;color:#174a7c!important}
-  .bible-speech-controls .bible-speech-stop{background:#e7edf3!important;color:#334e68!important;font-size:18px!important}
+  .bible-speech-controls .bible-speech-replay{background:#dcecff!important;color:#174a7c!important;font-size:20px!important;font-weight:900!important;-webkit-text-stroke:.35px currentColor}
+  .bible-speech-controls .bible-speech-stop{display:grid!important;place-items:center!important;background:#e7edf3!important;color:#334e68!important}
+  .bible-stop-icon{display:block;width:14px;height:14px;border-radius:1px;background:currentColor}
   .bible-speech-controls .bible-speech-speed{background:#fffaf0!important;color:#243b53!important;font-size:13px!important;font-weight:800!important}
-  .bible-speech-controls .bible-speech-replay{font-size:19px!important}
   .bible-speech-controls .bible-speech-auto-next{font-size:17px!important}
   .bible-speech-controls .bible-speech-speed{padding:0 3px!important;font-size:11px!important;text-align:center}
   .bible-timeline-selection{scroll-margin-top:16px}.bible-timeline-selection.is-revealed{outline:3px solid #f5a623;box-shadow:0 0 0 7px rgba(245,166,35,.18);transition:outline-color .2s,box-shadow .2s}
@@ -2077,7 +2074,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.98-nt-catalog1"></script>
 <script type="module">
-import { initialize } from './main.js?v=9.28-header-toolbar1';
+import { initialize } from './main.js?v=9.29-header-buttons1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
