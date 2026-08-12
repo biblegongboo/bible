@@ -6298,7 +6298,21 @@ function initBibleSpeechControls() {
   wrap.id = 'bibleSpeechControls';
   wrap.className = 'bible-speech-controls';
   wrap.hidden = true;
-  wrap.style.cssText = 'position:relative;z-index:4;display:none;flex-wrap:nowrap;justify-content:center;gap:4px;width:fit-content;max-width:100%;margin:4px auto 1px;padding:4px;background:rgba(15,23,42,.72);border:1px solid rgba(255,255,255,.16);border-radius:9px';
+  wrap.style.cssText = 'position:relative;z-index:4;display:none';
+
+  var menuButton = document.createElement('button');
+  menuButton.type = 'button';
+  menuButton.className = 'quiz-tool-toggle bible-speech-menu-toggle';
+  menuButton.textContent = '▶';
+  menuButton.setAttribute('aria-label', 'Open playback controls');
+  menuButton.setAttribute('aria-expanded', 'false');
+  menuButton.title = 'Playback controls';
+
+  var menu = document.createElement('div');
+  menu.className = 'bible-speech-menu';
+  menu.hidden = true;
+  menu.setAttribute('role', 'group');
+  menu.setAttribute('aria-label', 'Playback controls');
 
   var readButton = document.createElement('button');
   readButton.type = 'button';
@@ -6376,7 +6390,11 @@ function initBibleSpeechControls() {
       window.getComputedStyle(quizContent).display !== 'none';
     wrap.hidden = !hasVisibleQuestion;
     wrap.style.display = hasVisibleQuestion ? 'flex' : 'none';
-    if (!hasVisibleQuestion) stopBibleSpeech(false);
+    if (!hasVisibleQuestion) {
+      menu.hidden = true;
+      menuButton.setAttribute('aria-expanded', 'false');
+      stopBibleSpeech(false);
+    }
   }
 
   function stopBibleSpeech(keepAutoRead) {
@@ -6596,6 +6614,13 @@ function initBibleSpeechControls() {
     speakBibleSegment_(0);
   }
   updateAutoNextButton_();
+  menuButton.addEventListener('click', function(event) {
+    event.stopPropagation();
+    var nextOpen = menu.hidden;
+    menu.hidden = !nextOpen;
+    menuButton.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
+    if (nextOpen) readButton.focus();
+  });
   readButton.addEventListener('click', function() { readCurrentBibleQuestion(false, false); });
   replayButton.addEventListener('click', function() { readCurrentBibleQuestion(false, true); });
   stopButton.addEventListener('click', function() { stopBibleSpeech(false); });
@@ -6615,17 +6640,23 @@ function initBibleSpeechControls() {
     updateAutoNextButton_();
   });
   document.addEventListener('click', function(event) {
+    if (!wrap.contains(event.target)) {
+      menu.hidden = true;
+      menuButton.setAttribute('aria-expanded', 'false');
+    }
     var id = event.target && event.target.id;
     if (['prevBtn', 'nextBtn', 'skipBtn', 'submitBtn', 'quitBtn'].indexOf(id) !== -1) {
       stopBibleSpeech(false);
     }
   });
   window.addEventListener('beforeunload', function() { stopBibleSpeech(false); });
-  wrap.appendChild(readButton);
-  wrap.appendChild(replayButton);
-  wrap.appendChild(stopButton);
-  wrap.appendChild(speedSelect);
-  wrap.appendChild(autoNextButton);
+  menu.appendChild(readButton);
+  menu.appendChild(replayButton);
+  menu.appendChild(stopButton);
+  menu.appendChild(speedSelect);
+  menu.appendChild(autoNextButton);
+  wrap.appendChild(menuButton);
+  wrap.appendChild(menu);
   var quizHeader = document.querySelector('.quiz-header');
   var learningModePanel = quizHeader && quizHeader.querySelector('.learning-mode-panel');
   var actionRow = document.getElementById('bibleHeaderActionRow');

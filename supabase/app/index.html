@@ -48,6 +48,10 @@
   <div class="quiz-header">
     <div class="sat-logo">
       <span class="sat-title">Bib · Gen <span id="currentSetTitle">1</span></span>
+      <div class="bible-top-actions" aria-label="Help and account">
+        <button type="button" id="bibleGuideToggle" class="quiz-tool-toggle bible-guide-toggle" aria-label="Open user guide" title="Quick guide">?</button>
+        <button type="button" id="bibleLogoutToggle" class="quiz-tool-toggle bible-logout-toggle" aria-label="Log out" title="Log out">⎋</button>
+      </div>
     </div>
     <div class="language-switcher legacy-language-switcher" aria-label="Language selector">
       <label for="languageSelector">Language</label>
@@ -65,7 +69,6 @@
         <button type="button" id="bibleExploreToggle" class="quiz-tool-toggle bible-explore-toggle persistent-explore-toggle" aria-label="Open Bible Atlas" title="Bible Atlas" aria-controls="bibleExplorePanel" aria-expanded="false">🌐</button>
         <button type="button" id="biblePeopleToggle" class="quiz-tool-toggle bible-people-toggle persistent-people-toggle" aria-label="Open Bible People" title="Bible People" aria-controls="biblePeoplePanel" aria-expanded="false"><span class="header-person-icon" aria-hidden="true"></span></button>
         <button type="button" id="bibleGroupAdminToggle" class="quiz-tool-toggle bible-group-admin-toggle" aria-label="Open group administration" title="Group administration" hidden>⚙</button>
-        <button type="button" id="bibleLogoutToggle" class="quiz-tool-toggle bible-logout-toggle" aria-label="Log out" title="Log out">⎋</button>
       </div>
     </div>
     <button type="button" id="timerToggle" class="quiz-tool-toggle quiz-timer-toggle persistent-timer-toggle" aria-label="Open timer" aria-controls="timerPanel" aria-expanded="false"><span aria-hidden="true">⏱️</span></button>
@@ -131,7 +134,6 @@
           <option value="KJV">KJV</option>
           <option value="KO_WEB">한국어</option>
         </select>
-        <button type="button" id="bibleGuideToggle" class="bible-guide-toggle" aria-label="Open user guide" title="Quick guide">?</button>
       </div>
     </div>
   </div>
@@ -1935,24 +1937,34 @@ html:not(.admin-user) .admin-preview-panel {
   /* Compact, stable header controls. Mode help is available on hover/focus
      instead of occupying a permanent row. */
   .quiz-header{padding:8px 16px 8px}
-  .sat-logo{padding:0;min-height:28px;flex-wrap:nowrap}
+  .sat-logo{padding:0;min-height:34px;flex-wrap:nowrap;justify-content:space-between;width:100%}
   .sat-title{font-size:clamp(1.1rem,2.5vw,1.45rem);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .bible-header-action-row{position:relative;z-index:4;display:flex;justify-content:center;align-items:center;gap:12px;margin:4px auto 1px}
-  .bible-header-nav{position:relative;z-index:4;display:flex;justify-content:center;align-items:center;gap:5px;margin:0}
-  .persistent-people-toggle,.persistent-explore-toggle,.bible-logout-toggle{position:static!important;z-index:auto;width:28px!important;min-width:28px!important;height:27px!important;min-height:27px!important;padding:0!important;font-size:14px!important;background:rgba(255,255,255,.2)!important;border-color:rgba(255,255,255,.55)!important;color:#f8fafc!important}
+  .bible-top-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex:0 0 auto}
+  .bible-header-action-row{position:relative;z-index:4;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:6px;width:min(420px,100%);margin:7px auto 0}
+  .bible-header-nav{display:contents}
+  .persistent-people-toggle,.persistent-explore-toggle,.bible-speech-menu-toggle{position:static!important;z-index:auto;width:100%!important;min-width:0!important;height:40px!important;min-height:40px!important;padding:0!important;font-size:17px!important;background:rgba(255,255,255,.12)!important;border-color:rgba(255,255,255,.28)!important;color:#f8fafc!important}
+  .bible-speech-controls{display:contents!important}
+  .bible-speech-controls[hidden]{display:none!important}
+  .bible-speech-menu{position:absolute;z-index:80;top:calc(100% + 7px);left:0;display:grid;grid-template-columns:repeat(5,minmax(42px,1fr));gap:6px;width:min(330px,calc(100vw - 32px));padding:8px;border:1px solid rgba(255,255,255,.28);border-radius:12px;background:#0f172a;box-shadow:0 16px 38px rgba(0,0,0,.38)}
+  .bible-speech-menu[hidden]{display:none!important}
+  .bible-guide-toggle,.bible-logout-toggle{position:static!important;width:34px!important;min-width:34px!important;height:34px!important;min-height:34px!important;padding:0!important;border-radius:9px!important}
+  .bible-guide-toggle{border-color:rgba(191,219,254,.72)!important;background:rgba(219,234,254,.16)!important;color:#dbeafe!important;font-size:16px!important}
   .bible-logout-toggle{margin-left:2px!important;background:rgba(254,226,226,.2)!important;border-color:rgba(254,202,202,.7)!important;color:#fecaca!important;font-size:18px!important;line-height:1!important}
   /* A short visible confirmation prevents accidental double-taps on the
      compact header controls, especially on touch screens. */
   .quiz-header button{transition:transform .14s ease,filter .14s ease,box-shadow .14s ease,background .14s ease!important}
-  .quiz-header button:active{transform:translateY(1px) scale(.94)!important;filter:brightness(.88)}
+  .quiz-header button:not(:disabled):hover,.quiz-header select:not(:disabled):hover{filter:brightness(1.14);border-color:rgba(255,255,255,.75)!important;box-shadow:0 5px 14px rgba(0,0,0,.22)}
+  .quiz-header button:focus-visible,.quiz-header select:focus-visible{outline:3px solid #93c5fd!important;outline-offset:2px}
+  .quiz-header button:not(:disabled):active{transform:translateY(1px) scale(.96)!important;filter:brightness(.88)}
+  .quiz-header button:disabled{cursor:not-allowed;opacity:.55}
   .quiz-header button.bible-tap-feedback{animation:bible-header-tap .34s ease-out;box-shadow:0 0 0 3px rgba(255,255,255,.75),0 0 17px rgba(96,165,250,.85)!important;filter:brightness(1.18)}
   @keyframes bible-header-tap{0%{transform:scale(1);filter:brightness(1)}35%{transform:scale(.91);filter:brightness(.82)}100%{transform:scale(1);filter:brightness(1.18)}}
   .header-person-icon{position:relative;display:inline-block;width:13px;height:14px;vertical-align:middle}
   .header-person-icon::before{content:'';position:absolute;top:0;left:4px;width:6px;height:6px;border-radius:50%;background:#f8fafc;box-shadow:0 0 5px rgba(255,255,255,.55)}
   .header-person-icon::after{content:'';position:absolute;bottom:0;left:1px;width:12px;height:7px;border-radius:8px 8px 3px 3px;background:#f8fafc;box-shadow:0 0 5px rgba(255,255,255,.45)}
   .learning-mode-panel{max-width:600px;margin:5px auto 0}
-  .mode-buttons{width:min(252px,100%);margin:0 auto;gap:3px;padding:3px;border-radius:10px;overflow:visible}
-  .mode-btn{position:relative;min-height:29px;padding:4px 6px;border-radius:8px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mode-buttons{width:min(420px,100%);margin:0 auto;gap:6px;padding:0;border:0;background:transparent;border-radius:10px;overflow:visible}
+  .mode-btn{position:relative;min-height:40px;padding:5px 7px;border-radius:9px;font-size:12px;white-space:nowrap;overflow:visible;text-overflow:ellipsis}
   .mode-marker{display:inline-block;width:7px;height:7px;margin-right:4px;border-radius:50%;background:#5eea91;box-shadow:0 0 5px currentColor;vertical-align:1px}
   .mode-study .mode-marker{background:#60a5fa}.mode-exam .mode-marker{background:#fb7185}
   .mode-description{display:none!important}
@@ -1987,8 +1999,8 @@ html:not(.admin-user) .admin-preview-panel {
   .mode-exam:hover::after,.mode-exam:focus-visible::after{transform:translate(0,0)}
   .bible-passage-controls{
     display:grid;
-    grid-template-columns:42px 38px 75px 54px 26px;
-    width:255px;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    width:min(420px,100%);
     gap:5px;
     margin:5px auto 0;
   }
@@ -1996,36 +2008,34 @@ html:not(.admin-user) .admin-preview-panel {
   #biblePrimaryTextSelector,#bibleSecondaryTextSelector{
     width:100%;
     min-width:0;
-    min-height:30px;
+    min-height:40px;
     padding:4px 4px;
     border-radius:8px;
     font-size:12px;
   }
-  .bible-guide-toggle{width:26px;min-width:26px;min-height:30px;padding:0;border:1px solid #93c5fd;border-radius:50%;background:#eff6ff;color:#1d4ed8;font-size:15px;font-weight:900;line-height:1;cursor:pointer}
   .persistent-timer-toggle{width:30px!important;height:30px!important;min-width:30px!important}
   html:not([data-study-mode="exam"]) #timerToggle,
   #timerToggle[hidden]{display:none!important}
   html:not([data-study-mode="exam"]) #timerPanel{display:none!important}
   @media(max-width:600px){
     .quiz-header{padding:7px 8px 8px}
-    .sat-logo{padding:0;justify-content:center;max-width:none}
-    .sat-title{font-size:clamp(.92rem,4vw,1.08rem);white-space:nowrap;text-align:center}
+    .sat-logo{padding:0;justify-content:space-between;max-width:none}
+    .sat-title{font-size:clamp(.92rem,4vw,1.08rem);white-space:nowrap;text-align:left}
     .bible-header-action-row{gap:9px;margin:4px auto 1px}
     .bible-header-nav{margin:0}
-    .bible-header-nav .quiz-tool-toggle{height:26px!important;min-height:26px!important;font-size:11px!important;padding:0 7px!important}
+    .persistent-people-toggle,.persistent-explore-toggle,.bible-speech-menu-toggle{height:44px!important;min-height:44px!important}
     .learning-mode-panel{margin-top:5px}
-    .mode-buttons{width:min(250px,100%)}
-    .mode-btn{min-height:28px;font-size:11px;padding:3px 4px}
-    .bible-passage-controls{grid-template-columns:42px 38px 75px 54px 26px;gap:4px;width:251px}
+    .mode-buttons{width:100%;gap:5px}
+    .mode-btn{min-height:44px;font-size:12px;padding:4px}
+    .bible-passage-controls{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;width:100%}
     .bible-passage-toggle,.bible-quiz-toggle,
     #biblePrimaryTextSelector,#bibleSecondaryTextSelector{width:100%;font-size:11px}
-    .bible-guide-toggle{min-height:30px}
+    .bible-passage-toggle,.bible-quiz-toggle,#biblePrimaryTextSelector,#bibleSecondaryTextSelector{min-height:44px}
+    .bible-speech-menu{grid-template-columns:repeat(5,minmax(40px,1fr));width:min(310px,calc(100vw - 16px));left:0}
   }
   body.bible-people-open{overflow:hidden}
-  .bible-speech-controls{width:auto!important;max-width:100%!important;display:flex!important;flex-wrap:nowrap!important;align-items:center;justify-content:center;gap:4px!important;margin:0!important;padding:4px!important}
-  .bible-speech-controls .bible-speech-button{width:31px!important;min-width:31px!important;height:29px!important;min-height:29px!important;padding:0!important;font-size:14px!important;line-height:1!important}
-  .bible-speech-controls .bible-speech-speed{width:58px!important;min-width:58px!important;height:29px!important;min-height:29px!important;padding:0 3px!important;font-size:11px!important;text-align:center}
-  @media(max-width:600px){.bible-speech-controls{gap:3px!important;padding:3px!important}.bible-speech-controls .bible-speech-button{width:29px!important;min-width:29px!important;height:27px!important;min-height:27px!important;font-size:13px!important}.bible-speech-controls .bible-speech-speed{width:54px!important;min-width:54px!important;height:27px!important;min-height:27px!important;font-size:10px!important}}
+  .bible-speech-menu .bible-speech-button{width:100%!important;min-width:0!important;height:40px!important;min-height:40px!important;padding:0!important;font-size:15px!important;line-height:1!important}
+  .bible-speech-menu .bible-speech-speed{width:100%!important;min-width:0!important;height:40px!important;min-height:40px!important;padding:0 3px!important;font-size:11px!important;text-align:center}
   .bible-timeline-selection{scroll-margin-top:16px}.bible-timeline-selection.is-revealed{outline:3px solid #f5a623;box-shadow:0 0 0 7px rgba(245,166,35,.18);transition:outline-color .2s,box-shadow .2s}
   .bible-book-picker{display:block;width:100%;margin:14px 0 10px;text-align:left}
   .bible-testament-group{min-width:0;margin:0 0 18px;padding:0;background:transparent}
@@ -2055,7 +2065,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.98-nt-catalog1"></script>
 <script type="module">
-import { initialize } from './main.js?v=9.18-relationship-hit-targets1';
+import { initialize } from './main.js?v=9.19-app-header1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
