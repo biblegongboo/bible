@@ -7061,7 +7061,8 @@ function biblePeopleRenderDetail_(detail) {
     var relationshipHost = host.querySelector('.bible-relationship-25d');
     biblePeopleRelationshipScene = new VectorScene25D(relationshipHost, {
       ariaLabel: 'Interactive Bible relationship graph',
-      labelFontSize: 12
+      labelFontSize: 12,
+      selectableLabels: true
     });
     biblePeopleRelationshipScene.setScene(sceneFromGraphicObjects(relationshipGraphic));
     relationshipHost.addEventListener('scene25d:select', function(event) {
