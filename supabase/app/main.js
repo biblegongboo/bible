@@ -380,7 +380,7 @@ function updateSubjectTitle(setNumber) {
     ? 'Old Testament'
     : (currentSubject === 'BIBLE_NT' ? 'New Testament' : String(subjectConfig.NAME || currentSubject));
   if (title) title.textContent = currentSubject === 'BIBLE_OT' || currentSubject === 'BIBLE_NT'
-    ? 'Bib · ' + (currentSubject === 'BIBLE_OT' ? 'OT' : 'NT')
+    ? 'Bib | ' + (currentSubject === 'BIBLE_OT' ? 'OT' : 'NT')
     : 'GongBoo · ' + englishName + (IS_TRIAL_USER ? ' · Sample' : ' · Set ' + (setNumber || 1));
 }
 
@@ -7419,7 +7419,7 @@ function renderBibleChapterPicker_(bookName) {
     chapterHost.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   var title = document.querySelector('.sat-title');
-  if (title) title.textContent = 'Bib ? ' + bookName.replace(/-/g, ' ');
+  if (title) title.textContent = 'Bib | ' + bibleShortBookName_(bookName);
 }
 
 function bibleShortBookName_(bookName) {
@@ -7444,7 +7444,7 @@ function bibleShortBookName_(bookName) {
 }
 
 function bibleSetHeaderTitle_(bookName, chapter) {
-  return 'Bib · ' + bibleShortBookName_(bookName) + ' ' + (parseInt(chapter, 10) || 1);
+  return 'Bib | ' + bibleShortBookName_(bookName) + ' ' + (parseInt(chapter, 10) || 1);
 }
 
 function bibleSourceCodeParts_(sourceCode) {
