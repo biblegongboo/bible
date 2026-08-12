@@ -425,19 +425,29 @@ export class VectorMap25D {
 
     for (const place of visible) {
       const selected = place.id === this.selectedId;
+      const pointHitTarget = svgElement('circle', {
+        cx: place.screen.x,
+        cy: place.screen.y,
+        r: 14,
+        class: 'map25d-place-hit-target',
+        tabindex: 0,
+        role: 'button',
+        'aria-label': `Open ${place.name}`,
+        'data-map25d-place-id': place.id
+      });
+      pointHitTarget.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        this.selectPlaceById(place.id);
+      });
+      this.pointLayer.appendChild(pointHitTarget);
       const point = svgElement('circle', {
         cx: place.screen.x,
         cy: place.screen.y,
         r: selected ? 6 : this.options.pointRadius,
         class: selected ? 'map25d-point is-selected' : 'map25d-point',
-        tabindex: 0,
         'aria-label': `${place.name}, ${place.verse_reference_count || 0} references`,
         'data-map25d-place-id': place.id
-      });
-      point.addEventListener('keydown', (event) => {
-        if (event.key !== 'Enter' && event.key !== ' ') return;
-        event.preventDefault();
-        this.selectPlaceById(place.id);
       });
       this.pointLayer.appendChild(point);
 
@@ -472,23 +482,35 @@ export class VectorMap25D {
       }
       if (!placement) continue;
       labelBoxes.push(placement.box);
-      const text = svgElement('text', {
-        x: place.screen.x + placement.offsetX,
-        y: place.screen.y + placement.offsetY,
-        class: selected ? 'map25d-label is-selected' : 'map25d-label',
-        'font-size': fontSize,
+      const labelPaddingX = 8;
+      const labelPaddingY = 7;
+      const labelHitTarget = svgElement('rect', {
+        x: placement.box.left - labelPaddingX,
+        y: placement.box.top - labelPaddingY,
+        width: widthEstimate + labelPaddingX * 2,
+        height: fontSize + 4 + labelPaddingY * 2,
+        rx: 7,
+        class: 'map25d-place-hit-target map25d-label-hit-target',
         tabindex: 0,
         role: 'button',
         'aria-label': `Open ${place.name}`,
         'data-map25d-place-id': place.id
       });
-      text.textContent = place.name;
-      text.classList.add('map25d-label-selectable');
-      text.addEventListener('keydown', (event) => {
+      labelHitTarget.addEventListener('keydown', (event) => {
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault();
         this.selectPlaceById(place.id);
       });
+      this.labelLayer.appendChild(labelHitTarget);
+      const text = svgElement('text', {
+        x: place.screen.x + placement.offsetX,
+        y: place.screen.y + placement.offsetY,
+        class: selected ? 'map25d-label is-selected' : 'map25d-label',
+        'font-size': fontSize,
+        'data-map25d-place-id': place.id
+      });
+      text.textContent = place.name;
+      text.classList.add('map25d-label-selectable');
       this.labelLayer.appendChild(text);
     }
 
