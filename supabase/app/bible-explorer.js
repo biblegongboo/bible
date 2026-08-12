@@ -697,7 +697,7 @@ async function renderWordSearch(query = '') {
       </section>
       <section class="bible-person-section"><h4>Verse locations (${references.length})</h4>
         <div class="bible-reference-grid">${references.slice(0, 240).map((code) =>
-          `<span class="bible-reference">${escapeHtml(code)}</span>`).join('')}</div>
+          `<button type="button" class="bible-reference" data-bible-source-code="${escapeHtml(code)}">${escapeHtml(code)}</button>`).join('')}</div>
         ${references.length > 240 ? `<p>Showing the first 240 of ${references.length} verse locations.</p>` : ''}
       </section></article>`;
   };
