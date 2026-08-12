@@ -9,7 +9,7 @@
 // Super graphics are isolated from the Legacy SAT renderer.  The router only
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
-import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.44-map25d-all1';
+import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=9.18-relationship-hit-targets1';
 import './bible-explorer.js?v=9.15-people-icon-visible1';
 
 // ========================================================================
@@ -7150,6 +7150,10 @@ async function biblePeopleLoadDetail_(personId) {
     };
     biblePeopleRenderDetail_(detail);
     biblePeopleSetStatus_('Loaded ' + (detail.person.NAME_EN || personId) + '.');
+    requestAnimationFrame(function() {
+      var personTitle = host && host.querySelector('.bible-person-title');
+      if (personTitle) personTitle.scrollIntoView({ block: 'start', inline: 'nearest' });
+    });
   } catch (error) {
     if (host) host.innerHTML = '<div class="bible-people-empty"><strong>Unable to load this person</strong><span>' + escapeHtml(error.message) + '</span></div>';
     biblePeopleSetStatus_(error.message, true);

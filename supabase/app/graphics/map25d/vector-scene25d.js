@@ -177,6 +177,29 @@ export class VectorScene25D {
       }
       if (!placement) continue;
       boxes.push(placement.box);
+      if (this.options.selectableLabels) {
+        const hitPaddingX = 10;
+        const hitHeight = Math.max(36, font + 18);
+        const hitTarget = makeSvg('rect', {
+          x: placement.box.left - hitPaddingX,
+          y: point.y + placement.dy - font - ((hitHeight - font) / 2),
+          width: estimated + (hitPaddingX * 2),
+          height: hitHeight,
+          rx: 8,
+          fill: 'transparent',
+          class: 'scene25d-label-hit-target',
+          role: 'button',
+          tabindex: '0',
+          'aria-label': `Open ${node.label}`
+        });
+        hitTarget.addEventListener('click', selectNode);
+        hitTarget.addEventListener('keydown', (event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          selectNode();
+        });
+        this.labelLayer.appendChild(hitTarget);
+      }
       const text = makeSvg('text', {
         x: point.x + placement.dx,
         y: point.y + placement.dy,
@@ -184,7 +207,7 @@ export class VectorScene25D {
         class: this.options.selectableLabels ? 'scene25d-label scene25d-label-selectable' : 'scene25d-label'
       });
       text.textContent = node.label;
-      if (this.options.selectableLabels) text.addEventListener('click', selectNode);
+      if (this.options.selectableLabels) text.style.pointerEvents = 'none';
       this.labelLayer.appendChild(text);
     }
     for (const item of this.scene.texts) {
