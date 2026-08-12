@@ -168,14 +168,17 @@ export class VectorScene25D {
           event.preventDefault();
           event.stopPropagation();
         }
+        if (this.lastSelectedNodeId === node.id && event?.type === 'click') {
+          this.lastSelectedNodeId = null;
+          return;
+        }
+        this.lastSelectedNodeId = node.id;
+        queueMicrotask(() => { this.lastSelectedNodeId = null; });
         this.host.dispatchEvent(new CustomEvent('scene25d:select', { detail: { node }, bubbles: false }));
       };
       const circle = makeSvg('circle', { cx: point.x, cy: point.y, r: node.radius || 4, fill: node.color || '#60a5fa', stroke: node.stroke || '#1d4ed8', 'stroke-width': 1.5, class: 'scene25d-node' });
       circle.addEventListener('pointerdown', selectNode);
-      circle.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-      });
+      circle.addEventListener('click', selectNode);
       this.nodeLayer.appendChild(circle);
       const font = this.options.labelFontSize, estimated = Math.max(24, String(node.label || '').length * font * 0.56);
       const candidates = [[8, -8], [8, 18], [-estimated - 8, -8], [-estimated - 8, 18]];
@@ -202,10 +205,7 @@ export class VectorScene25D {
           'aria-label': `Open ${node.label}`
         });
         hitTarget.addEventListener('pointerdown', selectNode);
-        hitTarget.addEventListener('click', (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-        });
+        hitTarget.addEventListener('click', selectNode);
         hitTarget.addEventListener('keydown', (event) => {
           if (event.key !== 'Enter' && event.key !== ' ') return;
           event.preventDefault();

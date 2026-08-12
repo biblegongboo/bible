@@ -1,5 +1,5 @@
 import { VectorMap25D } from './graphics/map25d/vector-map25d.js?v=9.06-map-place-hit-targets1';
-import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=9.20-stable-pointer-selection1';
+import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=9.21-pointer-click-selection1';
 
 let initialized = false;
 let dataPromise = null;

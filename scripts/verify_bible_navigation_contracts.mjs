@@ -16,8 +16,9 @@ const checks = [
   ['Timeline centre lock remains enabled', vector.includes('lockVerticalPan')],
   ['graphic selections consume native clicks', vector.includes('event.stopPropagation();') && vector.includes('bubbles: false')],
   ['graphic selection happens before a re-render can replace the click target', vector.includes("circle.addEventListener('pointerdown', selectNode)") && vector.includes("hitTarget.addEventListener('pointerdown', selectNode)")],
+  ['graphic selection retains a mouse click fallback', vector.includes("circle.addEventListener('click', selectNode)") && vector.includes("hitTarget.addEventListener('click', selectNode)")],
   ['Scripture navigation runs after component handlers', /openBibleScriptureReference_\(referenceButton\.dataset\.bibleSourceCode\);\s*}\);/.test(main)],
-  ['release HTML requests the stable-pointer main bundle', index.includes('main.js?v=9.37-stable-pointer-selection1')]
+  ['release HTML requests the pointer-click main bundle', index.includes('main.js?v=9.38-pointer-click-selection1')]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);

@@ -9,7 +9,7 @@
 // Super graphics are isolated from the Legacy SAT renderer.  The router only
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
-import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=9.20-stable-pointer-selection1';
+import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=9.21-pointer-click-selection1';
 import './bible-explorer.js?v=9.24-navigation-contracts1';
 
 // ========================================================================
