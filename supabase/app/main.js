@@ -6297,7 +6297,7 @@ function initBibleSpeechControls() {
   var wrap = document.createElement('div');
   wrap.id = 'bibleSpeechControls';
   wrap.className = 'bible-speech-controls';
-  wrap.hidden = true;
+  wrap.hidden = false;
   wrap.style.cssText = 'position:relative;z-index:4;display:none';
 
   var menuButton = document.createElement('button');
@@ -6388,11 +6388,11 @@ function initBibleSpeechControls() {
       quizContent &&
       currentQuestions.length > 0 &&
       window.getComputedStyle(quizContent).display !== 'none';
-    wrap.hidden = !hasVisibleQuestion;
-    wrap.style.display = hasVisibleQuestion ? 'flex' : 'none';
+    // Keep the representative Play control in the first header row even
+    // before a lesson starts so the 3-3-4 layout never collapses.
+    wrap.hidden = false;
+    wrap.style.display = 'contents';
     if (!hasVisibleQuestion) {
-      menu.hidden = true;
-      menuButton.setAttribute('aria-expanded', 'false');
       stopBibleSpeech(false);
     }
   }

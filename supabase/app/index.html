@@ -68,7 +68,6 @@
       <div class="bible-header-nav" aria-label="Bible reference tools">
         <button type="button" id="bibleExploreToggle" class="quiz-tool-toggle bible-explore-toggle persistent-explore-toggle" aria-label="Open Bible Atlas" title="Bible Atlas" aria-controls="bibleExplorePanel" aria-expanded="false">🌐</button>
         <button type="button" id="biblePeopleToggle" class="quiz-tool-toggle bible-people-toggle persistent-people-toggle" aria-label="Open Bible People" title="Bible People" aria-controls="biblePeoplePanel" aria-expanded="false"><span class="header-person-icon" aria-hidden="true"></span></button>
-        <button type="button" id="bibleGroupAdminToggle" class="quiz-tool-toggle bible-group-admin-toggle" aria-label="Open group administration" title="Group administration" hidden>⚙</button>
       </div>
     </div>
     <button type="button" id="timerToggle" class="quiz-tool-toggle quiz-timer-toggle persistent-timer-toggle" aria-label="Open timer" aria-controls="timerPanel" aria-expanded="false"><span aria-hidden="true">⏱️</span></button>
@@ -2065,7 +2064,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.98-nt-catalog1"></script>
 <script type="module">
-import { initialize } from './main.js?v=9.19-app-header1';
+import { initialize } from './main.js?v=9.20-app-header-fix1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
