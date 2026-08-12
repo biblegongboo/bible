@@ -223,30 +223,6 @@ function initBibleGuide_() {
   });
 }
 
-function initBibleGroupAdmin_() {
-  var button = document.getElementById('bibleGroupAdminToggle');
-  if (!button || button.dataset.bound) return;
-  // Never trust a remembered browser profile to reveal an administrative
-  // entry point. Keep it hidden until Supabase confirms the live membership.
-  button.hidden = true;
-  button.dataset.bound = '1';
-  button.addEventListener('click', function() {
-    window.open('./group-admin.html?v=1', '_blank', 'noopener,noreferrer');
-  });
-  if (!window.BibleSupabaseAuth || typeof window.BibleSupabaseAuth.restoreUser !== 'function') return;
-  window.BibleSupabaseAuth.restoreUser().then(function(verifiedUser) {
-    var verifiedAdmin = isAdminUser(verifiedUser);
-    button.hidden = !verifiedAdmin;
-    if (verifiedAdmin) {
-      currentUser = Object.assign({}, currentUser || {}, verifiedUser);
-      IS_ADMIN_USER = true;
-      document.documentElement.classList.add('admin-user');
-    }
-  }).catch(function() {
-    button.hidden = true;
-  });
-}
-
 function initBibleTapFeedback_() {
   var header = document.querySelector('.quiz-header');
   if (!header || header.dataset.tapFeedbackBound) return;
@@ -274,8 +250,6 @@ function applyUserRolePolicy() {
   TRIAL_LIMIT = Math.max(1, parseInt(currentUser && currentUser.trial_limit, 10) || 20);
   document.documentElement.classList.toggle('admin-user', IS_ADMIN_USER);
   document.documentElement.classList.toggle('trial-user', IS_TRIAL_USER);
-  var adminButton = document.getElementById('bibleGroupAdminToggle');
-  if (adminButton) adminButton.hidden = true;
 }
 
 function applyCopyProtectionPolicy() {
@@ -5863,7 +5837,6 @@ function initialize() {
   initBibleTapFeedback_();
   initBibleLogout_();
   initBibleGuide_();
-  initBibleGroupAdmin_();
   initBiblePeopleExplorer();
 
   // Keep the initial quiz screen responsive.  Non-SAT subjects prepare the
@@ -6311,20 +6284,6 @@ function initBibleSpeechControls() {
   wrap.hidden = false;
   wrap.style.cssText = 'position:relative;z-index:4;display:none';
 
-  var menuButton = document.createElement('button');
-  menuButton.type = 'button';
-  menuButton.className = 'quiz-tool-toggle bible-speech-menu-toggle';
-  menuButton.textContent = '▶';
-  menuButton.setAttribute('aria-label', 'Open playback controls');
-  menuButton.setAttribute('aria-expanded', 'false');
-  menuButton.title = 'Playback controls';
-
-  var menu = document.createElement('div');
-  menu.className = 'bible-speech-menu';
-  menu.hidden = true;
-  menu.setAttribute('role', 'group');
-  menu.setAttribute('aria-label', 'Playback controls');
-
   var readButton = document.createElement('button');
   readButton.type = 'button';
   readButton.className = 'bible-speech-button bible-speech-play';
@@ -6625,13 +6584,6 @@ function initBibleSpeechControls() {
     speakBibleSegment_(0);
   }
   updateAutoNextButton_();
-  menuButton.addEventListener('click', function(event) {
-    event.stopPropagation();
-    var nextOpen = menu.hidden;
-    menu.hidden = !nextOpen;
-    menuButton.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
-    if (nextOpen) readButton.focus();
-  });
   readButton.addEventListener('click', function() { readCurrentBibleQuestion(false, false); });
   replayButton.addEventListener('click', function() { readCurrentBibleQuestion(false, true); });
   stopButton.addEventListener('click', function() { stopBibleSpeech(false); });
@@ -6651,23 +6603,17 @@ function initBibleSpeechControls() {
     updateAutoNextButton_();
   });
   document.addEventListener('click', function(event) {
-    if (!wrap.contains(event.target)) {
-      menu.hidden = true;
-      menuButton.setAttribute('aria-expanded', 'false');
-    }
     var id = event.target && event.target.id;
     if (['prevBtn', 'nextBtn', 'skipBtn', 'submitBtn', 'quitBtn'].indexOf(id) !== -1) {
       stopBibleSpeech(false);
     }
   });
   window.addEventListener('beforeunload', function() { stopBibleSpeech(false); });
-  menu.appendChild(readButton);
-  menu.appendChild(replayButton);
-  menu.appendChild(stopButton);
-  menu.appendChild(speedSelect);
-  menu.appendChild(autoNextButton);
-  wrap.appendChild(menuButton);
-  wrap.appendChild(menu);
+  wrap.appendChild(readButton);
+  wrap.appendChild(replayButton);
+  wrap.appendChild(stopButton);
+  wrap.appendChild(speedSelect);
+  wrap.appendChild(autoNextButton);
   var quizHeader = document.querySelector('.quiz-header');
   var learningModePanel = quizHeader && quizHeader.querySelector('.learning-mode-panel');
   var actionRow = document.getElementById('bibleHeaderActionRow');
