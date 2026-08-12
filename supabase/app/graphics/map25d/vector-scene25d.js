@@ -93,11 +93,13 @@ export class VectorScene25D {
   }
 
   setZoom(zoom, x = this.host.clientWidth / 2, y = this.host.clientHeight / 2) {
+    const lockedCenterY = this.camera.centerY;
     const before = this.toWorld(x, y);
     this.camera.zoom = clamp(zoom, this.options.minimumZoom, this.options.maximumZoom);
     const after = this.toWorld(x, y);
     this.camera.centerX += before.x - after.x;
     this.camera.centerY += before.y - after.y;
+    if (this.options.lockVerticalPan) this.camera.centerY = lockedCenterY;
     this.schedule();
   }
 
@@ -121,7 +123,9 @@ export class VectorScene25D {
       if (!this.drag || this.drag.id !== event.pointerId) return;
       const scale = this.camera.baseScale * 2 ** this.camera.zoom;
       this.camera.centerX = this.drag.centerX - (event.clientX - this.drag.x) / scale;
-      this.camera.centerY = this.drag.centerY - (event.clientY - this.drag.y) / scale * (this.options.invertY ? -1 : 1);
+      if (!this.options.lockVerticalPan) {
+        this.camera.centerY = this.drag.centerY - (event.clientY - this.drag.y) / scale * (this.options.invertY ? -1 : 1);
+      }
       this.schedule();
     });
     const finish = (event) => {

@@ -1,5 +1,5 @@
 import { VectorMap25D } from './graphics/map25d/vector-map25d.js?v=9.06-map-place-hit-targets1';
-import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=8.69-timeline-click1';
+import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=9.12-timeline-center-lock1';
 
 let initialized = false;
 let dataPromise = null;
@@ -512,12 +512,14 @@ async function renderModernPlaceContext(place, vectorPlace, host) {
       <div class="bible-modern-grid">${matches.map((modern) => {
         const association = (modern.ancient_associations || []).find((item) =>
           item.ancient_id === ancientId) || modern.ancient_associations[0] || {};
-        return `<article class="bible-modern-card">
+        return `<button type="button" class="bible-modern-card bible-modern-place-link"
+          data-modern-ancient-id="${escapeHtml(association.ancient_id || '')}"
+          data-modern-ancient-name="${escapeHtml(association.ancient_name_en || place.name)}">
           <strong>${escapeHtml(modern.name_en)}</strong>
           <span>${escapeHtml(modern.type || modern.class || 'Modern location')}</span>
           <small>Source confidence: ${escapeHtml(association.confidence_score || 0)}</small>
           <small>${escapeHtml(modern.latitude)}, ${escapeHtml(modern.longitude)}</small>
-        </article>`;
+        </button>`;
       }).join('')}</div>
       ${images.length ? `<div class="bible-source-images">${images.map((image) => {
         const thumbnail = String(image.thumbnail_url_pattern || '').replace('####', '500');
@@ -542,6 +544,22 @@ async function renderModernPlaceContext(place, vectorPlace, host) {
           return;
         }
         image.closest('figure')?.setAttribute('hidden', '');
+      });
+    });
+    host.querySelectorAll('[data-modern-ancient-id]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const linkedPlace = findLegacyPlaceFromGeocoding(button.dataset.modernAncientId) ||
+          findPlaceForVisibleLabel(button.dataset.modernAncientName);
+        if (!linkedPlace) {
+          setStatus(`No linked ancient city detail is available for ${button.querySelector('strong')?.textContent || 'this location'}.`);
+          return;
+        }
+        selectTab('places');
+        renderPlaceResults(linkedPlace.name);
+        renderPlaceDetail(linkedPlace);
+        window.requestAnimationFrame(() => {
+          document.getElementById('biblePlaceDetail')?.scrollIntoView({ behavior: 'auto', block: 'start' });
+        });
       });
     });
   } catch (error) {
@@ -951,7 +969,12 @@ function renderTimelineEventDetail(timeline, rowIndex, options = {}) {
   });
   const eventSelector = document.getElementById('bibleTimelineEventSelector');
   if (eventSelector) eventSelector.value = String(rowIndex);
-  if (options.reveal) window.setTimeout(() => selection.classList.remove('is-revealed'), 1700);
+  if (options.reveal) {
+    window.requestAnimationFrame(() => {
+      selection.scrollIntoView({ behavior: 'auto', block: 'start' });
+    });
+    window.setTimeout(() => selection.classList.remove('is-revealed'), 1700);
+  }
 }
 
 function renderTimeline(index = 0, selectedEventIndex = 0) {
@@ -989,7 +1012,8 @@ function renderTimeline(index = 0, selectedEventIndex = 0) {
   activeTimelineScene = new VectorScene25D(timelineHost, {
     ariaLabel: 'Interactive Bible timeline',
     labelFontSize: 11,
-    selectableLabels: true
+    selectableLabels: true,
+    lockVerticalPan: true
   });
   activeTimelineScene.setScene({
     nodes,
