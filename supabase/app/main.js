@@ -226,10 +226,24 @@ function initBibleGuide_() {
 function initBibleGroupAdmin_() {
   var button = document.getElementById('bibleGroupAdminToggle');
   if (!button || button.dataset.bound) return;
-  button.hidden = !IS_ADMIN_USER;
+  // Never trust a remembered browser profile to reveal an administrative
+  // entry point. Keep it hidden until Supabase confirms the live membership.
+  button.hidden = true;
   button.dataset.bound = '1';
   button.addEventListener('click', function() {
     window.open('./group-admin.html?v=1', '_blank', 'noopener,noreferrer');
+  });
+  if (!window.BibleSupabaseAuth || typeof window.BibleSupabaseAuth.restoreUser !== 'function') return;
+  window.BibleSupabaseAuth.restoreUser().then(function(verifiedUser) {
+    var verifiedAdmin = isAdminUser(verifiedUser);
+    button.hidden = !verifiedAdmin;
+    if (verifiedAdmin) {
+      currentUser = Object.assign({}, currentUser || {}, verifiedUser);
+      IS_ADMIN_USER = true;
+      document.documentElement.classList.add('admin-user');
+    }
+  }).catch(function() {
+    button.hidden = true;
   });
 }
 
@@ -260,11 +274,8 @@ function applyUserRolePolicy() {
   TRIAL_LIMIT = Math.max(1, parseInt(currentUser && currentUser.trial_limit, 10) || 20);
   document.documentElement.classList.toggle('admin-user', IS_ADMIN_USER);
   document.documentElement.classList.toggle('trial-user', IS_TRIAL_USER);
-  ['bibleGroupAdminToggle']
-    .forEach(function(id) {
-      var element = document.getElementById(id);
-      if (element) element.hidden = !IS_ADMIN_USER;
-    });
+  var adminButton = document.getElementById('bibleGroupAdminToggle');
+  if (adminButton) adminButton.hidden = true;
 }
 
 function applyCopyProtectionPolicy() {
