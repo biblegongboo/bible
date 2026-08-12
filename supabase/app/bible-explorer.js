@@ -899,6 +899,9 @@ function renderJourney(index = 0) {
     selectTab('places');
     renderPlaceResults(place.name);
     renderPlaceDetail(place);
+    window.requestAnimationFrame(() => {
+      document.getElementById('biblePlaceDetail')?.scrollIntoView({ behavior: 'auto', block: 'start' });
+    });
   });
   setStatus('Journey route loaded.');
 }
@@ -1499,12 +1502,19 @@ function init() {
   const toggle = document.getElementById('bibleExploreToggle');
   const panel = document.getElementById('bibleExplorePanel');
   const closeButton = document.getElementById('bibleExploreClose');
+  const peopleButton = document.getElementById('bibleExplorePeople');
   const backButton = document.getElementById('bibleExploreBack');
   const forwardButton = document.getElementById('bibleExploreForward');
   if (!toggle || !panel || !closeButton) return;
   initialized = true;
   toggle.addEventListener('click', open);
   closeButton.addEventListener('click', close);
+  if (peopleButton) {
+    peopleButton.addEventListener('click', () => {
+      close();
+      document.getElementById('biblePeopleToggle')?.click();
+    });
+  }
   if (backButton) backButton.addEventListener('click', () => bibleReferenceNavigation.back());
   if (forwardButton) forwardButton.addEventListener('click', () => bibleReferenceNavigation.forward());
   bibleReferenceNavigation.update();
