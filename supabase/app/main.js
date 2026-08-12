@@ -7065,7 +7065,9 @@ function biblePeopleRenderDetail_(detail) {
     });
     biblePeopleRelationshipScene.setScene(sceneFromGraphicObjects(relationshipGraphic));
     relationshipHost.addEventListener('scene25d:select', function(event) {
-      var relatedId = event && event.detail && event.detail.node && event.detail.node.metadata && event.detail.node.metadata.personId;
+      var nodeMetadata = event && event.detail && event.detail.node && event.detail.node.metadata;
+      var relatedId = nodeMetadata && (nodeMetadata.personId ||
+        (nodeMetadata.metadata && nodeMetadata.metadata.personId));
       if (relatedId) biblePeopleLoadDetail_(relatedId);
     });
   }
@@ -7195,6 +7197,7 @@ function initBiblePeopleExplorer() {
   var toggle = document.getElementById('biblePeopleToggle');
   var panel = document.getElementById('biblePeoplePanel');
   var close = document.getElementById('biblePeopleClose');
+  var atlas = document.getElementById('biblePeopleAtlas');
   var back = document.getElementById('biblePeopleBack');
   var forward = document.getElementById('biblePeopleForward');
   var form = document.getElementById('biblePeopleSearchForm');
@@ -7202,6 +7205,16 @@ function initBiblePeopleExplorer() {
   biblePeopleExplorerInitialized = true;
   toggle.addEventListener('click', biblePeopleOpen_);
   close.addEventListener('click', biblePeopleClose_);
+  if (atlas) {
+    atlas.addEventListener('click', function() {
+      biblePeopleClose_();
+      if (typeof window.openBibleContext === 'function') {
+        window.openBibleContext({ tab: 'places' });
+      } else {
+        document.getElementById('bibleExploreToggle')?.click();
+      }
+    });
+  }
   if (back && window.BibleReferenceNavigation) {
     back.addEventListener('click', function() {
       window.BibleReferenceNavigation.back();

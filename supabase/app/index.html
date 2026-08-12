@@ -263,6 +263,7 @@
       <div class="bible-context-head-actions">
         <button type="button" id="biblePeopleBack" class="bible-context-back" disabled>← Back</button>
         <button type="button" id="biblePeopleForward" class="bible-context-back" disabled>Forward →</button>
+        <button type="button" id="biblePeopleAtlas" class="bible-people-close bible-people-atlas" aria-label="Open Bible Atlas" title="Bible Atlas">🌐</button>
         <button type="button" id="biblePeopleClose" class="bible-people-close" aria-label="Close Bible People">&times;</button>
       </div>
     </header>
@@ -1880,6 +1881,8 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-people-head{display:flex;align-items:center;justify-content:space-between;padding:22px 26px;background:#17233d;color:#fff}
   .bible-people-head h2{margin:2px 0 0;font-size:28px}.bible-people-kicker{font-size:11px;font-weight:800;letter-spacing:1.8px;color:#fbbf24}
   .bible-people-close{width:42px;height:42px;border:1px solid rgba(255,255,255,.3);border-radius:10px;background:rgba(255,255,255,.12);color:#fff;font-size:28px;cursor:pointer}
+  .bible-people-atlas{display:grid;place-items:center;background:#1d4ed8;border-color:#3b82f6;font-size:20px;line-height:1}
+  .bible-people-atlas:hover,.bible-people-atlas:focus-visible{background:#2563eb;border-color:#60a5fa;outline:none}
   .bible-people-search{padding:20px 26px 10px}.bible-people-search label{display:block;margin-bottom:7px;font-size:12px;font-weight:800;color:#475569}
   .bible-people-search>div{display:flex;gap:9px}.bible-people-search input{flex:1;min-width:0;border:2px solid #cbd5e1;border-radius:11px;padding:13px 15px;font-size:16px;background:#fff}
   .bible-people-search button{border:0;border-radius:11px;padding:0 23px;background:#f59e0b;color:#172033;font-weight:900;cursor:pointer}
@@ -2048,7 +2051,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.98-nt-catalog1"></script>
 <script type="module">
-import { initialize } from './main.js?v=9.15-people-icon-visible1';
+import { initialize } from './main.js?v=9.16-people-atlas-navigation1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
