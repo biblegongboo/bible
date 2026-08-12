@@ -1238,18 +1238,22 @@ async function loadSermonIndex() {
   return sermonIndexPromise;
 }
 
+function sermonReferenceText(reference) {
+  return valueText(reference?.raw || reference?.osis || reference);
+}
+
 async function renderSermonLibrary(version, results, detail, search) {
   const index = await loadSermonIndex();
   if (!isCurrentSearchRender('library', version)) return;
   const query = normalizedSearch(search.value);
   const sources = (index.sources || []).slice().sort((a, b) => String(a.title).localeCompare(String(b.title)));
   results.innerHTML = `<div class="bible-sermon-summary"><strong>${index.records.toLocaleString()} sermons</strong><span>${index.collections} collections</span></div><button class="bible-person-result${sermonSelectedSource ? '' : ' is-active'}" data-sermon-source=""><strong>All sermons</strong><span>${index.records.toLocaleString()} titles</span></button>` + sources.map((source) => `<button class="bible-person-result${sermonSelectedSource === source.source_id ? ' is-active' : ''}" data-sermon-source="${escapeHtml(source.source_id)}"><strong>${escapeHtml(source.title)}</strong><span>${escapeHtml(source.author || '')} · ${Number(source.records).toLocaleString()} sermons</span></button>`).join('');
-  const entries = index.entries.filter((entry) => (!sermonSelectedSource || entry.source_id === sermonSelectedSource) && (!query || [entry.title, entry.author, entry.reference, entry.language, entry.date, entry.source_title].some((value) => normalizedSearch(value).includes(query))));
+  const entries = index.entries.filter((entry) => (!sermonSelectedSource || entry.source_id === sermonSelectedSource) && (!query || [entry.title, entry.author, sermonReferenceText(entry.reference), entry.language, entry.date, entry.source_title].some((value) => normalizedSearch(value).includes(query))));
   const pages = Math.max(1, Math.ceil(entries.length / SERMON_PAGE_SIZE));
   sermonPage = Math.min(Math.max(1, sermonPage), pages);
   const start = (sermonPage - 1) * SERMON_PAGE_SIZE;
   const shown = entries.slice(start, start + SERMON_PAGE_SIZE);
-  detail.innerHTML = `<section class="bible-sermon-browser"><header><strong>${entries.length.toLocaleString()} sermons found</strong><span>Choose a title to read one sermon.</span></header><div>${shown.map((entry, offset) => `<button class="bible-sermon-title" data-sermon-entry="${start + offset}"><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml([entry.author, entry.reference, entry.date, entry.language].filter(Boolean).join(' · '))}</span><small>${escapeHtml(entry.source_title)}</small></button>`).join('') || knowledgeEmpty('No sermons match this search')}</div><nav class="bible-sermon-pagination"><button data-sermon-page="prev" ${sermonPage === 1 ? 'disabled' : ''}>Previous</button><span>Page ${sermonPage} of ${pages}</span><button data-sermon-page="next" ${sermonPage === pages ? 'disabled' : ''}>Next</button></nav></section>`;
+  detail.innerHTML = `<section class="bible-sermon-browser"><header><strong>${entries.length.toLocaleString()} sermons found</strong><span>Choose a title to read one sermon.</span></header><div>${shown.map((entry, offset) => `<button class="bible-sermon-title" data-sermon-entry="${start + offset}"><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml([entry.author, sermonReferenceText(entry.reference), entry.date, entry.language].filter(Boolean).join(' · '))}</span><small>${escapeHtml(entry.source_title)}</small></button>`).join('') || knowledgeEmpty('No sermons match this search')}</div><nav class="bible-sermon-pagination"><button data-sermon-page="prev" ${sermonPage === 1 ? 'disabled' : ''}>Previous</button><span>Page ${sermonPage} of ${pages}</span><button data-sermon-page="next" ${sermonPage === pages ? 'disabled' : ''}>Next</button></nav></section>`;
   setStatus(`${entries.length.toLocaleString()} of ${index.records.toLocaleString()} sermons available.`);
   const openSermon = async (position) => {
     const entry = entries[position];
