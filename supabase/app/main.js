@@ -7253,8 +7253,172 @@ function initBiblePeopleExplorer() {
 // BIBLE: Chapter catalog selector (BIBLE-CATALOG)
 // ========================================================================
 var BIBLE_CHAPTER_CATALOG = [];
+var BIBLE_SELECTED_BOOK = '';
 var bibleLegacyDetectTotalQuestions_ = detectTotalQuestions;
 var bibleLegacyUpdateSetSelector_ = updateSetSelector;
+
+var BIBLE_BOOK_ORDER = [
+  'Genesis','Exodus','Leviticus','Numbers','Deuteronomy','Joshua','Judges','Ruth',
+  '1-Samuel','2-Samuel','1-Kings','2-Kings','1-Chronicles','2-Chronicles','Ezra',
+  'Nehemiah','Esther','Job','Psalms','Proverbs','Ecclesiastes','Song-of-Solomon',
+  'Isaiah','Jeremiah','Lamentations','Ezekiel','Daniel','Hosea','Joel','Amos',
+  'Obadiah','Jonah','Micah','Nahum','Habakkuk','Zephaniah','Haggai','Zechariah','Malachi',
+  'Matthew','Mark','Luke','John','Acts','Romans','1-Corinthians','2-Corinthians',
+  'Galatians','Ephesians','Philippians','Colossians','1-Thessalonians','2-Thessalonians',
+  '1-Timothy','2-Timothy','Titus','Philemon','Hebrews','James','1-Peter','2-Peter',
+  '1-John','2-John','3-John','Jude','Revelation'
+];
+
+function bibleSubjectForTestament_(testament) {
+  return String(testament || '').toUpperCase() === 'NT' ? 'BIBLE_NT' : 'BIBLE_OT';
+}
+
+function activateBibleTestament_(testament) {
+  var nextSubject = bibleSubjectForTestament_(testament);
+  var nextConfig = availableSubjects.find(function(subject) {
+    return String(subject && subject.CODE || '').replace(/-/g, '_').toUpperCase() === nextSubject;
+  });
+  if (nextConfig) subjectConfig = nextConfig;
+  currentSubject = nextSubject;
+  CURRENT_SUBJECT = nextSubject;
+  DATA_SHEET = nextSubject === 'BIBLE_NT' ? 'bible-nt' : 'bible-ot';
+  var keyPart = nextSubject.replace(/[^A-Z0-9_-]/g, '_');
+  STORAGE_KEY = 'quiz_progress_main_v8_0D_' + keyPart;
+  TOTAL_CACHE_KEY = 'quiz_total_questions_v8_0D_' + keyPart;
+  TOTAL_QUESTIONS = BIBLE_CHAPTER_CATALOG.reduce(function(maximum, chapter) {
+    return String(chapter.TESTAMENT || '').toUpperCase() === String(testament || '').toUpperCase()
+      ? Math.max(maximum, parseInt(chapter.LAST_ROW, 10) || 0)
+      : maximum;
+  }, 0);
+  window.currentSubject = currentSubject;
+  window.subjectConfig = subjectConfig;
+  localStorage.setItem('quiz_current_subject_v1', JSON.stringify(subjectConfig || {
+    CODE: nextSubject,
+    NAME: nextSubject === 'BIBLE_NT' ? 'New Testament' : 'Old Testament',
+    SHEET: DATA_SHEET
+  }));
+}
+
+function bibleBookRank_(bookName) {
+  var rank = BIBLE_BOOK_ORDER.indexOf(String(bookName || ''));
+  return rank < 0 ? BIBLE_BOOK_ORDER.length : rank;
+}
+
+function renderBibleBookPicker_() {
+  var bookHost = document.getElementById('bibleBookPicker');
+  var chapterHost = document.getElementById('bibleChapterPicker');
+  if (!bookHost || !chapterHost) return;
+  var books = [];
+  BIBLE_CHAPTER_CATALOG.forEach(function(chapter) {
+    var name = String(chapter.BOOK_EN || chapter.BOOK_KO || '').trim();
+    if (name && books.indexOf(name) < 0) books.push(name);
+  });
+  books.sort(function(left, right) { return bibleBookRank_(left) - bibleBookRank_(right); });
+  bookHost.innerHTML = '';
+  var startButton = document.getElementById('startQuizBtn');
+  if (startButton) startButton.disabled = true;
+  var groups = [
+    { testament: 'OT', title: 'Old Testament', count: 39 },
+    { testament: 'NT', title: 'New Testament', count: 27 }
+  ];
+  groups.forEach(function(group) {
+    var section = document.createElement('section');
+    section.className = 'bible-testament-group';
+    section.setAttribute('aria-labelledby', 'bible-' + group.testament.toLowerCase() + '-title');
+    var heading = document.createElement('h3');
+    heading.id = 'bible-' + group.testament.toLowerCase() + '-title';
+    heading.className = 'bible-testament-title';
+    heading.innerHTML = '<span>' + group.title + '</span><small>' + group.count + ' books</small>';
+    var grid = document.createElement('div');
+    grid.className = 'bible-book-grid';
+    section.appendChild(heading);
+    section.appendChild(grid);
+    bookHost.appendChild(section);
+    books.filter(function(bookName) {
+      var chapter = BIBLE_CHAPTER_CATALOG.find(function(item) {
+        return String(item.BOOK_EN || item.BOOK_KO || '') === bookName;
+      });
+      return String(chapter && chapter.TESTAMENT || 'OT').toUpperCase() === group.testament;
+    }).forEach(function(bookName) {
+    var firstChapter = BIBLE_CHAPTER_CATALOG.find(function(chapter) {
+      return String(chapter.BOOK_EN || chapter.BOOK_KO || '') === bookName;
+    });
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'bible-book-button';
+    button.textContent = bookName.replace(/-/g, ' ');
+    button.dataset.book = bookName;
+    button.dataset.testament = String(firstChapter && firstChapter.TESTAMENT || 'OT');
+    button.addEventListener('click', function() {
+      BIBLE_SELECTED_BOOK = bookName;
+      bookHost.querySelectorAll('.bible-book-button').forEach(function(item) {
+        item.classList.toggle('is-selected', item === button);
+      });
+      activateBibleTestament_(button.dataset.testament);
+      renderBibleChapterPicker_(bookName);
+      if (startButton) startButton.disabled = true;
+    });
+      grid.appendChild(button);
+    });
+  });
+}
+
+function renderBibleChapterPicker_(bookName) {
+  var chapterHost = document.getElementById('bibleChapterPicker');
+  var selector = DOM.setSelector;
+  if (!chapterHost || !selector) return;
+  var chapters = BIBLE_CHAPTER_CATALOG.filter(function(chapter) {
+    return String(chapter.BOOK_EN || chapter.BOOK_KO || '') === bookName;
+  }).sort(function(left, right) {
+    return (parseInt(left.CHAPTER, 10) || 0) - (parseInt(right.CHAPTER, 10) || 0);
+  });
+  chapterHost.innerHTML = '';
+  var heading = document.createElement('div');
+  heading.className = 'bible-chapter-heading';
+  heading.innerHTML = '<strong>' + escapeHtml(bookName.replace(/-/g, ' ')) + '</strong>';
+  var changeBookButton = document.createElement('button');
+  changeBookButton.type = 'button';
+  changeBookButton.className = 'bible-change-book';
+  changeBookButton.textContent = 'Change book';
+  changeBookButton.addEventListener('click', function() {
+    document.getElementById('bibleBookPicker').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  heading.appendChild(changeBookButton);
+  chapterHost.appendChild(heading);
+  var chapterGrid = document.createElement('div');
+  chapterGrid.className = 'bible-chapter-grid';
+  chapters.forEach(function(chapter) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'bible-chapter-button';
+    button.textContent = String(chapter.CHAPTER);
+    button.setAttribute('aria-label', bookName.replace(/-/g, ' ') + ' Chapter ' + chapter.CHAPTER);
+    button.addEventListener('click', function() {
+      chapterHost.querySelectorAll('.bible-chapter-button').forEach(function(item) {
+        item.classList.toggle('is-selected', item === button);
+      });
+      var option = Array.prototype.find.call(selector.options, function(item) {
+        return String(item.dataset.code || '') === String(chapter.CODE || '');
+      });
+      if (option) {
+        selector.value = option.value;
+        selector.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      var hint = document.querySelector('.card-new .card-hint');
+      if (hint) hint.textContent = bookName.replace(/-/g, ' ') + ' Chapter ' + chapter.CHAPTER + ' selected.';
+      var startButton = document.getElementById('startQuizBtn');
+      if (startButton) startButton.disabled = false;
+    });
+    chapterGrid.appendChild(button);
+  });
+  chapterHost.appendChild(chapterGrid);
+  chapterHost.hidden = false;
+  window.requestAnimationFrame(function() {
+    chapterHost.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  var title = document.querySelector('.sat-title');
+  if (title) title.textContent = 'Bib ? ' + bookName.replace(/-/g, ' ');
+}
 
 function bibleShortBookName_(bookName) {
   var normalized = String(bookName || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -7422,35 +7586,39 @@ document.addEventListener('click', function(event) {
 }, true);
 
 async function loadBibleChapterCatalog_() {
-  var params = new URLSearchParams();
-  params.set('action', 'catalog');
-  params.set('sheet', DATA_SHEET);
-  params.set('_', String(Date.now()));
-  var response = await fetchQuizApi_(params);
-  if (!response.ok) throw new Error('HTTP ' + response.status);
-  var data = await response.json();
-  if (data && (data.status === 'error' || data.success === false)) {
-    throwQuizApiError_(data, 'Failed to load Bible catalog');
-  }
-  BIBLE_CHAPTER_CATALOG = Array.isArray(data.catalog) ? data.catalog : [];
+  var catalogs = await Promise.all(['bible-ot', 'bible-nt'].map(async function(sheet) {
+    var params = new URLSearchParams();
+    params.set('action', 'catalog');
+    params.set('sheet', sheet);
+    params.set('_', String(Date.now()));
+    var response = await fetchQuizApi_(params);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    var data = await response.json();
+    if (data && (data.status === 'error' || data.success === false)) {
+      throwQuizApiError_(data, 'Failed to load Bible catalog');
+    }
+    var testament = sheet === 'bible-nt' ? 'NT' : 'OT';
+    return (Array.isArray(data.catalog) ? data.catalog : []).map(function(chapter) {
+      return Object.assign({}, chapter, { TESTAMENT: testament });
+    });
+  }));
+  BIBLE_CHAPTER_CATALOG = catalogs[0].concat(catalogs[1]);
   return BIBLE_CHAPTER_CATALOG;
 }
 
 detectTotalQuestions = async function() {
   var total = await bibleLegacyDetectTotalQuestions_();
-  if (!IS_TRIAL_USER) {
-    try {
-      await loadBibleChapterCatalog_();
-    } catch (error) {
-      console.warn('Bible catalog unavailable:', error.message);
-      BIBLE_CHAPTER_CATALOG = [];
-    }
+  try {
+    await loadBibleChapterCatalog_();
+  } catch (error) {
+    console.warn('Bible catalog unavailable:', error.message);
+    BIBLE_CHAPTER_CATALOG = [];
   }
   return total;
 };
 
 updateSetSelector = function() {
-  if (IS_TRIAL_USER || !Array.isArray(BIBLE_CHAPTER_CATALOG) || !BIBLE_CHAPTER_CATALOG.length) {
+  if (!Array.isArray(BIBLE_CHAPTER_CATALOG) || !BIBLE_CHAPTER_CATALOG.length) {
     return bibleLegacyUpdateSetSelector_();
   }
   var selector = DOM.setSelector;
@@ -7477,17 +7645,13 @@ updateSetSelector = function() {
     selector.appendChild(option);
   });
 
+  renderBibleBookPicker_();
+
   if (DOM.startNumberInput && !IS_ADMIN_USER) {
     DOM.startNumberInput.parentElement.style.display = 'none';
   }
   var hint = document.querySelector('.card-new .card-hint');
-  if (hint) hint.textContent = 'Select a Bible book and chapter.';
-
-  setTimeout(function() {
-    if (!selector.options.length) return;
-    selector.selectedIndex = 0;
-    selector.dispatchEvent(new Event('change', { bubbles: true }));
-  }, 0);
+  if (hint) hint.textContent = 'Select one of the 66 books.';
 };
 
 document.addEventListener('change', function(event) {

@@ -143,8 +143,10 @@
       <div class="card card-new">
         <div class="card-icon">📖</div>
         <div class="card-title card-title-new">NEW LESSON</div>
-        <div class="card-sub">Start from a new number</div>
-        <div class="input-wrapper" style="margin-top:8px;">
+        <div class="card-sub">Choose a book, then choose a chapter</div>
+        <div id="bibleChapterPicker" class="bible-chapter-picker" aria-label="Bible chapters" aria-live="polite" hidden></div>
+        <div id="bibleBookPicker" class="bible-book-picker" aria-label="Bible books"></div>
+        <div class="input-wrapper bible-legacy-chapter-select" style="margin-top:8px;" hidden>
           <select id="setSelector" style="width:100%;padding:14px 42px 14px 18px;font-size:16px;font-weight:600;border:2px solid #ddd;border-radius:12px;text-align:left;text-align-last:left;background:#f8f9fa;outline:none;transition:all .3s;color:#1a1a2e;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 16px center">
             <option value="1">Loading sets...</option>
           </select>
@@ -153,7 +155,7 @@
           <input type="number" id="startNumber" min="1" placeholder="1-720">
         </div>
         <button class="btn-start" id="startQuizBtn">▶ START</button>
-        <div class="card-hint">Select a set or enter a number</div>
+        <div class="card-hint">Select one of the 66 books.</div>
       </div>
 
       <!-- 재개 카드 -->
@@ -2041,6 +2043,24 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-speech-controls .bible-speech-speed{width:58px!important;min-width:58px!important;height:29px!important;min-height:29px!important;padding:0 3px!important;font-size:11px!important;text-align:center}
   @media(max-width:600px){.bible-speech-controls{gap:3px!important;padding:3px!important}.bible-speech-controls .bible-speech-button{width:29px!important;min-width:29px!important;height:27px!important;min-height:27px!important;font-size:13px!important}.bible-speech-controls .bible-speech-speed{width:54px!important;min-width:54px!important;height:27px!important;min-height:27px!important;font-size:10px!important}}
   .bible-timeline-selection{scroll-margin-top:16px}.bible-timeline-selection.is-revealed{outline:3px solid #f5a623;box-shadow:0 0 0 7px rgba(245,166,35,.18);transition:outline-color .2s,box-shadow .2s}
+  .bible-book-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;width:100%;margin:14px 0 10px;text-align:left}
+  .bible-testament-group{min-width:0;border:1px solid #dbe4f0;border-radius:14px;padding:10px;background:#f8fafc}
+  .bible-testament-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 9px;padding:0 2px;color:#334155;font-size:14px;font-weight:800}
+  .bible-testament-title small{color:#64748b;font-size:11px;font-weight:700}
+  .bible-book-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  .bible-book-button,.bible-chapter-button{border:1px solid #cbd5e1;border-radius:9px;background:#fff;color:#1e293b;font:700 13px/1.2 inherit;cursor:pointer;transition:border-color .15s,background .15s,color .15s,transform .15s}
+  .bible-book-button{min-height:44px;padding:7px 5px;overflow-wrap:anywhere;touch-action:manipulation}
+  .bible-book-button:hover,.bible-chapter-button:hover{border-color:#2563eb;background:#eff6ff;transform:translateY(-1px)}
+  .bible-book-button.is-selected,.bible-chapter-button.is-selected{border-color:#1d4ed8;background:#1d4ed8;color:#fff}
+  .bible-chapter-picker{width:100%;margin:12px 0 2px;padding:12px;border:2px solid #93c5fd;border-radius:14px;background:#eff6ff;text-align:left;scroll-margin-top:12px}
+  .bible-chapter-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 9px;color:#1e3a8a}
+  .bible-chapter-heading strong{font-size:16px}
+  .bible-change-book{min-height:40px;border:0;border-radius:9px;padding:0 12px;background:#dbeafe;color:#1e40af;font-weight:800;cursor:pointer;touch-action:manipulation}
+  .bible-chapter-grid{display:grid;grid-template-columns:repeat(10,minmax(44px,1fr));gap:7px}
+  .bible-chapter-button{width:100%;min-width:44px;height:44px;margin:0;padding:0;touch-action:manipulation}
+  .bible-legacy-chapter-select{display:none!important}
+  @media(max-width:900px){.bible-book-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.bible-chapter-grid{grid-template-columns:repeat(8,minmax(44px,1fr))}}
+  @media(max-width:600px){.setup-area{margin:8px;padding:18px 10px}.card{padding:20px 10px}.bible-book-picker{grid-template-columns:1fr;gap:12px}.bible-book-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.bible-book-button{font-size:12px}.bible-chapter-picker{padding:10px}.bible-chapter-grid{grid-template-columns:repeat(5,minmax(44px,1fr))}.bible-change-book{min-height:44px}.card-resume{padding:18px 12px}}
   @media(max-width:760px){.bible-people-panel{padding:0}.bible-people-dialog{min-height:100vh;border-radius:0}.bible-people-layout{grid-template-columns:1fr}.bible-people-results{min-height:0;max-height:210px}.bible-people-detail{min-height:430px}.bible-person-title{display:block}.bible-person-id{display:inline-block;margin-top:10px}.bible-explore-tabs,.bible-knowledge-sections{padding-left:14px;padding-right:14px}.bible-explore-toolbar{padding-left:14px;padding-right:14px}.bible-explore-output{margin-left:14px;margin-right:14px}.bible-source-images{grid-template-columns:1fr}}
 </style>
 
@@ -2048,7 +2068,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.98-nt-catalog1"></script>
 <script type="module">
-import { initialize } from './main.js?v=8.98-nt-catalog1';
+import { initialize } from './main.js?v=9.05-bible-66-books-mobile1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
