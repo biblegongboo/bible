@@ -5964,14 +5964,10 @@ function initialize() {
         saved = null;
       }
       if (saved && saved.currentQuestions && saved.currentQuestions.length > 0) {
-        var answered = saved.userAnswers.filter(function(a) { return a !== null && a !== -1; }).length;
-        var timeStr = new Date(saved.timestamp).toLocaleString();
         DOM.savedBadgeContainer.innerHTML =
-          '<div class="resume-badge" id="resumeBadge">' +
-          '<div><div class="count">Resume previous lesson</div>' +
-          '<div class="time">' + answered + ' / ' + saved.currentQuestions.length + ' answered · ' + timeStr + '</div></div>' +
-          '<div class="hint">Continue ›</div>' +
-          '</div>';
+          '<button type="button" class="resume-badge" id="resumeBadge" aria-label="Resume previous lesson">' +
+          '<span class="count">Resume previous lesson&nbsp;&nbsp;›</span>' +
+          '</button>';
         DOM.savedBadgeContainer.hidden = false;
         var resumeBadge = document.getElementById('resumeBadge');
         if (resumeBadge) {
@@ -7410,6 +7406,7 @@ function renderBibleBookPicker_() {
       });
       activateBibleTestament_(button.dataset.testament);
       renderBibleChapterPicker_(bookName);
+      button.insertAdjacentElement('afterend', chapterHost);
       if (startButton) startButton.disabled = true;
     });
       grid.appendChild(button);
@@ -7427,18 +7424,6 @@ function renderBibleChapterPicker_(bookName) {
     return (parseInt(left.CHAPTER, 10) || 0) - (parseInt(right.CHAPTER, 10) || 0);
   });
   chapterHost.innerHTML = '';
-  var heading = document.createElement('div');
-  heading.className = 'bible-chapter-heading';
-  heading.innerHTML = '<strong>' + escapeHtml(bookName.replace(/-/g, ' ')) + '</strong>';
-  var changeBookButton = document.createElement('button');
-  changeBookButton.type = 'button';
-  changeBookButton.className = 'bible-change-book';
-  changeBookButton.textContent = 'Change book';
-  changeBookButton.addEventListener('click', function() {
-    document.getElementById('bibleBookPicker').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
-  heading.appendChild(changeBookButton);
-  chapterHost.appendChild(heading);
   var chapterGrid = document.createElement('div');
   chapterGrid.className = 'bible-chapter-grid';
   chapters.forEach(function(chapter) {
@@ -7451,6 +7436,7 @@ function renderBibleChapterPicker_(bookName) {
       chapterHost.querySelectorAll('.bible-chapter-button').forEach(function(item) {
         item.classList.toggle('is-selected', item === button);
       });
+      await new Promise(function(resolve) { window.requestAnimationFrame(resolve); });
       var option = Array.prototype.find.call(selector.options, function(item) {
         return String(item.dataset.code || '') === String(chapter.CODE || '');
       });
@@ -7472,9 +7458,6 @@ function renderBibleChapterPicker_(bookName) {
   });
   chapterHost.appendChild(chapterGrid);
   chapterHost.hidden = false;
-  window.requestAnimationFrame(function() {
-    chapterHost.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
   var title = document.querySelector('.sat-title');
   if (title) title.textContent = 'Bib | ' + bibleShortBookName_(bookName);
 }
