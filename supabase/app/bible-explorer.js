@@ -1305,6 +1305,10 @@ function museumDisplayTitle(record) {
   return (!title || /^untitled work$/i.test(title)) ? objectName : title;
 }
 
+const museumPageSize = 30;
+let museumPage = 0;
+let museumLetter = '';
+
 async function renderMuseum(selectedIndex = 0) {
   const results = document.getElementById('bibleMuseumResults');
   const detail = document.getElementById('bibleMuseumDetail');
@@ -1312,7 +1316,16 @@ async function renderMuseum(selectedIndex = 0) {
   const era = document.getElementById('bibleMuseumEra');
   const region = document.getElementById('bibleMuseumRegion');
   const topic = document.getElementById('bibleMuseumTopic');
-  if (!results || !detail || !search || !era || !region || !topic) return;
+  const letters = document.getElementById('bibleMuseumLetters');
+  const pager = document.getElementById('bibleMuseumPager');
+  if (!results || !detail || !search || !era || !region || !topic || !letters || !pager) return;
+  letters.innerHTML = [''].concat('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')).map((letter) => `<button type="button" data-museum-letter="${letter}" class="${museumLetter === letter ? 'is-active' : ''}">${letter || 'All'}</button>`).join('');
+  letters.querySelectorAll('[data-museum-letter]').forEach((button) => button.addEventListener('click', () => {
+    museumLetter = button.dataset.museumLetter || '';
+    museumPage = 0;
+    search.value = '';
+    renderMuseum();
+  }));
   const version = beginSearchRender('museum');
   results.innerHTML = museumEmpty('Loading the image collection');
   detail.innerHTML = museumEmpty('Curated Met image collection', 'Explore verified public-domain images by title, era, region, and cultural topic.');
@@ -1321,12 +1334,17 @@ async function renderMuseum(selectedIndex = 0) {
       throw new Error('Museum catalog is not configured yet.');
     }
     const rows = await window.BibleSupabaseProvider.metMuseumSearch({
-      query: search.value, era: era.value, region: region.value, topic: topic.value, limit: 60
+      query: search.value, letter: museumLetter, era: era.value, region: region.value, topic: topic.value,
+      limit: museumPageSize, offset: museumPage * museumPageSize
     });
     if (!isCurrentSearchRender('museum', version)) return;
-    if (!rows.length) {
+    const hasNext = rows.length > museumPageSize;
+    const pageRows = rows.slice(0, museumPageSize);
+    if (!pageRows.length) {
       results.innerHTML = museumEmpty('No matching artwork found');
       detail.innerHTML = museumEmpty('Try another title or clear one of the filters.');
+      pager.innerHTML = museumPage > 0 ? '<button type="button" data-museum-page="previous">Previous</button><span>No results on this page</span>' : '';
+      pager.querySelector('[data-museum-page="previous"]')?.addEventListener('click', () => { museumPage = Math.max(0, museumPage - 1); renderMuseum(); });
       setStatus('No Met artworks matched the current filters.');
       return;
     }
@@ -1358,15 +1376,18 @@ async function renderMuseum(selectedIndex = 0) {
         <p class="bible-museum-credit">Metadata and public-domain image: The Metropolitan Museum of Art Open Access.</p>
       </article>`;
     };
-    results.innerHTML = rows.map((record, index) => {
+    results.innerHTML = pageRows.map((record, index) => {
       const displayTitle = museumDisplayTitle(record);
       return `<button type="button" class="bible-person-result" data-met-result="${index}">
         ${displayTitle ? `<strong>${escapeHtml(displayTitle)}</strong>` : ''}
         <span>${escapeHtml(record.object_date || record.culture || 'Met collection')}</span></button>`;
     }).join('');
-    results.querySelectorAll('[data-met-result]').forEach((button) => button.addEventListener('click', () => show(rows[Number(button.dataset.metResult)])));
-    show(rows[Math.min(Math.max(0, selectedIndex), rows.length - 1)]);
-    setStatus(`${rows.length} verified Met images loaded. Refine the filters to explore the collection.`);
+    results.querySelectorAll('[data-met-result]').forEach((button) => button.addEventListener('click', () => show(pageRows[Number(button.dataset.metResult)])));
+    show(pageRows[Math.min(Math.max(0, selectedIndex), pageRows.length - 1)]);
+    pager.innerHTML = `<button type="button" data-museum-page="previous" ${museumPage === 0 ? 'disabled' : ''}>Previous</button><span>Page ${museumPage + 1}</span><button type="button" data-museum-page="next" ${hasNext ? '' : 'disabled'}>Next</button>`;
+    pager.querySelector('[data-museum-page="previous"]')?.addEventListener('click', () => { museumPage = Math.max(0, museumPage - 1); renderMuseum(); });
+    pager.querySelector('[data-museum-page="next"]')?.addEventListener('click', () => { if (hasNext) { museumPage += 1; renderMuseum(); } });
+    setStatus(`${pageRows.length} verified Met images loaded on page ${museumPage + 1}.`);
   } catch (error) {
     if (!isCurrentSearchRender('museum', version)) return;
     results.innerHTML = museumEmpty('Museum catalog is temporarily unavailable');
