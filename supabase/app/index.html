@@ -141,6 +141,7 @@
     <div class="cards-container">
       <!-- 새 학습 카드 -->
       <div class="card card-new">
+        <div id="resumeQuickContainer" class="resume-quick" hidden></div>
         <div class="card-icon">📖</div>
         <div class="card-title card-title-new">NEW LESSON</div>
         <div class="card-sub">Choose a book, then choose a chapter</div>
@@ -154,12 +155,12 @@
         <div class="input-wrapper">
           <input type="number" id="startNumber" min="1" placeholder="1-720">
         </div>
-        <button class="btn-start" id="startQuizBtn">▶ START</button>
+        <button class="btn-start" id="startQuizBtn" hidden>▶ START</button>
         <div class="card-hint">Select one of the 66 books.</div>
       </div>
 
       <!-- 재개 카드 -->
-      <div class="card card-resume" id="resumeCard">
+      <div class="card card-resume" id="resumeCard" hidden>
         <div class="card-icon">⏳</div>
         <div class="card-title card-title-resume">RESUME</div>
         <div class="card-sub card-sub-resume">Continue previous session</div>
@@ -555,7 +556,7 @@
   }
   .cards-container {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 20px;
     max-width: 680px;
     margin: 0 auto
@@ -689,6 +690,11 @@
     width: 100%;
     margin-top: 10px
   }
+  .resume-quick{align-self:stretch;width:100%;margin:0 0 14px;text-align:left}
+  .resume-quick .resume-badge{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:9px 12px;border:1px solid #f5c451;border-radius:10px;background:#fff8df;text-align:left;cursor:pointer}
+  .resume-quick .resume-badge .count{font-size:.9rem}
+  .resume-quick .resume-badge .time{font-size:.72rem}
+  .resume-quick .resume-badge .hint{margin:0 0 0 auto;white-space:nowrap}
   .resume-badge {
     background: #fef9e7;
     border-radius: 12px;
@@ -2071,7 +2077,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.98-nt-catalog1"></script>
 <script type="module">
-import { initialize } from './main.js?v=9.07-direct-bible-books1';
+import { initialize } from './main.js?v=9.08-resume-direct-chapter1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

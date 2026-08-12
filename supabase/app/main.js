@@ -804,7 +804,7 @@ function initDOM() {
     DOM.closeWrongBtn = document.getElementById('closeWrongBtn');
     DOM.retryWrongFromReviewBtn = document.getElementById('retryWrongFromReviewBtn');
     DOM.reviewBanner = document.getElementById('reviewBanner');
-    DOM.savedBadgeContainer = document.getElementById('savedBadgeContainer');
+    DOM.savedBadgeContainer = document.getElementById('resumeQuickContainer');
     DOM.loadNextContainer = document.getElementById('loadNextContainer');
     DOM.mainContainer = document.getElementById('mainContainer');
     DOM.maxNumberDisplay = document.getElementById('maxNumberDisplay');
@@ -5925,10 +5925,11 @@ function initialize() {
         var timeStr = new Date(saved.timestamp).toLocaleString();
         DOM.savedBadgeContainer.innerHTML =
           '<div class="resume-badge" id="resumeBadge">' +
-          '<div class="count">' + answered + ' / ' + saved.currentQuestions.length + ' answered</div>' +
-          '<div class="time">' + timeStr + '</div>' +
-          '<div class="hint">Click to resume</div>' +
+          '<div><div class="count">Resume previous lesson</div>' +
+          '<div class="time">' + answered + ' / ' + saved.currentQuestions.length + ' answered · ' + timeStr + '</div></div>' +
+          '<div class="hint">Continue ›</div>' +
           '</div>';
+        DOM.savedBadgeContainer.hidden = false;
         var resumeBadge = document.getElementById('resumeBadge');
         if (resumeBadge) {
           resumeBadge.addEventListener('click', function(e) {
@@ -5937,20 +5938,9 @@ function initialize() {
             if (savedData) showProgressModal(savedData);
           });
         }
-        var resumeCard = document.getElementById('resumeCard');
-        if (resumeCard) {
-          var newCard = resumeCard.cloneNode(true);
-          resumeCard.parentNode.replaceChild(newCard, resumeCard);
-          newCard.addEventListener('click', function() {
-            var savedData = loadProgress();
-            if (savedData) showProgressModal(savedData);
-          });
-        }
       } else {
-        DOM.savedBadgeContainer.innerHTML = '<div class="no-session">' +
-          'No saved session' +
-          '<small>Start a new lesson</small>' +
-          '</div>';
+        DOM.savedBadgeContainer.innerHTML = '';
+        DOM.savedBadgeContainer.hidden = true;
       }
       
       updateSplash(100, 'Ready!');
@@ -7393,7 +7383,7 @@ function renderBibleChapterPicker_(bookName) {
     button.className = 'bible-chapter-button';
     button.textContent = String(chapter.CHAPTER);
     button.setAttribute('aria-label', bookName.replace(/-/g, ' ') + ' Chapter ' + chapter.CHAPTER);
-    button.addEventListener('click', function() {
+    button.addEventListener('click', async function() {
       chapterHost.querySelectorAll('.bible-chapter-button').forEach(function(item) {
         item.classList.toggle('is-selected', item === button);
       });
@@ -7404,10 +7394,15 @@ function renderBibleChapterPicker_(bookName) {
         selector.value = option.value;
         selector.dispatchEvent(new Event('change', { bubbles: true }));
       }
+      var start = Math.max(1, parseInt(chapter.START_ROW, 10) || parseInt(chapter.START, 10) || 1);
       var hint = document.querySelector('.card-new .card-hint');
-      if (hint) hint.textContent = bookName.replace(/-/g, ' ') + ' Chapter ' + chapter.CHAPTER + ' selected.';
-      var startButton = document.getElementById('startQuizBtn');
-      if (startButton) startButton.disabled = false;
+      if (hint) hint.textContent = 'Loading ' + bookName.replace(/-/g, ' ') + ' Chapter ' + chapter.CHAPTER + '...';
+      button.disabled = true;
+      var loaded = await startQuizWithNumber(start, { exactStart: true });
+      if (!loaded) {
+        button.disabled = false;
+        if (hint) hint.textContent = 'Could not open this chapter. Please try again.';
+      }
     });
     chapterGrid.appendChild(button);
   });
