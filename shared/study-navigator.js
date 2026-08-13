@@ -15,15 +15,26 @@
   function saved(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
   function remember(node){localStorage.setItem(KEY,JSON.stringify({id:node.id,name:node.name,url:node.url}));setLabel(node.name)}
   function setLabel(value){if(label)label.textContent=value||'Select Study'}
+  function restoreButton(title){
+    if(!button)return;
+    if(!button.querySelector('.study-nav-label')||!button.querySelector('.study-nav-arrow')){
+      button.innerHTML='<span class="study-nav-label"></span><span class="study-nav-arrow">▼</span>';
+    }
+    label=button.querySelector('.study-nav-label');
+    if(button.parentNode!==title){title.textContent='';title.appendChild(button)}
+    setLabel((saved()||{}).name||'Select Study');
+  }
   function render(){var node=stack[stack.length-1];path.textContent=stack.map(function(x){return x.name}).join(' › ');list.innerHTML='';node.children.forEach(function(child){var item=document.createElement('button');item.type='button';item.className='study-nav-item';var last=saved();if(last&&last.id===child.id)item.classList.add('study-nav-item-current');item.innerHTML='<span></span><span class="study-nav-kind">'+(child.children?'›':(last&&last.id===child.id?'✓':''))+'</span>';item.firstChild.textContent=child.name;item.onclick=function(){if(child.children){stack.push(child);render()}else{remember(child);close();navigate(child)}};list.appendChild(item)})}
   function open(){stack=[tree];render();overlay.hidden=false;button.setAttribute('aria-expanded','true')}
   function close(){overlay.hidden=true;button.setAttribute('aria-expanded','false')}
   function navigate(node){var here=location.pathname;var target=new URL(node.url,location.origin);if(here===target.pathname){history.replaceState(null,'',target.pathname+target.search);applyRequested()}else location.href=target.href}
   function applyRequested(){var request=new URLSearchParams(location.search).get('study')||'';if(!request)return;if(request.indexOf('book:')===0){var book=request.slice(5),node=bookNode(book);remember(node);retry(function(){var target=document.querySelector('#bibleBookPicker [data-book="'+book+'"]');if(!target)return false;target.click();return true})}else if(request.indexOf('product:')===0){var code=request.slice(8);if(!PRODUCTS[code])return;var node2=productNode(code);remember(node2);retry(function(){var target=document.querySelector('[data-product="'+code+'"]');if(!target)return false;target.click();return true})}}
   function retry(action){var count=0,timer=setInterval(function(){count++;if(action()||count>80)clearInterval(timer)},100)}
-  function mount(){var title=document.querySelector('.sat-title');if(!title)return;title.textContent='';button=document.createElement('button');button.type='button';button.className='study-nav-button';button.setAttribute('aria-haspopup','dialog');button.setAttribute('aria-expanded','false');button.innerHTML='<span class="study-nav-label"></span><span class="study-nav-arrow">▼</span>';label=button.firstChild;title.appendChild(button);setLabel((saved()||{}).name||'Select Study');button.onclick=open;
+  function mount(){var title=document.querySelector('.sat-title');if(!title)return;title.textContent='';button=document.createElement('button');button.type='button';button.className='study-nav-button';button.setAttribute('aria-haspopup','dialog');button.setAttribute('aria-expanded','false');button.onclick=open;restoreButton(title);
     overlay=document.createElement('div');overlay.className='study-nav-backdrop';overlay.hidden=true;overlay.innerHTML='<section class="study-nav-panel" role="dialog" aria-modal="true" aria-label="Select study"><header class="study-nav-head"><button type="button" data-study-back aria-label="Back">‹</button><div class="study-nav-path"></div><button type="button" data-study-close aria-label="Close">×</button></header><div class="study-nav-list"></div></section>';document.body.appendChild(overlay);list=overlay.querySelector('.study-nav-list');path=overlay.querySelector('.study-nav-path');overlay.querySelector('[data-study-close]').onclick=close;overlay.querySelector('[data-study-back]').onclick=function(){if(stack.length>1){stack.pop();render()}else close()};overlay.onclick=function(e){if(e.target===overlay)close()};document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!overlay.hidden)close()});applyRequested();
-    new MutationObserver(function(){if(!title.contains(button)){title.textContent='';title.appendChild(button);setLabel((saved()||{}).name||'Select Study')}}).observe(title,{childList:true,subtree:true});
+    new MutationObserver(function(){
+      if(button.parentNode!==title||!button.querySelector('.study-nav-label')||!button.querySelector('.study-nav-arrow'))restoreButton(title);
+    }).observe(title,{childList:true,subtree:true});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
 })();
