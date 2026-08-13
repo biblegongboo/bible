@@ -21,7 +21,7 @@ Deno.serve(async req=>{
   }
   if(body.action==="delete_members"){
     const ids=Array.isArray(body.user_ids)?[...new Set(body.user_ids.map(String).filter(x=>/^[0-9a-f-]{36}$/i.test(x)))]:[],results=[];
-    for(const userId of ids){const{data:profile}=await db.from("member_profiles").select("account_type").eq("id",userId).maybeSingle();if(profile?.account_type==="admin"){results.push({user_id:userId,ok:false,error:"Administrator accounts cannot be deleted from Google Sheets."});continue}const{error}=await db.auth.admin.deleteUser(userId);results.push(error?{user_id:userId,ok:false,error:error.message}:{user_id:userId,ok:true})}
+    for(const userId of ids){const{error}=await db.auth.admin.deleteUser(userId);results.push(error?{user_id:userId,ok:false,error:error.message}:{user_id:userId,ok:true})}
     return out({results});
   }
   if(body.action==="push"){
