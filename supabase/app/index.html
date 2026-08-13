@@ -276,8 +276,9 @@
         <button type="submit">Search</button>
       </div>
     </form>
+    <nav id="biblePeopleAlphabet" class="bible-sermon-alphabet" aria-label="Filter Bible people alphabetically"></nav>
     <div id="biblePeopleStatus" class="bible-people-status" aria-live="polite">Enter a Bible person’s name.</div>
-    <div class="bible-people-layout">
+    <div class="bible-people-layout bible-explore-layout is-search-browser">
       <aside id="biblePeopleResults" class="bible-people-results" aria-label="Search results"></aside>
       <main id="biblePeopleDetail" class="bible-people-detail">
         <div class="bible-people-empty">
@@ -313,21 +314,24 @@
     <div id="bibleExploreStatus" class="bible-people-status" aria-live="polite">Loading Bible context data...</div>
     <section class="bible-explore-view is-active" data-bible-explore-view="places">
       <div class="bible-explore-toolbar"><input id="biblePlaceSearch" type="search" autocomplete="off" placeholder="Search Jerusalem, Bethlehem, Jordan..."></div>
+      <nav id="biblePlaceAlphabet" class="bible-sermon-alphabet" aria-label="Filter places alphabetically"></nav>
       <div class="bible-people-layout bible-explore-layout">
         <aside id="biblePlaceResults" class="bible-people-results" aria-label="Place results"></aside>
         <main id="biblePlaceDetail" class="bible-people-detail"></main>
       </div>
     </section>
     <section class="bible-explore-view" data-bible-explore-view="journeys">
-      <div class="bible-explore-toolbar"><select id="bibleJourneySelector" aria-label="Select a journey"></select></div>
-      <div id="bibleJourneyOutput" class="bible-explore-output"></div>
+      <div class="bible-explore-toolbar"><input id="bibleJourneySearch" type="search" autocomplete="off" placeholder="Search a journey..."><select id="bibleJourneySelector" aria-label="Select a journey" hidden></select></div>
+      <nav id="bibleJourneyAlphabet" class="bible-sermon-alphabet" aria-label="Filter journeys alphabetically"></nav>
+      <div class="bible-people-layout bible-explore-layout is-search-browser"><aside id="bibleJourneyResults" class="bible-people-results" aria-label="Journey results"></aside><main id="bibleJourneyOutput" class="bible-people-detail"></main></div>
     </section>
     <section class="bible-explore-view" data-bible-explore-view="timeline">
       <div class="bible-explore-toolbar">
-        <select id="bibleTimelineSelector" aria-label="Select a Bible book"></select>
+        <input id="bibleTimelineSearch" type="search" autocomplete="off" placeholder="Search a Bible book or timeline..."><select id="bibleTimelineSelector" aria-label="Select a Bible book" hidden></select>
         <select id="bibleTimelineEventSelector" aria-label="Select an event"></select>
       </div>
-      <div id="bibleTimelineOutput" class="bible-explore-output"></div>
+      <nav id="bibleTimelineAlphabet" class="bible-sermon-alphabet" aria-label="Filter timelines alphabetically"></nav>
+      <div class="bible-people-layout bible-explore-layout is-search-browser"><aside id="bibleTimelineResults" class="bible-people-results" aria-label="Timeline results"></aside><main id="bibleTimelineOutput" class="bible-people-detail"></main></div>
     </section>
     <section class="bible-explore-view" data-bible-explore-view="patristic">
       <div class="bible-explore-toolbar"><input id="biblePatristicSearch" type="search" autocomplete="off" placeholder="Search work, author, or year..."></div>
@@ -347,6 +351,7 @@
       </nav>
       <section class="bible-knowledge-view is-active" data-knowledge-view="entities">
         <div class="bible-explore-toolbar"><input id="bibleKnowledgeEntitySearch" type="search" autocomplete="off" placeholder="Search key terms, plants, animals, objects..."></div>
+        <nav id="bibleEntitiesAlphabet" class="bible-sermon-alphabet" aria-label="Filter verse topics alphabetically"></nav>
         <div class="bible-people-layout bible-explore-layout">
           <aside id="bibleKnowledgeEntityResults" class="bible-people-results" aria-label="Verse topic results"></aside>
           <main id="bibleKnowledgeEntityDetail" class="bible-people-detail"></main>
@@ -2107,7 +2112,7 @@ html:not(.admin-user) .admin-preview-panel {
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.98-nt-catalog1"></script>
 <script type="module">
-import { initialize } from './main.js?v=9.46-library-search-standard2';
+import { initialize } from './main.js?v=9.47-all-search-standard1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

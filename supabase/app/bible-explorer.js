@@ -29,8 +29,11 @@ let sermonLetter = '';
 let sermonSelectedPosition = -1;
 const SERMON_BATCH_SIZE = 80;
 let patristicLetter = '';
-const knowledgeLetters = { words: '', dictionary: '', topics: '', books: '' };
+const knowledgeLetters = { entities: '', words: '', dictionary: '', topics: '', books: '' };
 let libraryLetter = '';
+let placeLetter = '';
+let journeyLetter = '';
+let timelineLetter = '';
 const searchRenderVersions = {};
 
 function beginSearchRender(name) {
@@ -654,7 +657,7 @@ function mountPagedKnowledgeResults(results, records, renderButton, onSelect, op
 
 function applyAlphabet(section, records, labelFor) {
   const hostId = {
-    words: 'bibleWordAlphabet', dictionary: 'bibleDictionaryAlphabet',
+    entities: 'bibleEntitiesAlphabet', words: 'bibleWordAlphabet', dictionary: 'bibleDictionaryAlphabet',
     topics: 'bibleTopicAlphabet', books: 'bibleBookAlphabet'
   }[section];
   const host = document.getElementById(hostId);
@@ -666,6 +669,7 @@ function applyAlphabet(section, records, labelFor) {
     }).join('');
     host.querySelectorAll('[data-knowledge-letter]').forEach((button) => button.onclick = () => {
       knowledgeLetters[section] = button.dataset.knowledgeLetter;
+      if (section === 'entities') renderSemanticKnowledge(document.getElementById('bibleKnowledgeEntitySearch').value);
       if (section === 'words') renderWordSearch(document.getElementById('bibleWordSearch').value);
       if (section === 'dictionary') renderDictionary(document.getElementById('bibleDictionarySearch').value);
       if (section === 'topics') renderTopics(document.getElementById('bibleTopicSearch').value);
@@ -690,9 +694,9 @@ async function renderSemanticKnowledge(query = '', sourceCode = '') {
     const availableRecords = (await loadSemanticRecords()).filter((record) =>
       !ids || ids.has(record.entity_id));
     if (!isCurrentSearchRender('entities', renderVersion)) return;
-    const records = prefixSearch(availableRecords, needle,
+    const records = applyAlphabet('entities', prefixSearch(availableRecords, needle,
       [(record) => record.name_en],
-      [(record) => record.aliases_en || []]);
+      [(record) => record.aliases_en || []]), (record) => record.name_en);
     const visibleCount = mountPagedKnowledgeResults(results, records, (record, index) =>
       `<button type="button" class="bible-person-result" data-knowledge-index="${index}">
         <strong>${escapeHtml(record.name_en)}</strong>
@@ -904,19 +908,51 @@ function renderPlaceResults(query = '') {
   const needle = normalizedSearch(query);
   const places = prefixSearch(data.places, needle,
     [(place) => place.name, (place) => place.name_ko],
-    [(place) => place.aliases || []]).slice(0, 60);
-  results.innerHTML = places.map((place) =>
-    `<button type="button" class="bible-person-result" data-bible-place-id="${escapeHtml(place.id)}">
+    [(place) => place.aliases || []]).filter((place) => !placeLetter || sermonAlphabetKey(place.name).startsWith(placeLetter));
+  const alphabet = document.getElementById('biblePlaceAlphabet');
+  if (alphabet) {
+    alphabet.innerHTML = ['All', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map((label) => { const value = label === 'All' ? '' : label; return `<button type="button" data-place-letter="${value}" class="${placeLetter === value ? 'is-active' : ''}">${label}</button>`; }).join('');
+    alphabet.querySelectorAll('[data-place-letter]').forEach((button) => button.onclick = () => { placeLetter = button.dataset.placeLetter; renderPlaceResults(document.getElementById('biblePlaceSearch').value); });
+  }
+  results.parentElement?.classList.add('is-search-browser');
+  const visibleCount = mountPagedKnowledgeResults(results, places, (place) =>
+    `<button type="button" class="bible-person-result" data-knowledge-index="${places.indexOf(place)}">
       <strong>${escapeHtml(place.name)}</strong><span>${escapeHtml(place.type || 'Bible place')}</span>
-    </button>`
-  ).join('') || '<div class="bible-people-empty"><strong>No places found</strong></div>';
-  results.querySelectorAll('[data-bible-place-id]').forEach((button) => {
-    button.addEventListener('click', () => {
-      renderPlaceDetail(data.places.find((place) => place.id === button.dataset.biblePlaceId));
-    });
-  });
-  setStatus(`${places.length} place${places.length === 1 ? '' : 's'} shown.`);
+    </button>`, renderPlaceDetail, { pageSize: 80, emptyTitle: 'No places found' });
+  setStatus(`${visibleCount} of ${places.length} place${places.length === 1 ? '' : 's'} shown.`);
   if (places.length && !document.querySelector('.bible-place-card')) renderPlaceDetail(places[0]);
+}
+
+function renderJourneyDirectory(query = '') {
+  const results = document.getElementById('bibleJourneyResults');
+  const alphabet = document.getElementById('bibleJourneyAlphabet');
+  if (!results || !alphabet) return;
+  const matches = prefixSearch(data.journeys.map((journey, index) => ({ journey, index })), query,
+    [(item) => item.journey.title_en || item.journey.journey_id])
+    .filter((item) => !journeyLetter || sermonAlphabetKey(item.journey.title_en || item.journey.journey_id).startsWith(journeyLetter));
+  alphabet.innerHTML = ['All', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map((label) => { const value = label === 'All' ? '' : label; return `<button type="button" data-journey-letter="${value}" class="${journeyLetter === value ? 'is-active' : ''}">${label}</button>`; }).join('');
+  alphabet.querySelectorAll('[data-journey-letter]').forEach((button) => button.onclick = () => { journeyLetter = button.dataset.journeyLetter; renderJourneyDirectory(document.getElementById('bibleJourneySearch').value); });
+  mountPagedKnowledgeResults(results, matches, (item, position) => `<button type="button" class="bible-person-result" data-knowledge-index="${position}"><strong>${escapeHtml(item.journey.title_en || item.journey.journey_id)}</strong><span>${escapeHtml(item.journey.status || 'Bible journey')}</span></button>`,
+    (item) => { document.getElementById('bibleJourneySelector').value = String(item.index); renderJourney(item.index); }, { pageSize: 80, emptyTitle: 'No journeys found' });
+  if (matches.length) { document.getElementById('bibleJourneySelector').value = String(matches[0].index); renderJourney(matches[0].index); }
+}
+
+function timelineTitle(timeline) {
+  return `${String(timeline.book_code || '').replace(/^(OT|NT)-/, '').replaceAll('-', ' ')} (${timeline.event_count} events)`;
+}
+
+function renderTimelineDirectory(query = '') {
+  const results = document.getElementById('bibleTimelineResults');
+  const alphabet = document.getElementById('bibleTimelineAlphabet');
+  if (!results || !alphabet) return;
+  const matches = prefixSearch(data.timelines.map((timeline, index) => ({ timeline, index })), query,
+    [(item) => timelineTitle(item.timeline), (item) => item.timeline.graphic?.title])
+    .filter((item) => !timelineLetter || sermonAlphabetKey(timelineTitle(item.timeline)).startsWith(timelineLetter));
+  alphabet.innerHTML = ['All', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map((label) => { const value = label === 'All' ? '' : label; return `<button type="button" data-timeline-letter="${value}" class="${timelineLetter === value ? 'is-active' : ''}">${label}</button>`; }).join('');
+  alphabet.querySelectorAll('[data-timeline-letter]').forEach((button) => button.onclick = () => { timelineLetter = button.dataset.timelineLetter; renderTimelineDirectory(document.getElementById('bibleTimelineSearch').value); });
+  mountPagedKnowledgeResults(results, matches, (item, position) => `<button type="button" class="bible-person-result" data-knowledge-index="${position}"><strong>${escapeHtml(timelineTitle(item.timeline))}</strong><span>${escapeHtml(item.timeline.graphic?.title || 'Bible timeline')}</span></button>`,
+    (item) => { document.getElementById('bibleTimelineSelector').value = String(item.index); renderTimeline(item.index); }, { pageSize: 80, emptyTitle: 'No timelines found' });
+  if (matches.length) { document.getElementById('bibleTimelineSelector').value = String(matches[0].index); renderTimeline(matches[0].index); }
 }
 
 function renderJourney(index = 0) {
@@ -1675,8 +1711,8 @@ function populate() {
   }
   const activeTab = document.querySelector('[data-bible-explore-tab].is-active')?.dataset.bibleExploreTab || 'places';
   if (activeTab === 'places') renderPlaceResults();
-  if (activeTab === 'journeys') requestAnimationFrame(() => renderJourney(journeySelector.value));
-  if (activeTab === 'timeline') requestAnimationFrame(() => renderTimeline(timelineSelector.value));
+  if (activeTab === 'journeys') requestAnimationFrame(() => renderJourneyDirectory(document.getElementById('bibleJourneySearch')?.value || ''));
+  if (activeTab === 'timeline') requestAnimationFrame(() => renderTimelineDirectory(document.getElementById('bibleTimelineSearch')?.value || ''));
   if (activeTab === 'patristic') requestAnimationFrame(() => renderPatristic());
   if (activeTab === 'knowledge') requestAnimationFrame(() => renderKnowledge());
   if (activeTab === 'library') requestAnimationFrame(() => renderLibrary());
@@ -1737,8 +1773,8 @@ function init() {
       if (selectedTab === 'museum') document.getElementById('bibleMuseumDetail').innerHTML = '<div class="bible-people-empty"><strong>Loading Met Museum catalog...</strong></div>';
       loadData().then(() => requestAnimationFrame(() => {
         if (selectedTab === 'places') renderPlaceResults(document.getElementById('biblePlaceSearch').value);
-        if (selectedTab === 'journeys') renderJourney(document.getElementById('bibleJourneySelector').value);
-        if (selectedTab === 'timeline') renderTimeline(document.getElementById('bibleTimelineSelector').value);
+        if (selectedTab === 'journeys') renderJourneyDirectory(document.getElementById('bibleJourneySearch').value);
+        if (selectedTab === 'timeline') renderTimelineDirectory(document.getElementById('bibleTimelineSearch').value);
         if (selectedTab === 'patristic') renderPatristic(document.getElementById('biblePatristicSearch').value);
         if (selectedTab === 'knowledge') renderKnowledge();
         if (selectedTab === 'library') renderLibrary();
@@ -1747,6 +1783,8 @@ function init() {
     });
   });
   document.getElementById('biblePlaceSearch').addEventListener('input', (event) => renderPlaceResults(event.target.value));
+  document.getElementById('bibleJourneySearch')?.addEventListener('input', (event) => renderJourneyDirectory(event.target.value));
+  document.getElementById('bibleTimelineSearch')?.addEventListener('input', (event) => renderTimelineDirectory(event.target.value));
   document.getElementById('bibleJourneySelector').addEventListener('change', (event) => renderJourney(event.target.value));
   document.getElementById('bibleTimelineSelector').addEventListener('change', (event) => renderTimeline(event.target.value));
   document.getElementById('bibleTimelineEventSelector').addEventListener('change', (event) =>

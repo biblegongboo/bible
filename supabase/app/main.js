@@ -10,7 +10,7 @@
 // activates for an explicit engine:"super" JSON payload.
 import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPayload } from './graphics/graphic-router.js?v=8.38-family-roles1';
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=9.21-pointer-click-selection1';
-import './bible-explorer.js?v=9.31-library-search-standard2';
+import './bible-explorer.js?v=9.32-all-search-standard1';
 
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
@@ -6705,6 +6705,7 @@ var biblePeopleSelectedId = '';
 var biblePeopleSearchTimer = null;
 var biblePeopleSearchRequestId = 0;
 var biblePeopleDirectoryLoaded = false;
+var biblePeopleLetter = 'A';
 var biblePeopleNameIndex = {};
 var biblePeopleNameIndexPromise = null;
 var bibleContextLinks = null;
@@ -6817,7 +6818,9 @@ function biblePeopleRenderResults_(people) {
     results.innerHTML = '<div class="bible-people-empty"><strong>No results</strong><span>Try another English name or alias.</span></div>';
     return;
   }
-  results.innerHTML = people.map(function(person) {
+  var visibleCount = Math.min(80, people.length);
+  function paintPeople() {
+  results.innerHTML = people.slice(0, visibleCount).map(function(person) {
     var aliases = person.MATCH_KIND === 'alias' && Array.isArray(person.ALIASES) && person.ALIASES.length
       ? 'Alias match: ' + person.ALIASES.slice(0, 3).join(', ')
       : (Array.isArray(person.ALIASES) && person.ALIASES.length
@@ -6833,6 +6836,46 @@ function biblePeopleRenderResults_(people) {
   results.querySelectorAll('[data-person-id]').forEach(function(button) {
     button.addEventListener('click', function() {
       biblePeopleLoadDetail_(button.getAttribute('data-person-id'));
+    });
+  });
+  var sentinel = results.querySelector('[data-people-load-sentinel]');
+  if (sentinel && visibleCount < people.length && typeof IntersectionObserver === 'function') {
+    var observer = new IntersectionObserver(function(entries) {
+      if (entries.some(function(entry) { return entry.isIntersecting; })) {
+        observer.disconnect();
+        visibleCount = Math.min(visibleCount + 80, people.length);
+        paintPeople();
+      }
+    }, { root: results, rootMargin: '0px 0px 420px 0px' });
+    observer.observe(sentinel);
+  }
+  }
+  paintPeople();
+}
+
+function biblePeopleRenderAlphabet_() {
+  var alphabet = document.getElementById('biblePeopleAlphabet');
+  if (!alphabet) return;
+  alphabet.innerHTML = ['All'].concat('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')).map(function(label) {
+    var value = label === 'All' ? '' : label;
+    return '<button type="button" data-people-letter="' + value + '" class="' + (biblePeopleLetter === value ? 'is-active' : '') + '">' + label + '</button>';
+  }).join('') + '<div class="bible-sermon-scroll-note" data-people-load-sentinel>' +
+    (visibleCount < people.length ? 'Loading ahead · ' + visibleCount + ' of ' + people.length : 'All ' + people.length + ' results shown') + '</div>';
+  alphabet.querySelectorAll('[data-people-letter]').forEach(function(button) {
+    button.addEventListener('click', function() {
+      biblePeopleLetter = button.getAttribute('data-people-letter') || '';
+      var input = document.getElementById('biblePeopleSearchInput');
+      if (input) input.value = biblePeopleLetter;
+      biblePeopleRenderAlphabet_();
+      if (biblePeopleLetter) biblePeopleRunSearch_(biblePeopleLetter, true);
+      else biblePeopleLoadNameIndex_().then(function(index) {
+        var people = Object.keys(index).map(function(personId) {
+          var item = index[personId] || {};
+          return { PERSON_ID: personId, NAME_EN: item.name, NAME_KO: item.name_ko, GENDER: item.gender, ALIASES: [] };
+        }).sort(function(a, b) { return String(a.NAME_EN).localeCompare(String(b.NAME_EN)); });
+        biblePeopleRenderResults_(people);
+        biblePeopleSetStatus_(people.length + ' people available. Scroll the left list to continue.');
+      });
     });
   });
 }
@@ -7215,7 +7258,7 @@ async function biblePeopleRunSearch_(query, isDirectory) {
   var requestId = ++biblePeopleSearchRequestId;
   biblePeopleSetStatus_('Searching...');
   try {
-    var people = await biblePeopleApi_('people_search', { q: query, limit: 30 });
+    var people = await biblePeopleApi_('people_search', { q: query, limit: 100 });
     // The first directory request can finish after a later keystroke.  Do
     // not let that older response overwrite the results for the new letter.
     if (requestId !== biblePeopleSearchRequestId) return;
@@ -7257,6 +7300,7 @@ function initBiblePeopleExplorer() {
   var form = document.getElementById('biblePeopleSearchForm');
   if (!toggle || !panel || !close || !form) return;
   biblePeopleExplorerInitialized = true;
+  biblePeopleRenderAlphabet_();
   toggle.addEventListener('click', biblePeopleOpen_);
   close.addEventListener('click', biblePeopleClose_);
   if (atlas) {
