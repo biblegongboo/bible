@@ -1,53 +1,33 @@
-const C = window.LICENSE_CONFIG;
-const SET_SIZES = { realestate: 150, insurance: 150, mortgage: 120, notary: 45 };
-let product = "", questions = [], index = 0, mode = "Std";
-const $ = (selector) => document.querySelector(selector);
-const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-
-function session() { try { return JSON.parse(localStorage.getItem(C.authStorageKey) || "null"); } catch { return null; } }
-function progressKey() { return `${C.progressPrefix}${product}.progress`; }
-function saved() { try { return JSON.parse(localStorage.getItem(progressKey()) || "null"); } catch { return null; } }
-function save() { if (product) localStorage.setItem(progressKey(), JSON.stringify({ index, mode, updatedAt: new Date().toISOString() })); }
-async function api(payload) {
-  const currentSession = session();
-  const response = await fetch(`${C.url}/functions/v1/${C.functionName}`, { method: "POST", headers: { apikey: C.publishableKey, "Content-Type": "application/json", ...(currentSession?.access_token ? { Authorization: `Bearer ${currentSession.access_token}` } : {}) }, body: JSON.stringify(payload) });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "License content unavailable");
-  return data;
-}
-async function loadQuestions(code) {
-  const first = await api({ action: "questions", product: code, languages: ["en", "ko"], limit: 200, offset: 0 });
-  const loaded = [...(first.data || [])];
-  if (first.access === "full") while (loaded.length && loaded.length % 200 === 0) {
-    const page = await api({ action: "questions", product: code, languages: ["en", "ko"], limit: 200, offset: loaded.length });
-    loaded.push(...(page.data || []));
-    if ((page.data || []).length < 200) break;
-  }
-  return { access: first.access, data: loaded };
-}
-function renderSets() {
-  const setSize = SET_SIZES[product], count = questions.length;
-  $("#setSelect").innerHTML = Array.from({ length: Math.ceil(count / setSize) }, (_, i) => `<option value="${i}">Set ${i + 1} (Questions ${i * setSize + 1}-${Math.min(count, (i + 1) * setSize)})</option>`).join("");
-  $("#setSelect").value = String(Math.floor(index / setSize));
-  $("#questionJump").max = count; $("#questionJump").placeholder = `1-${count}`;
-  const progress = saved(); $("#resume").disabled = !progress; $("#resume").textContent = progress ? `RESUME · Question ${Number(progress.index || 0) + 1}` : "No saved session";
-}
-function render() {
-  const question = questions[index]; if (!question) return;
-  const translations = Object.fromEntries((question.license_question_translations || []).map((item) => [item.language_code, item]));
-  const en = translations.en || {}, ko = translations.ko || {};
-  $("#stage").innerHTML = `<article><small>${esc(product)} · ${index + 1}/${questions.length}</small><h2>${esc(en.question_text)}</h2><p>${esc(ko.question_text)}</p><div class="choices">${[1, 2, 3, 4].map((n) => `<button data-a="${n}"><b>${n}</b> ${esc(en[`option_${n}`])}<span>${esc(ko[`option_${n}`])}</span></button>`).join("")}</div><div id="feedback"></div></article>`;
-  document.querySelectorAll("[data-a]").forEach((button) => { button.onclick = () => { const correct = Number(button.dataset.a) === question.answer; button.classList.add(correct ? "ok" : "bad"); $("#feedback").innerHTML = mode === "Exm" ? "Answer recorded." : `<strong>${correct ? "Correct" : "Try again"}</strong><p>${esc(en.explanation || "")}</p><p>${esc(ko.explanation || "")}</p>`; save(); }; });
-}
-async function open(code) {
-  product = code; $("#home").hidden = true; $("#quiz").hidden = false; $("#status").textContent = "Loading…";
-  try { const result = await loadQuestions(code); questions = result.data; index = Math.min(Number(saved()?.index) || 0, Math.max(0, questions.length - 1)); $("#status").textContent = result.access === "full" ? "Full course" : "Free sample · Questions 1-20"; renderSets(); render(); }
-  catch (error) { $("#status").textContent = error.message; }
-}
-document.querySelectorAll("[data-product]").forEach((button) => { button.onclick = () => open(button.dataset.product); });
-document.querySelectorAll("[data-mode]").forEach((button) => { button.onclick = () => { mode = button.dataset.mode; document.querySelectorAll("[data-mode]").forEach((item) => item.classList.toggle("on", item === button)); save(); }; });
-$("#startSet").onclick = () => { const direct = Number($("#questionJump").value); index = direct ? Math.min(questions.length - 1, Math.max(0, direct - 1)) : Number($("#setSelect").value) * SET_SIZES[product]; save(); render(); };
-$("#resume").onclick = () => { const progress = saved(); if (progress) { index = Math.min(Number(progress.index) || 0, questions.length - 1); render(); } };
-$("#prev").onclick = () => { index = Math.max(0, index - 1); save(); render(); };
-$("#next").onclick = () => { index = Math.min(questions.length - 1, index + 1); save(); render(); };
-$("#back").onclick = () => location.reload();
+const C=window.LICENSE_CONFIG,SET_SIZES={realestate:150,insurance:150,mortgage:120,notary:45},TITLES={realestate:'Real Estate',insurance:'Insurance',mortgage:'Mortgage NMLS',notary:'Notary'};
+let product='',questions=[],index=0,mode='Std',autoRead=false,speechRun=0,timerConfigured=0,timerRemaining=0,timerEnd=0,timerId=null;
+const $=s=>document.querySelector(s),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function session(){try{return JSON.parse(localStorage.getItem(C.authStorageKey)||'null')}catch{return null}}
+function pkey(){return`${C.progressPrefix}${product}.progress`}function saved(){try{return JSON.parse(localStorage.getItem(pkey())||'null')}catch{return null}}
+function save(){if(product)localStorage.setItem(pkey(),JSON.stringify({index,mode,primary:$('#primaryLanguage').value,secondary:$('#secondaryLanguage').value,updatedAt:new Date().toISOString()}))}
+async function api(payload){const s=session(),r=await fetch(`${C.url}/functions/v1/${C.functionName}`,{method:'POST',headers:{apikey:C.publishableKey,'Content-Type':'application/json',...(s?.access_token?{Authorization:`Bearer ${s.access_token}`}:{})},body:JSON.stringify(payload)}),d=await r.json();if(!r.ok)throw Error(d.error||'License content unavailable');return d}
+async function loadQuestions(code){const first=await api({action:'questions',product:code,languages:['en','ko'],limit:200,offset:0}),loaded=[...(first.data||[])];if(first.access==='full')while(loaded.length&&loaded.length%200===0){const page=await api({action:'questions',product:code,languages:['en','ko'],limit:200,offset:loaded.length});loaded.push(...(page.data||[]));if((page.data||[]).length<200)break}return{access:first.access,data:loaded}}
+function translations(q){return Object.fromEntries((q?.license_question_translations||[]).map(x=>[x.language_code,x]))}
+function selectedLines(t,field){const codes=[$('#primaryLanguage').value,$('#secondaryLanguage').value],seen=new Set;return codes.filter(x=>x!=='NONE'&&!seen.has(x)&&seen.add(x)).map(code=>({code,text:(code==='KOR'?t.ko:t.en)?.[field]||''})).filter(x=>x.text)}
+function renderSets(){const z=SET_SIZES[product],n=questions.length;$('#setSelect').innerHTML=Array.from({length:Math.ceil(n/z)},(_,i)=>`<option value="${i}">Set ${i+1} (Questions ${i*z+1}-${Math.min(n,(i+1)*z)})</option>`).join('');$('#setSelect').value=String(Math.floor(index/z));$('#questionJump').max=n;$('#questionJump').placeholder=`1-${n}`;const p=saved();$('#resume').disabled=!p;$('#resume').textContent=p?`RESUME · Question ${Number(p.index||0)+1}`:'No saved session'}
+function lineHtml(lines,secondaryClass=''){return lines.map((x,i)=>`<div class="${secondaryClass} language-${x.code.toLowerCase()}"${i?' style="margin-top:7px"':''}>${esc(x.text)}</div>`).join('')}
+function render(){stopSpeech();const q=questions[index];if(!q)return;const t=translations(q),qLines=selectedLines(t,'question_text');$('#stage').innerHTML=`<article class="question-card"><small>${esc(TITLES[product])} · ${index+1}/${questions.length}</small><div class="question-line">${lineHtml(qLines)}</div><div class="choices">${[1,2,3,4].map(n=>{const lines=selectedLines(t,`option_${n}`);return`<button data-a="${n}"><b>${n}</b>${lineHtml(lines,'choice-line')}</button>`}).join('')}</div><div id="feedback"></div></article>`;document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>answer(Number(b.dataset.a),b));if(mode==='Lrn'){document.querySelector(`[data-a="${q.answer}"]`)?.classList.add('ok');showExplanation(true)}save()}
+function showExplanation(correct){const t=translations(questions[index]),lines=selectedLines(t,'explanation');$('#feedback').innerHTML=`<div style="margin-top:16px;padding:14px;background:#f7f8fa;border-radius:12px"><strong>${correct?'Correct answer':'Review'}</strong>${lineHtml(lines,'choice-line')}</div>`}
+function answer(value,button){const q=questions[index],correct=value===Number(q.answer);if(mode==='Exm'){button.classList.add('ok');save();return}button.classList.add(correct?'ok':'bad');document.querySelector(`[data-a="${q.answer}"]`)?.classList.add('ok');showExplanation(correct);save()}
+async function open(code){product=code;$('#home').hidden=true;$('#quiz').hidden=false;$('#courseTitle').textContent=TITLES[code];$('#status').textContent='Loading…';try{const result=await loadQuestions(code);questions=result.data;const p=saved();index=Math.min(Number(p?.index)||0,Math.max(0,questions.length-1));if(p?.primary)$('#primaryLanguage').value=p.primary;if(p?.secondary)$('#secondaryLanguage').value=p.secondary;$('#status').textContent=result.access==='full'?'Full course':'Free sample · Questions 1-20';renderSets();render()}catch(e){$('#status').textContent=e.message}}
+function go(delta){index=Math.max(0,Math.min(questions.length-1,index+delta));render();if(autoRead)window.setTimeout(()=>speak(false),250)}
+function speechSegments(){const q=questions[index],t=translations(q),out=[];for(const field of ['question_text','option_1','option_2','option_3','option_4'])for(const x of selectedLines(t,field))out.push({text:x.text,lang:x.code==='KOR'?'ko-KR':'en-US'});if(mode==='Lrn')for(const x of selectedLines(t,'explanation'))out.push({text:x.text,lang:x.code==='KOR'?'ko-KR':'en-US'});return out}
+function stopSpeech(){speechRun++;if('speechSynthesis'in window)window.speechSynthesis.cancel()}
+function speak(replay=false){if(!('speechSynthesis'in window)){alert('Text-to-speech is not available on this device.');return}stopSpeech();const run=speechRun,segments=speechSegments(),rate=Number($('#speed').value)||1;function next(i){if(run!==speechRun)return;if(i>=segments.length){if(autoRead&&!replay&&index<questions.length-1)go(1);return}const x=segments[i],u=new SpeechSynthesisUtterance(x.text);u.lang=x.lang;u.rate=rate;u.onend=()=>next(i+1);u.onerror=()=>{};speechSynthesis.speak(u)}next(0)}
+function setMode(next){mode=next;document.documentElement.dataset.studyMode=next.toLowerCase();document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===next));const exam=next==='Exm';$('#timerToggle').hidden=!exam;if(!exam)$('#timerPanel').hidden=true;render()}
+function formatTime(s){return[new Date(s*1000).getUTCHours(),new Date(s*1000).getUTCMinutes(),new Date(s*1000).getUTCSeconds()].map(x=>String(x).padStart(2,'0')).join(':')}
+function drawTimer(){if(timerId)timerRemaining=Math.max(0,Math.ceil((timerEnd-Date.now())/1000));$('#timerDisplay').textContent=formatTime(timerRemaining);$('#timerDisplay').classList.toggle('warning',timerRemaining>0&&timerRemaining<300);$('#timerStart').textContent=timerId?'⏸ Pause':timerRemaining<timerConfigured?'▶ Resume':'▶ Start';if(timerId&&timerRemaining===0){clearInterval(timerId);timerId=null;alert('Time is up.')}}
+function startPause(){if(timerId){clearInterval(timerId);timerId=null;drawTimer();return}if(!timerRemaining)return;timerEnd=Date.now()+timerRemaining*1000;timerId=setInterval(drawTimer,250);drawTimer()}
+function setTimer(){timerConfigured=(Number($('#timerHours').value)||0)*3600+(Number($('#timerMinutes').value)||0)*60+(Number($('#timerSeconds').value)||0);timerRemaining=timerConfigured;if(timerId){clearInterval(timerId);timerId=null}drawTimer()}
+function resetTimer(){if(timerId){clearInterval(timerId);timerId=null}timerRemaining=timerConfigured;drawTimer()}
+function tutor(){const ask=$('#tutorQuestion').value.trim(),q=questions[index],t=translations(q);if(!ask||!q)return;const hay=[TITLES[product],t.en?.question_text,t.ko?.question_text,t.en?.explanation,t.ko?.explanation].join(' ').toLowerCase(),tokens=ask.toLowerCase().match(/[a-z]{4,}|[가-힣]{2,}/g)||[],generic=/answer|correct|explain|why|meaning|concept|정답|설명|왜|뜻|개념|선택지/.test(ask.toLowerCase()),related=generic||tokens.some(x=>hay.includes(x));if(!related){$('#tutorResponse').textContent=`I can only help with the current ${TITLES[product]} question and its exam concepts. 관련 없는 질문에는 답할 수 없습니다.`;return}const ko=/[가-힣]/.test(ask),answer=Number(q.answer),explanation=ko?t.ko?.explanation:t.en?.explanation;$('#tutorResponse').textContent=`${ko?'현재 문제의 핵심':'Current question focus'}: ${explanation||'Review the rule tested by the question and compare each choice.'}\n\n${ko?'정답 선택지':'Correct option'}: ${answer}`}
+document.querySelectorAll('[data-product]').forEach(b=>b.onclick=()=>open(b.dataset.product));document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+$('#primaryLanguage').onchange=()=>{if($('#primaryLanguage').value===$('#secondaryLanguage').value)$('#secondaryLanguage').value='NONE';render()};$('#secondaryLanguage').onchange=()=>{if($('#secondaryLanguage').value===$('#primaryLanguage').value)$('#secondaryLanguage').value='NONE';render()};
+$('#play').onclick=()=>speak(false);$('#replay').onclick=()=>speak(true);$('#stop').onclick=stopSpeech;$('#speed').onchange=()=>{localStorage.setItem(`${C.progressPrefix}speechRate`,$('#speed').value);if('speechSynthesis'in window&&window.speechSynthesis.speaking)speak(true)};$('#speed').value=localStorage.getItem(`${C.progressPrefix}speechRate`)||'1';$('#auto').onclick=()=>{autoRead=!autoRead;$('#auto').textContent=`Auto ${autoRead?'ON':'OFF'}`;$('#auto').setAttribute('aria-pressed',String(autoRead))};
+$('#startSet').onclick=()=>{const d=Number($('#questionJump').value);index=d?Math.min(questions.length-1,Math.max(0,d-1)):Number($('#setSelect').value)*SET_SIZES[product];render()};$('#resume').onclick=()=>{const p=saved();if(p){index=Math.min(Number(p.index)||0,questions.length-1);render()}};$('#prev').onclick=()=>go(-1);$('#skip').onclick=()=>go(1);$('#next').onclick=()=>go(1);$('#back').onclick=$('#exitTop').onclick=()=>location.reload();
+$('#timerToggle').onclick=()=>$('#timerPanel').hidden=!$('#timerPanel').hidden;$('#timerClose').onclick=()=>$('#timerPanel').hidden=true;$('#timerSet').onclick=setTimer;$('#timerStart').onclick=startPause;$('#timerReset').onclick=resetTimer;
+$('#tutorSend').onclick=tutor;$('#tutorQuestion').onkeydown=e=>{if(e.key==='Enter')tutor()};document.addEventListener('keydown',e=>{if(e.target.matches('input,select'))return;if(e.key.toLowerCase()==='p')go(-1);if(e.key.toLowerCase()==='s')go(1);if(e.key.toLowerCase()==='n')go(1)});window.addEventListener('beforeunload',stopSpeech);setMode('Std');drawTimer();
