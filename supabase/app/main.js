@@ -6832,7 +6832,8 @@ function biblePeopleRenderResults_(people) {
       '<strong>' + escapeHtml(person.NAME_EN || person.PERSON_ID) + '</strong>' +
       (person.NAME_KO ? '<span>' + escapeHtml(person.NAME_KO) + '</span>' : '') +
       '<span>' + escapeHtml(aliases) + '</span></button>';
-  }).join('');
+  }).join('') + '<div class="bible-sermon-scroll-note" data-people-load-sentinel>' +
+    (visibleCount < people.length ? 'Loading ahead · ' + visibleCount + ' of ' + people.length : 'All ' + people.length + ' results shown') + '</div>';
   results.querySelectorAll('[data-person-id]').forEach(function(button) {
     button.addEventListener('click', function() {
       biblePeopleLoadDetail_(button.getAttribute('data-person-id'));
@@ -6859,8 +6860,7 @@ function biblePeopleRenderAlphabet_() {
   alphabet.innerHTML = ['All'].concat('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')).map(function(label) {
     var value = label === 'All' ? '' : label;
     return '<button type="button" data-people-letter="' + value + '" class="' + (biblePeopleLetter === value ? 'is-active' : '') + '">' + label + '</button>';
-  }).join('') + '<div class="bible-sermon-scroll-note" data-people-load-sentinel>' +
-    (visibleCount < people.length ? 'Loading ahead · ' + visibleCount + ' of ' + people.length : 'All ' + people.length + ' results shown') + '</div>';
+  }).join('');
   alphabet.querySelectorAll('[data-people-letter]').forEach(function(button) {
     button.addEventListener('click', function() {
       biblePeopleLetter = button.getAttribute('data-people-letter') || '';
