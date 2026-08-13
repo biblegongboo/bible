@@ -1295,6 +1295,7 @@ async function renderSermonLibrary(version, results, detail, search) {
     return fields.some((value) => normalizedSearch(value).includes(query));
   }).sort((a, b) => String(keyFor(a) || a.title).localeCompare(String(keyFor(b) || b.title)) || String(a.title).localeCompare(String(b.title)));
   let visibleCount = Math.min(SERMON_BATCH_SIZE, entries.length);
+  let loadObserver = null;
   const loadMore = () => {
     if (visibleCount >= entries.length) return false;
     visibleCount = Math.min(entries.length, visibleCount + SERMON_BATCH_SIZE);
@@ -1304,11 +1305,18 @@ async function renderSermonLibrary(version, results, detail, search) {
     return true;
   };
   const paintList = () => {
+    loadObserver?.disconnect();
     results.innerHTML = `<div class="bible-sermon-list-summary"><strong>${entries.length.toLocaleString()} sermons found</strong><span>${sermonLetter || 'All letters'} · ${searchBy.value === 'author' ? 'By author' : 'By title'}</span></div>` +
       entries.slice(0, visibleCount).map((entry, position) => `<button class="bible-sermon-list-item${sermonSelectedPosition === position ? ' is-active' : ''}" data-sermon-entry="${position}"><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml(sermonListMeta([entry.author, sermonReferenceText(entry.reference), entry.date].filter(Boolean).join(' · ')))}</span><small>${escapeHtml(entry.source_title)}</small></button>`).join('') +
-      (entries.length ? `<div class="bible-sermon-scroll-note">${visibleCount < entries.length ? `<button type="button" data-sermon-load-more>Load next ${Math.min(SERMON_BATCH_SIZE, entries.length - visibleCount).toLocaleString()}</button><span>${visibleCount.toLocaleString()} of ${entries.length.toLocaleString()}</span>` : `All ${entries.length.toLocaleString()} results shown`}</div>` : knowledgeEmpty('No sermons match this search'));
+      (entries.length ? `<div class="bible-sermon-scroll-note" data-sermon-load-sentinel>${visibleCount < entries.length ? `Loading ahead · ${visibleCount.toLocaleString()} of ${entries.length.toLocaleString()}` : `All ${entries.length.toLocaleString()} results shown`}</div>` : knowledgeEmpty('No sermons match this search'));
     results.querySelectorAll('[data-sermon-entry]').forEach((button) => button.onclick = () => openSermon(Number(button.dataset.sermonEntry)));
-    results.querySelector('[data-sermon-load-more]')?.addEventListener('click', loadMore);
+    const sentinel = results.querySelector('[data-sermon-load-sentinel]');
+    if (sentinel && visibleCount < entries.length && typeof IntersectionObserver === 'function') {
+      loadObserver = new IntersectionObserver((records) => {
+        if (records.some((record) => record.isIntersecting)) loadMore();
+      }, { root: results, rootMargin: '0px 0px 420px 0px', threshold: 0 });
+      loadObserver.observe(sentinel);
+    }
   };
   detail.innerHTML = entries.length
     ? knowledgeEmpty('Select a sermon', 'Choose a title from the scrollable list on the left.')
@@ -1358,6 +1366,7 @@ async function renderLibrary(options = {}) {
   const sermonSource = document.getElementById('bibleSermonSource');
   const sermonAlphabet = document.getElementById('bibleSermonAlphabet');
   if (!results || !detail || !search) return;
+  results.parentElement?.classList.toggle('is-sermon-browser', librarySection === 'sermon');
   if (sermonSearchBy) sermonSearchBy.hidden = librarySection !== 'sermon';
   if (sermonSource) sermonSource.hidden = librarySection !== 'sermon';
   if (sermonAlphabet) sermonAlphabet.hidden = librarySection !== 'sermon';
