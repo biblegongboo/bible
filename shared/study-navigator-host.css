@@ -1,0 +1,10 @@
+.study-nav-host {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.study-nav-legacy-title {
+  display: none !important;
+}
