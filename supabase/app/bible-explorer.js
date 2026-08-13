@@ -28,6 +28,9 @@ let sermonSelectedSource = '';
 let sermonLetter = '';
 let sermonSelectedPosition = -1;
 const SERMON_BATCH_SIZE = 80;
+let patristicLetter = '';
+const knowledgeLetters = { words: '', dictionary: '', topics: '', books: '' };
+let libraryLetter = '';
 const searchRenderVersions = {};
 
 function beginSearchRender(name) {
@@ -596,6 +599,8 @@ function showKnowledgeSection(section) {
     button.classList.toggle('is-active', button.dataset.knowledgeSection === section));
   document.querySelectorAll('[data-knowledge-view]').forEach((view) =>
     view.classList.toggle('is-active', view.dataset.knowledgeView === section));
+  const layout = document.querySelector(`[data-knowledge-view="${section}"] .bible-explore-layout`);
+  if (layout) layout.classList.toggle('is-search-browser', ['words', 'dictionary', 'topics', 'books'].includes(section));
 }
 
 function renderEntityDetail(record, host) {
@@ -621,24 +626,49 @@ function mountPagedKnowledgeResults(results, records, renderButton, onSelect, op
   const paint = () => {
     results.innerHTML = records.slice(0, visibleCount).map((record, index) =>
       renderButton(record, index)).join('') || knowledgeEmpty(options.emptyTitle || 'No matching record');
-    if (visibleCount < records.length) {
-      const nextCount = Math.min(pageSize, records.length - visibleCount);
-      results.insertAdjacentHTML('beforeend',
-        `<button type="button" class="bible-person-result bible-knowledge-more" data-knowledge-more>
-          <strong>Show next ${nextCount}</strong>
-          <span>${visibleCount} of ${records.length} records currently shown</span>
-        </button>`);
-    }
+    results.insertAdjacentHTML('beforeend', `<div class="bible-sermon-scroll-note" data-knowledge-load-sentinel>${visibleCount < records.length ? `Loading ahead · ${visibleCount} of ${records.length}` : `All ${records.length} results shown`}</div>`);
     results.querySelectorAll('[data-knowledge-index]').forEach((button) =>
       button.addEventListener('click', () => onSelect(records[Number(button.dataset.knowledgeIndex)])));
-    results.querySelector('[data-knowledge-more]')?.addEventListener('click', () => {
+    const loadMore = () => {
+      if (visibleCount >= records.length) return;
+      const top = results.scrollTop;
       visibleCount = Math.min(visibleCount + pageSize, records.length);
       paint();
+      results.scrollTop = top;
       options.onProgress?.(visibleCount, records.length);
-    });
+    };
+    const sentinel = results.querySelector('[data-knowledge-load-sentinel]');
+    if (sentinel && visibleCount < records.length && typeof IntersectionObserver === 'function') {
+      const observer = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) { observer.disconnect(); loadMore(); }
+      }, { root: results, rootMargin: '0px 0px 420px 0px' });
+      observer.observe(sentinel);
+    }
+    results.onscroll = () => {
+      if (visibleCount < records.length && results.scrollTop + results.clientHeight >= results.scrollHeight - 120) loadMore();
+    };
   };
   paint();
   return visibleCount;
+}
+
+function applyAlphabet(section, records, labelFor) {
+  const host = document.getElementById(`bible${section[0].toUpperCase()}${section.slice(1)}Alphabet`);
+  const active = knowledgeLetters[section] || '';
+  if (host) {
+    host.innerHTML = ['All', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map((label) => {
+      const value = label === 'All' ? '' : label;
+      return `<button type="button" data-knowledge-letter="${value}" class="${active === value ? 'is-active' : ''}">${label}</button>`;
+    }).join('');
+    host.querySelectorAll('[data-knowledge-letter]').forEach((button) => button.onclick = () => {
+      knowledgeLetters[section] = button.dataset.knowledgeLetter;
+      if (section === 'words') renderWordSearch(document.getElementById('bibleWordSearch').value);
+      if (section === 'dictionary') renderDictionary(document.getElementById('bibleDictionarySearch').value);
+      if (section === 'topics') renderTopics(document.getElementById('bibleTopicSearch').value);
+      if (section === 'books') renderBooks(document.getElementById('bibleBookSearch').value);
+    });
+  }
+  return records.filter((record) => !active || sermonAlphabetKey(labelFor(record)).startsWith(active));
 }
 
 async function renderSemanticKnowledge(query = '', sourceCode = '') {
@@ -688,7 +718,7 @@ async function renderWordSearch(query = '') {
   const manifest = await loadKnowledge('concordance/manifest.json');
   if (!isCurrentSearchRender('words', renderVersion)) return;
   const allWords = manifest.all_words || [];
-  const words = prefixSearch(allWords, needle, [(entry) => entry.word]);
+  const words = applyAlphabet('words', prefixSearch(allWords, needle, [(entry) => entry.word]), (entry) => entry.word);
   results.innerHTML = [].map((entry, index) =>
     `<button type="button" class="bible-person-result" data-word-index="${index}">
       <strong>${escapeHtml(entry.word)}</strong><span>${entry.count.toLocaleString()} occurrences · ${entry.book_numbers.length} book(s)</span>
@@ -739,7 +769,7 @@ async function renderDictionary(query = '') {
   if (!isCurrentSearchRender('dictionary', renderVersion)) return;
   const needle = normalizedSearch(query);
   const allRecords = payload.records || [];
-  const records = prefixSearch(allRecords, needle, [(record) => record.term_en]);
+  const records = applyAlphabet('dictionary', prefixSearch(allRecords, needle, [(record) => record.term_en]), (record) => record.term_en);
   const show = (record) => {
     detail.innerHTML = `<article class="bible-person-card"><div class="bible-person-title">
       <div><h3>${escapeHtml(record.term_en)}</h3><p>Easton Bible Dictionary</p></div></div>
@@ -762,11 +792,11 @@ async function renderDictionary(query = '') {
   setStatus(`${visibleCount} of ${records.length} dictionary results shown.`);
 }
 
-async function renderTopics() {
+async function renderTopics(query = '') {
   const payload = await loadKnowledge('reference/topics.json');
   const results = document.getElementById('bibleTopicResults');
   const detail = document.getElementById('bibleTopicDetail');
-  const records = payload.records || [];
+  const records = applyAlphabet('topics', prefixSearch(payload.records || [], query, [(record) => record.topic]), (record) => record.topic);
   const show = (record) => {
     detail.innerHTML = `<article class="bible-person-card"><div class="bible-person-title">
       <div><h3>${escapeHtml(record.topic)}</h3><p>BibleData topic list</p></div></div>
@@ -799,9 +829,9 @@ async function renderBooks(query = '') {
   const results = document.getElementById('bibleBookResults');
   const detail = document.getElementById('bibleBookDetail');
   const needle = normalizedSearch(query);
-  const books = prefixSearch(bookPayload.records || [], needle,
+  const books = applyAlphabet('books', prefixSearch(bookPayload.records || [], needle,
     [(book) => book.name_en],
-    [(book) => book.osis_name, (book) => book.division, (book) => book.testament]);
+    [(book) => book.osis_name, (book) => book.division, (book) => book.testament]), (book) => book.name_en);
   const show = (book) => {
     const chapters = (chapterPayload.records || []).filter((chapter) =>
       (chapter.book_ids || []).includes(book.source_id) ||
@@ -852,7 +882,7 @@ async function renderKnowledge(options = {}) {
     }
     if (section === 'words') await renderWordSearch(document.getElementById('bibleWordSearch').value);
     if (section === 'dictionary') await renderDictionary(document.getElementById('bibleDictionarySearch').value);
-    if (section === 'topics') await renderTopics();
+    if (section === 'topics') await renderTopics(document.getElementById('bibleTopicSearch').value);
     if (section === 'books') await renderBooks(document.getElementById('bibleBookSearch').value);
   } catch (error) {
     setStatus(error.message || 'Bible study data could not be loaded.', true);
@@ -1109,10 +1139,17 @@ function renderPatristic(query = '') {
   const results = document.getElementById('biblePatristicResults');
   const detail = document.getElementById('biblePatristicDetail');
   if (!results || !detail) return;
+  results.parentElement?.classList.add('is-search-browser');
   const needle = normalizedSearch(query);
+  const alphabet = document.getElementById('biblePatristicAlphabet');
+  if (alphabet) alphabet.innerHTML = ['All', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map((label) => {
+    const value = label === 'All' ? '' : label;
+    return `<button type="button" data-patristic-letter="${value}" class="${patristicLetter === value ? 'is-active' : ''}">${label}</button>`;
+  }).join('');
   const records = prefixSearch(data.patristic, needle,
     [(record) => record.title],
-    [(record) => record.author, (record) => record.publication_year]).slice(0, 80);
+    [(record) => record.author, (record) => record.publication_year])
+    .filter((record) => !patristicLetter || sermonAlphabetKey(record.title).startsWith(patristicLetter));
   results.innerHTML = records.map((record, index) =>
     `<button type="button" class="bible-person-result" data-patristic-index="${index}">
       <strong>${escapeHtml(record.title)}</strong>
@@ -1149,6 +1186,10 @@ function renderPatristic(query = '') {
   });
   if (records.length) showRecord(records[0]);
   setStatus(`${records.length} licensed Early Church work${records.length === 1 ? '' : 's'} shown.`);
+  alphabet?.querySelectorAll('[data-patristic-letter]').forEach((button) => button.addEventListener('click', () => {
+    patristicLetter = button.dataset.patristicLetter;
+    renderPatristic(document.getElementById('biblePatristicSearch')?.value || '');
+  }));
 }
 
 async function renderPatristicReader(entry, host, page = 0) {
@@ -1365,11 +1406,14 @@ async function renderLibrary(options = {}) {
   const sermonSearchBy = document.getElementById('bibleSermonSearchBy');
   const sermonSource = document.getElementById('bibleSermonSource');
   const sermonAlphabet = document.getElementById('bibleSermonAlphabet');
+  const libraryAlphabet = document.getElementById('bibleLibraryAlphabet');
   if (!results || !detail || !search) return;
   results.parentElement?.classList.toggle('is-sermon-browser', librarySection === 'sermon');
+  results.parentElement?.classList.toggle('is-search-browser', librarySection !== 'sermon');
   if (sermonSearchBy) sermonSearchBy.hidden = librarySection !== 'sermon';
   if (sermonSource) sermonSource.hidden = librarySection !== 'sermon';
   if (sermonAlphabet) sermonAlphabet.hidden = librarySection !== 'sermon';
+  if (libraryAlphabet) libraryAlphabet.hidden = librarySection === 'sermon';
   results.innerHTML = knowledgeEmpty('Loading library sources');
   detail.innerHTML = knowledgeEmpty('Select a source');
   try {
@@ -1385,12 +1429,23 @@ async function renderLibrary(options = {}) {
     sources = prefixSearch(sources, search.value,
       [(source) => source.title || source.source_id],
       [(source) => source.author, (source) => source.source_id]);
+    if (libraryAlphabet) {
+      libraryAlphabet.innerHTML = ['All', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map((label) => {
+        const value = label === 'All' ? '' : label;
+        return `<button type="button" data-library-letter="${value}" class="${libraryLetter === value ? 'is-active' : ''}">${label}</button>`;
+      }).join('');
+      libraryAlphabet.querySelectorAll('[data-library-letter]').forEach((button) => button.onclick = () => {
+        libraryLetter = button.dataset.libraryLetter;
+        renderLibrary();
+      });
+    }
+    sources = sources.filter((source) => !libraryLetter || sermonAlphabetKey(source.title || source.source_id).startsWith(libraryLetter));
     const partitions = manifest.partitions || [];
     const parsed = parseSourceCode(librarySourceCode);
     if (librarySection === 'verse' && parsed?.book) {
       sources = sources.filter((source) => Array.isArray(source.books) && source.books.includes(parsed.book));
     }
-    const visible = sources.slice(0, 350);
+    const visible = sources;
     results.innerHTML = visible.map((source, index) =>
       `<button type="button" class="bible-person-result" data-library-source="${index}">
         <strong>${escapeHtml(source.title || source.source_id)}</strong>
@@ -1442,9 +1497,10 @@ function museumDisplayTitle(record) {
   return (!title || /^untitled work$/i.test(title)) ? objectName : title;
 }
 
-const museumPageSize = 30;
+const museumPageSize = 80;
 let museumPage = 0;
 let museumLetter = '';
+let museumLoadedRows = [];
 
 async function renderMuseum(selectedIndex = 0) {
   const results = document.getElementById('bibleMuseumResults');
@@ -1456,6 +1512,7 @@ async function renderMuseum(selectedIndex = 0) {
   const letters = document.getElementById('bibleMuseumLetters');
   const pager = document.getElementById('bibleMuseumPager');
   if (!results || !detail || !search || !era || !region || !topic || !letters || !pager) return;
+  results.parentElement?.classList.add('is-search-browser');
   letters.innerHTML = [''].concat('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')).map((letter) => `<button type="button" data-museum-letter="${letter}" class="${museumLetter === letter ? 'is-active' : ''}">${letter || 'All'}</button>`).join('');
   letters.querySelectorAll('[data-museum-letter]').forEach((button) => button.addEventListener('click', () => {
     museumLetter = button.dataset.museumLetter || '';
@@ -1464,8 +1521,11 @@ async function renderMuseum(selectedIndex = 0) {
     renderMuseum();
   }));
   const version = beginSearchRender('museum');
-  results.innerHTML = museumEmpty('Loading the image collection');
-  detail.innerHTML = museumEmpty('Curated Met image collection', 'Explore verified public-domain images by title, era, region, and cultural topic.');
+  if (museumPage === 0) {
+    museumLoadedRows = [];
+    results.innerHTML = museumEmpty('Loading the image collection');
+    detail.innerHTML = museumEmpty('Curated Met image collection', 'Explore verified public-domain images by title, era, region, and cultural topic.');
+  }
   try {
     if (!window.BibleSupabaseProvider || typeof window.BibleSupabaseProvider.metMuseumSearch !== 'function') {
       throw new Error('Museum catalog is not configured yet.');
@@ -1513,18 +1573,24 @@ async function renderMuseum(selectedIndex = 0) {
         <p class="bible-museum-credit">Metadata and public-domain image: The Metropolitan Museum of Art Open Access.</p>
       </article>`;
     };
-    results.innerHTML = pageRows.map((record, index) => {
+    museumLoadedRows.push(...pageRows);
+    results.innerHTML = museumLoadedRows.map((record, index) => {
       const displayTitle = museumDisplayTitle(record);
       return `<button type="button" class="bible-person-result" data-met-result="${index}">
         ${displayTitle ? `<strong>${escapeHtml(displayTitle)}</strong>` : ''}
         <span>${escapeHtml(record.object_date || record.culture || 'Met collection')}</span></button>`;
     }).join('');
-    results.querySelectorAll('[data-met-result]').forEach((button) => button.addEventListener('click', () => show(pageRows[Number(button.dataset.metResult)])));
-    show(pageRows[Math.min(Math.max(0, selectedIndex), pageRows.length - 1)]);
-    pager.innerHTML = `<button type="button" data-museum-page="previous" ${museumPage === 0 ? 'disabled' : ''}>Previous</button><span>Page ${museumPage + 1}</span><button type="button" data-museum-page="next" ${hasNext ? '' : 'disabled'}>Next</button>`;
-    pager.querySelector('[data-museum-page="previous"]')?.addEventListener('click', () => { museumPage = Math.max(0, museumPage - 1); renderMuseum(); });
-    pager.querySelector('[data-museum-page="next"]')?.addEventListener('click', () => { if (hasNext) { museumPage += 1; renderMuseum(); } });
-    setStatus(`${pageRows.length} verified Met images loaded on page ${museumPage + 1}.`);
+    results.querySelectorAll('[data-met-result]').forEach((button) => button.addEventListener('click', () => show(museumLoadedRows[Number(button.dataset.metResult)])));
+    if (museumPage === 0) show(pageRows[Math.min(Math.max(0, selectedIndex), pageRows.length - 1)]);
+    pager.innerHTML = hasNext ? `Loading ahead · ${museumLoadedRows.length} artworks shown` : `All ${museumLoadedRows.length} artworks shown`;
+    if (hasNext && typeof IntersectionObserver === 'function') {
+      const observer = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) { observer.disconnect(); museumPage += 1; renderMuseum(); }
+      }, { root: results, rootMargin: '0px 0px 420px 0px' });
+      results.appendChild(pager);
+      observer.observe(pager);
+    }
+    setStatus(`${museumLoadedRows.length} verified Met images loaded.`);
   } catch (error) {
     if (!isCurrentSearchRender('museum', version)) return;
     results.innerHTML = museumEmpty('Museum catalog is temporarily unavailable');
@@ -1687,7 +1753,7 @@ function init() {
     button.addEventListener('click', () => renderKnowledge({ section: button.dataset.knowledgeSection }));
   });
   document.querySelectorAll('[data-library-section]').forEach((button) => {
-    button.addEventListener('click', () => renderLibrary({ section: button.dataset.librarySection }));
+    button.addEventListener('click', () => { libraryLetter = ''; renderLibrary({ section: button.dataset.librarySection }); });
   });
   document.getElementById('bibleLibrarySearch').addEventListener('input', () => {
     if (librarySection === 'sermon') sermonSelectedPosition = -1;
@@ -1701,9 +1767,10 @@ function init() {
   });
   document.getElementById('bibleWordSearch').addEventListener('input', (event) => renderWordSearch(event.target.value));
   document.getElementById('bibleDictionarySearch').addEventListener('input', (event) => renderDictionary(event.target.value));
+  document.getElementById('bibleTopicSearch')?.addEventListener('input', (event) => renderTopics(event.target.value));
   document.getElementById('bibleBookSearch').addEventListener('input', (event) => renderBooks(event.target.value));
   ['bibleMuseumSearch', 'bibleMuseumEra', 'bibleMuseumRegion', 'bibleMuseumTopic'].forEach((id) => {
-    document.getElementById(id)?.addEventListener(id === 'bibleMuseumSearch' ? 'input' : 'change', () => renderMuseum());
+    document.getElementById(id)?.addEventListener(id === 'bibleMuseumSearch' ? 'input' : 'change', () => { museumPage = 0; renderMuseum(); });
   });
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !panel.hidden) close(); });
 }

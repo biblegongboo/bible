@@ -331,6 +331,7 @@
     </section>
     <section class="bible-explore-view" data-bible-explore-view="patristic">
       <div class="bible-explore-toolbar"><input id="biblePatristicSearch" type="search" autocomplete="off" placeholder="Search work, author, or year..."></div>
+      <nav id="biblePatristicAlphabet" class="bible-sermon-alphabet" aria-label="Filter Early Church works alphabetically"></nav>
       <div class="bible-people-layout bible-explore-layout">
         <aside id="biblePatristicResults" class="bible-people-results" aria-label="Early Church works"></aside>
         <main id="biblePatristicDetail" class="bible-people-detail"></main>
@@ -353,6 +354,7 @@
       </section>
       <section class="bible-knowledge-view" data-knowledge-view="words">
         <div class="bible-explore-toolbar"><input id="bibleWordSearch" type="search" autocomplete="off" placeholder="Search an English Bible word..."></div>
+        <nav id="bibleWordAlphabet" class="bible-sermon-alphabet" aria-label="Filter words alphabetically"></nav>
         <div class="bible-people-layout bible-explore-layout">
           <aside id="bibleWordResults" class="bible-people-results" aria-label="Word results"></aside>
           <main id="bibleWordDetail" class="bible-people-detail"></main>
@@ -360,12 +362,15 @@
       </section>
       <section class="bible-knowledge-view" data-knowledge-view="dictionary">
         <div class="bible-explore-toolbar"><input id="bibleDictionarySearch" type="search" autocomplete="off" placeholder="Search the Bible dictionary..."></div>
+        <nav id="bibleDictionaryAlphabet" class="bible-sermon-alphabet" aria-label="Filter dictionary entries alphabetically"></nav>
         <div class="bible-people-layout bible-explore-layout">
           <aside id="bibleDictionaryResults" class="bible-people-results" aria-label="Dictionary results"></aside>
           <main id="bibleDictionaryDetail" class="bible-people-detail"></main>
         </div>
       </section>
       <section class="bible-knowledge-view" data-knowledge-view="topics">
+        <div class="bible-explore-toolbar"><input id="bibleTopicSearch" type="search" autocomplete="off" placeholder="Search a Bible topic..."></div>
+        <nav id="bibleTopicAlphabet" class="bible-sermon-alphabet" aria-label="Filter topics alphabetically"></nav>
         <div class="bible-people-layout bible-explore-layout">
           <aside id="bibleTopicResults" class="bible-people-results" aria-label="Topic results"></aside>
           <main id="bibleTopicDetail" class="bible-people-detail"></main>
@@ -373,6 +378,7 @@
       </section>
       <section class="bible-knowledge-view" data-knowledge-view="books">
         <div class="bible-explore-toolbar"><input id="bibleBookSearch" type="search" autocomplete="off" placeholder="Search a Bible book..."></div>
+        <nav id="bibleBookAlphabet" class="bible-sermon-alphabet" aria-label="Filter Bible books alphabetically"></nav>
         <div class="bible-people-layout bible-explore-layout">
           <aside id="bibleBookResults" class="bible-people-results" aria-label="Bible book results"></aside>
           <main id="bibleBookDetail" class="bible-people-detail"></main>
@@ -394,6 +400,7 @@
         <select id="bibleSermonSource" aria-label="Filter sermons by collection" hidden><option value="">All collections</option></select>
       </div>
       <nav id="bibleSermonAlphabet" class="bible-sermon-alphabet" aria-label="Filter sermons alphabetically" hidden></nav>
+      <nav id="bibleLibraryAlphabet" class="bible-sermon-alphabet" aria-label="Filter library sources alphabetically"></nav>
       <div class="bible-people-layout bible-explore-layout">
         <aside id="bibleLibraryResults" class="bible-people-results" aria-label="Library sources"></aside>
         <main id="bibleLibraryDetail" class="bible-people-detail"></main>
@@ -407,7 +414,7 @@
         <select id="bibleMuseumTopic" aria-label="Filter museum by topic"><option value="">All topics</option><option>Clothing and textiles</option><option>Homes and daily life</option><option>Food and agriculture</option><option>Cities and architecture</option><option>Military and politics</option><option>Religion and ritual</option><option>Economy and work</option><option>Writing and language</option><option>Environment and animals</option></select>
       </div>
       <nav id="bibleMuseumLetters" class="bible-museum-letters" aria-label="Browse museum titles by first letter"></nav>
-      <div id="bibleMuseumPager" class="bible-museum-pager" aria-label="Museum result pages"></div>
+      <div id="bibleMuseumPager" class="bible-sermon-scroll-note" aria-live="polite"></div>
       <div class="bible-people-layout bible-explore-layout">
         <aside id="bibleMuseumResults" class="bible-people-results" aria-label="Met Museum artwork results"></aside>
         <main id="bibleMuseumDetail" class="bible-people-detail"></main>
@@ -2091,13 +2098,16 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-legacy-chapter-select{display:none!important}
   @media(max-width:600px){.setup-area{margin:8px;padding:18px 10px}.card{padding:20px 10px}.bible-book-button{font-size:14px}.bible-chapter-picker{padding:3px 2px 9px}.bible-chapter-button{min-width:36px;height:38px}.card-resume{padding:18px 12px}}
   @media(max-width:760px){.bible-people-panel{padding:0}.bible-people-dialog{min-height:100vh;border-radius:0}.bible-people-layout{grid-template-columns:1fr}.bible-people-results{min-height:0;max-height:210px}.bible-people-detail{min-height:430px}.bible-person-title{display:block}.bible-person-id{display:inline-block;margin-top:10px}.bible-explore-tabs,.bible-knowledge-sections{padding-left:14px;padding-right:14px}.bible-explore-toolbar{padding-left:14px;padding-right:14px}.bible-explore-output{margin-left:14px;margin-right:14px}.bible-source-images{grid-template-columns:1fr}}
+  .bible-explore-layout.is-search-browser{grid-template-columns:minmax(220px,28%) minmax(0,1fr);height:min(68vh,720px);min-height:520px;align-items:stretch}
+  .bible-explore-layout.is-search-browser>.bible-people-results,.bible-explore-layout.is-search-browser>.bible-people-detail{min-height:0;height:100%;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+  @media(max-width:760px){.bible-explore-layout.is-search-browser{display:grid;grid-template-columns:1fr;height:auto}.bible-explore-layout.is-search-browser>.bible-people-results{height:42vh;max-height:none}.bible-explore-layout.is-search-browser>.bible-people-detail{height:55vh;min-height:0}}
 </style>
 
 <script src="./supabase-config.js?v=8.60-supabase-storage1"></script>
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.98-nt-catalog1"></script>
 <script type="module">
-import { initialize } from './main.js?v=9.44-sermon-prefetch-scroll1';
+import { initialize } from './main.js?v=9.45-library-search-standard1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

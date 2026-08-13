@@ -14,8 +14,8 @@ const checks = [
   ['list and reader have independent scroll areas', html.includes('bible-explore-layout.is-sermon-browser') && html.includes('scrollbar-gutter:stable')],
   ['selected sermon remains in the right detail pane', explorer.includes('bible-sermon-reader') && explorer.includes('data-sermon-neighbor')],
   ['old title-page Next navigation is removed', !explorer.includes('data-sermon-page="next"')],
-  ['nested Explorer cache is refreshed', main.includes('bible-explorer.js?v=9.29-sermon-prefetch-scroll1')],
-  ['release HTML requests the pilot bundle', html.includes('main.js?v=9.44-sermon-prefetch-scroll1')]
+  ['nested Explorer cache is refreshed', main.includes('bible-explorer.js?v=9.30-library-search-standard1')],
+  ['release HTML requests the pilot bundle', html.includes('main.js?v=9.45-library-search-standard1')]
 ];
 for (const [name, ok] of checks) console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`);
 if (checks.some(([, ok]) => !ok)) process.exit(1);
