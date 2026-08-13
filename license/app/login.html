@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GongBoo.org v8.0D - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #F7FAFC;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: #FFFFFF;
+            padding: 40px 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            border: 1px solid #E2E8F0;
+            width: 100%;
+            max-width: 420px;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            text-align: center;
+            color: #2D3748;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 28px;
+        }
+        .tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 24px;
+            background: #F7FAFC;
+            padding: 4px;
+            border-radius: 10px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px 0;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            font-weight: 600;
+            color: #718096;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: #F5A623;
+            color: #FFFFFF;
+            box-shadow: 0 2px 8px rgba(245, 166, 35, 0.25);
+        }
+        .tab-btn:hover:not(.active) {
+            background: #EDF2F7;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #4A5568;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            background: #F7FAFC;
+            border: 2px solid #E2E8F0;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.2s;
+            color: #2D3748;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #F5A623;
+            box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.12);
+            background: #FFFFFF;
+        }
+        .password-wrapper {
+            position: relative;
+        }
+        .password-wrapper input {
+            padding-right: 44px;
+        }
+        .toggle-password {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 20px;
+            user-select: none;
+            color: #A0AEC0;
+            transition: color 0.2s;
+        }
+        .toggle-password:hover {
+            color: #4A5568;
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: #F5A623;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 4px;
+            box-shadow: 0 2px 8px rgba(245, 166, 35, 0.3);
+            min-height: 52px;
+        }
+        .btn-primary:hover {
+            background: #E0951F;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(245, 166, 35, 0.35);
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-signup {
+            padding: 16px;
+            font-size: 18px;
+            min-height: 56px;
+        }
+        .result-box {
+            background: #F7FAFC;
+            padding: 14px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            min-height: 48px;
+            border: 1px solid #E2E8F0;
+            color: #2D3748;
+        }
+        .result-box.success {
+            border-color: #48BB78;
+            background: #F0FFF4;
+            color: #276749;
+        }
+        .result-box.error {
+            border-color: #FC8181;
+            background: #FFF5F5;
+            color: #C53030;
+        }
+        .form-hidden {
+            display: none;
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 24px 18px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+        }
+        .subject-picker { display:none; margin-top:18px; }
+        .subject-picker h2 { margin:0 0 6px; font-size:22px; color:#24324a; }
+        .subject-picker p { margin:0 0 14px; color:#667085; }
+        .trial-notice {
+            display:none;
+            margin:0 0 16px;
+            padding:14px 16px;
+            border:1px solid #F5A623;
+            border-radius:12px;
+            background:#FFF8EB;
+            color:#7A4A00;
+            text-align:left;
+        }
+        .trial-notice-title {
+            display:block;
+            margin-bottom:4px;
+            font-size:15px;
+            font-weight:800;
+            letter-spacing:0.2px;
+        }
+        .trial-notice-text {
+            display:block;
+            font-size:13px;
+            line-height:1.55;
+            font-weight:500;
+        }
+        .subject-list { display:grid; gap:10px; }
+        .subject-btn { width:100%; padding:15px; border:2px solid #e5e7eb; border-radius:12px; background:#fff; color:#24324a; font-weight:700; cursor:pointer; text-align:left; }
+        .subject-btn:hover, .subject-btn:focus { border-color:#f5a623; background:#fff8eb; outline:none; }
+        .subject-meta { display:block; margin-top:4px; color:#667085; font-size:12px; font-weight:400; }
+        body.subject-selection .tabs,
+        body.subject-selection .subtitle,
+        body.subject-selection #loginTab > .form-group,
+        body.subject-selection #testLoginBtn,
+        body.subject-selection #loginResult { display:none !important; }
+        body.subject-selection .container { padding-top:24px; }
+        body.subject-selection .subject-picker { margin-top:10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GongBoo.org</h1>
+        <p class="subtitle">Member Service</p>
+
+        <!-- 탭 메뉴 -->
+        <div class="tabs">
+            
+            <button class="tab-btn" data-tab="signupTab">Sign Up</button>
+            <button class="tab-btn" data-tab="changeTab">Change Password</button>
+        </div>
+
+        <!-- 로그인 -->
+        <form id="loginTab" class="tab-content">
+            <div class="form-group">
+                <label>E-mail</label>
+                <input id="loginEmail" type="email" placeholder="example@email.com" />
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <div class="password-wrapper">
+                    <input id="loginPassword" type="password" placeholder="Enter your password" />
+                    <span class="toggle-password" id="toggleLoginPassword">👁️</span>
+                </div>
+            </div>
+            <button class="btn-primary" id="testLoginBtn" type="submit">Login</button>
+            <div id="loginResult" class="result-box"></div>
+            <p style="margin:14px 0 0;text-align:center;font-size:13px"><a href="./group-login.html" style="color:#1d4ed8;font-weight:700">단체 학습 로그인 (이름 + PIN)</a></p>
+        </form>
+
+        <!-- 회원가입 -->
+        <div id="signupTab" class="tab-content form-hidden">
+            <div class="form-group">
+                <label>E-mail</label>
+                <input id="signupEmail" type="email" placeholder="example@email.com" />
+            </div>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input id="signupName" type="text" placeholder="Your full name" />
+            </div>
+            <div class="form-group">
+                <label>Phone Number (10-11 digits)</label>
+                <input id="signupPhone" type="tel" placeholder="01012345678" />
+            </div>
+            <div class="form-group">
+                <label>Password (min 6 characters)</label>
+                <div class="password-wrapper">
+                    <input id="signupPassword" type="password" placeholder="Create a password" />
+                    <span class="toggle-password" id="toggleSignupPassword">👁️</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Confirm Password</label>
+                <div class="password-wrapper">
+                    <input id="signupPasswordConfirm" type="password" placeholder="Confirm your password" />
+                    <span class="toggle-password" id="toggleSignupPasswordConfirm">👁️</span>
+                </div>
+            </div>
+            <button class="btn-primary btn-signup" id="testSignupBtn">Sign Up</button>
+            <div id="signupResult" class="result-box">Waiting for sign up.</div>
+        </div>
+
+        <!-- 비밀번호 변경 -->
+        <div id="changeTab" class="tab-content form-hidden">
+            <div class="form-group">
+                <label>E-mail</label>
+                <input id="changeEmail" type="email" placeholder="example@email.com" />
+            </div>
+            <div class="form-group">
+                <label>Current Password</label>
+                <div class="password-wrapper">
+                    <input id="changeOldPassword" type="password" placeholder="Enter current password" />
+                    <span class="toggle-password" id="toggleChangeOldPassword">👁️</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>New Password (min 6 characters)</label>
+                <div class="password-wrapper">
+                    <input id="changeNewPassword" type="password" placeholder="Enter new password" />
+                    <span class="toggle-password" id="toggleChangeNewPassword">👁️</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Confirm New Password</label>
+                <div class="password-wrapper">
+                    <input id="changeNewPasswordConfirm" type="password" placeholder="Confirm new password" />
+                    <span class="toggle-password" id="toggleChangeNewPasswordConfirm">👁️</span>
+                </div>
+            </div>
+            <button class="btn-primary" id="testChangePasswordBtn">Change Password</button>
+            <div id="changePasswordResult" class="result-box">Waiting for password change.</div>
+        </div>
+    </div>
+
+    <script src="../../supabase/app/supabase-config.js?v=8.60-supabase-storage1"></script>
+    <script src="../../supabase/app/supabase-auth.js?v=8.83-logout1"></script>
+    <script>
+
+        function showResult(elementId, message, isSuccess) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = 'result-box' + (isSuccess ? ' success' : ' error');
+        }
+
+        function togglePasswordVisibility(inputId, toggleId) {
+            const input = document.getElementById(inputId);
+            const toggle = document.getElementById(toggleId);
+            if (input && toggle) {
+                toggle.addEventListener('click', function() {
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        toggle.textContent = '🙈';
+                    } else {
+                        input.type = 'password';
+                        toggle.textContent = '👁️';
+                    }
+                });
+            }
+        }
+
+        function initTabs() {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const contents = {
+                loginTab: document.getElementById('loginTab'),
+                signupTab: document.getElementById('signupTab'),
+                changeTab: document.getElementById('changeTab')
+            };
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    Object.keys(contents).forEach(key => {
+                        contents[key].classList.toggle('form-hidden', key !== this.dataset.tab);
+                    });
+                });
+            });
+        }
+
+        // ==============================
+        // URL 파라미터 처리 (회원가입 성공 시)
+        // ==============================
+        (function handleSignupSuccess() {
+            const params = new URLSearchParams(location.search);
+            if (params.get('signup') === 'success') {
+                const email = params.get('email') || '';
+                showResult('loginResult', '✅ Registration completed. Your FREE TRIAL is ready. Please log in.', true);
+                document.getElementById('loginEmail').value = email;
+                // URL 정리 (뒤로 가기 시 파라미터 제거)
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState({}, document.title, './login.html');
+                }
+            }
+        })();
+
+        (function handleAuthError() {
+            const reason = new URLSearchParams(location.search).get('auth_error');
+            if (!reason) return;
+            const message = reason === 'SESSION_EXPIRED'
+                ? 'Your session expired. Please log in again.'
+                : 'Please log in to continue.';
+            showResult('loginResult', message, false);
+        })();
+
+        // ==============================
+        // 로그인
+        // ==============================
+        document.getElementById('loginTab').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            if (!email || !password) {
+                showResult('loginResult', '❌ Please enter both email and password.', false);
+                return;
+            }
+            showResult('loginResult', '⏳ Logging in...', false);
+            try {
+                const user = await window.BibleSupabaseAuth.signIn(email, password);
+                if (true) {
+                    const subjects = [
+          { CODE: 'BIBLE_OT', NAME: 'Old Testament · 구약', CATEGORY: 'BIBLE', SHEET: 'BIBLE-OT', SET_SIZE: 120, FORMAT: 'BIBLE_EN_KO', ACTIVE: 'Y', VERSION: '1.0' },
+          { CODE: 'BIBLE_NT', NAME: 'New Testament · 신약', CATEGORY: 'BIBLE', SHEET: 'BIBLE-NT', SET_SIZE: 120, FORMAT: 'BIBLE_EN_KO', ACTIVE: 'Y', VERSION: '1.0' }
+        ];
+                    localStorage.setItem('quiz_current_subject_v1', JSON.stringify(subjects[0]));
+                    localStorage.setItem('quiz_current_user_v1', JSON.stringify(user));
+                    localStorage.setItem('quiz_available_subjects_v1', JSON.stringify(subjects));
+                    const welcomeText = user.is_trial
+                        ? '✅ FREE TRIAL · 20 sample questions per subject. Upgrade for full access.'
+                        : '✅ Welcome, ' + (user.name || email) + '!';
+                    showResult('loginResult', welcomeText, true);
+                    window.location.href = './?v=license-auth1';
+                } else if (false) {
+                    let msg = data.message;
+                    if (data.status === 'pending') msg = '⏳ ' + msg;
+                    else if (data.status === 'expired') msg = '⏰ ' + msg;
+                    else if (data.status === 'none') msg = '💳 ' + msg;
+                    showResult('loginResult', '❌ ' + msg, false);
+                }
+            } catch (err) {
+                showResult('loginResult', '❌ Server error: ' + err.message, false);
+            }
+        });
+
+        document.getElementById('loginPassword').addEventListener('keydown', function(event) {
+            if (event.key !== 'Enter' || event.isComposing) return;
+            event.preventDefault();
+            document.getElementById('loginTab').requestSubmit();
+        });
+
+        function renderSubjectPicker(subjects, user) {
+            const picker = document.getElementById('subjectPicker');
+            const list = document.getElementById('subjectList');
+            const trialNotice = document.getElementById('trialSubjectNotice');
+            const isTrial = Boolean(user && user.is_trial);
+
+            list.innerHTML = '';
+
+            if (!subjects.length) {
+                showResult(
+                    'loginResult',
+                    '❌ No active subjects are assigned to this account.',
+                    false
+                );
+
+                if (trialNotice) {
+                    trialNotice.style.display = 'none';
+                }
+
+                picker.style.display = 'none';
+                return;
+            }
+
+            document.body.classList.add('subject-selection');
+
+            if (trialNotice) {
+                trialNotice.style.display = isTrial ? 'block' : 'none';
+            }
+
+            subjects.forEach(subject => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'subject-btn';
+                button.textContent = subject.NAME || subject.CODE;
+
+                const meta = document.createElement('span');
+                meta.className = 'subject-meta';
+                meta.textContent =
+                    (subject.CATEGORY || 'QUIZ') +
+                    ' · ' +
+                    (
+                        isTrial
+                            ? 'FREE TRIAL · Questions 1–20'
+                            : Number(subject.SET_SIZE || 120) + ' questions per set'
+                    );
+
+                button.appendChild(meta);
+
+                button.addEventListener('click', () => {
+                    localStorage.setItem(
+                        'quiz_current_subject_v1',
+                        JSON.stringify(subject)
+                    );
+
+                    window.location.href = './?v=license-auth1';
+                });
+
+                list.appendChild(button);
+            });
+
+            picker.style.display = 'block';
+        }
+
+        // ==============================
+        // 회원가입 (방법 5 적용)
+        // ==============================
+        document.getElementById('testSignupBtn').addEventListener('click', async function() {
+            const email = document.getElementById('signupEmail').value.trim();
+            const name = document.getElementById('signupName').value.trim();
+            const phone = document.getElementById('signupPhone').value.trim();
+            const password = document.getElementById('signupPassword').value.trim();
+            const confirm = document.getElementById('signupPasswordConfirm').value.trim();
+
+            if (!email || !name || !phone || !password || !confirm) {
+                showResult('signupResult', '❌ Please fill in all fields.', false);
+                return;
+            }
+            if (password !== confirm) {
+                showResult('signupResult', '❌ Passwords do not match.', false);
+                return;
+            }
+            if (password.length < 6) {
+                showResult('signupResult', '❌ Password must be at least 6 characters.', false);
+                return;
+            }
+            if (!/^[0-9]{10,11}$/.test(phone)) {
+                showResult('signupResult', '❌ Phone number must be 10-11 digits.', false);
+                return;
+            }
+
+            showResult('signupResult', '⏳ Processing sign up...', false);
+
+            try {
+                const data = await window.BibleSupabaseAuth.signUp(
+                    email,
+                    password,
+                    { name: name, phone: phone }
+                );
+
+                if (data.access_token) {
+                    // 🔥 방법 5: URL에 상태 전달
+                    window.location.href =
+                        './login.html?signup=success&email=' +
+                        encodeURIComponent(email);
+                } else {
+                    showResult('signupResult', '✅ Registration received. Please confirm your email.', true);
+                }
+            } catch (err) {
+                showResult('signupResult', '❌ Server error: ' + err.message, false);
+            }
+        });
+
+        // ==============================
+        // 비밀번호 변경
+        // ==============================
+        document.getElementById('testChangePasswordBtn').addEventListener('click', async function() {
+            const email = document.getElementById('changeEmail').value.trim();
+            const oldPassword = document.getElementById('changeOldPassword').value.trim();
+            const newPassword = document.getElementById('changeNewPassword').value.trim();
+            const confirm = document.getElementById('changeNewPasswordConfirm').value.trim();
+
+            if (!email || !oldPassword || !newPassword || !confirm) {
+                showResult('changePasswordResult', '❌ Please fill in all fields.', false);
+                return;
+            }
+            if (newPassword !== confirm) {
+                showResult('changePasswordResult', '❌ New passwords do not match.', false);
+                return;
+            }
+            if (newPassword.length < 6) {
+                showResult('changePasswordResult', '❌ New password must be at least 6 characters.', false);
+                return;
+            }
+
+            showResult('changePasswordResult', '⏳ Processing...', false);
+
+            try {
+                await window.BibleSupabaseAuth.changePassword(email, oldPassword, newPassword);
+                showResult('changePasswordResult', '✅ Password changed.', true);
+            } catch (err) {
+                showResult('changePasswordResult', '❌ Server error: ' + err.message, false);
+            }
+        });
+
+        // ==============================
+        // 초기화
+        // ==============================
+        window.onload = function() {
+            initTabs();
+            togglePasswordVisibility('loginPassword', 'toggleLoginPassword');
+            togglePasswordVisibility('signupPassword', 'toggleSignupPassword');
+            togglePasswordVisibility('signupPasswordConfirm', 'toggleSignupPasswordConfirm');
+            togglePasswordVisibility('changeOldPassword', 'toggleChangeOldPassword');
+            togglePasswordVisibility('changeNewPassword', 'toggleChangeNewPassword');
+            togglePasswordVisibility('changeNewPasswordConfirm', 'toggleChangeNewPasswordConfirm');
+        };
+    </script>
+</body>
+</html>
