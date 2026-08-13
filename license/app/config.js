@@ -1,0 +1,1 @@
+window.LICENSE_CONFIG=Object.freeze({url:'https://vwvxpzktafhiuptsrugq.supabase.co',publishableKey:'sb_publishable_GLrKssDJrdEO4rYXpgnlIg_4MHyErjr',functionName:'license-content',authStorageKey:'bible_supabase_auth_v1',progressPrefix:'gongboo.license.'});
