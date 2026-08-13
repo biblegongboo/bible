@@ -1295,11 +1295,20 @@ async function renderSermonLibrary(version, results, detail, search) {
     return fields.some((value) => normalizedSearch(value).includes(query));
   }).sort((a, b) => String(keyFor(a) || a.title).localeCompare(String(keyFor(b) || b.title)) || String(a.title).localeCompare(String(b.title)));
   let visibleCount = Math.min(SERMON_BATCH_SIZE, entries.length);
+  const loadMore = () => {
+    if (visibleCount >= entries.length) return false;
+    visibleCount = Math.min(entries.length, visibleCount + SERMON_BATCH_SIZE);
+    const top = results.scrollTop;
+    paintList();
+    results.scrollTop = top;
+    return true;
+  };
   const paintList = () => {
     results.innerHTML = `<div class="bible-sermon-list-summary"><strong>${entries.length.toLocaleString()} sermons found</strong><span>${sermonLetter || 'All letters'} · ${searchBy.value === 'author' ? 'By author' : 'By title'}</span></div>` +
       entries.slice(0, visibleCount).map((entry, position) => `<button class="bible-sermon-list-item${sermonSelectedPosition === position ? ' is-active' : ''}" data-sermon-entry="${position}"><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml(sermonListMeta([entry.author, sermonReferenceText(entry.reference), entry.date].filter(Boolean).join(' · ')))}</span><small>${escapeHtml(entry.source_title)}</small></button>`).join('') +
-      (entries.length ? `<div class="bible-sermon-scroll-note">${visibleCount < entries.length ? `Scroll for more · ${visibleCount.toLocaleString()} of ${entries.length.toLocaleString()}` : `All ${entries.length.toLocaleString()} results shown`}</div>` : knowledgeEmpty('No sermons match this search'));
+      (entries.length ? `<div class="bible-sermon-scroll-note">${visibleCount < entries.length ? `<button type="button" data-sermon-load-more>Load next ${Math.min(SERMON_BATCH_SIZE, entries.length - visibleCount).toLocaleString()}</button><span>${visibleCount.toLocaleString()} of ${entries.length.toLocaleString()}</span>` : `All ${entries.length.toLocaleString()} results shown`}</div>` : knowledgeEmpty('No sermons match this search'));
     results.querySelectorAll('[data-sermon-entry]').forEach((button) => button.onclick = () => openSermon(Number(button.dataset.sermonEntry)));
+    results.querySelector('[data-sermon-load-more]')?.addEventListener('click', loadMore);
   };
   detail.innerHTML = entries.length
     ? knowledgeEmpty('Select a sermon', 'Choose a title from the scrollable list on the left.')
@@ -1319,10 +1328,7 @@ async function renderSermonLibrary(version, results, detail, search) {
   paintList();
   results.onscroll = () => {
     if (visibleCount >= entries.length || results.scrollTop + results.clientHeight < results.scrollHeight - 120) return;
-    visibleCount = Math.min(entries.length, visibleCount + SERMON_BATCH_SIZE);
-    const top = results.scrollTop;
-    paintList();
-    results.scrollTop = top;
+    loadMore();
   };
   alphabet.querySelectorAll('[data-sermon-letter]').forEach((button) => button.onclick = () => {
     sermonLetter = button.dataset.sermonLetter;
