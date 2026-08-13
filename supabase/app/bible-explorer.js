@@ -653,7 +653,11 @@ function mountPagedKnowledgeResults(results, records, renderButton, onSelect, op
 }
 
 function applyAlphabet(section, records, labelFor) {
-  const host = document.getElementById(`bible${section[0].toUpperCase()}${section.slice(1)}Alphabet`);
+  const hostId = {
+    words: 'bibleWordAlphabet', dictionary: 'bibleDictionaryAlphabet',
+    topics: 'bibleTopicAlphabet', books: 'bibleBookAlphabet'
+  }[section];
+  const host = document.getElementById(hostId);
   const active = knowledgeLetters[section] || '';
   if (host) {
     host.innerHTML = ['All', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map((label) => {

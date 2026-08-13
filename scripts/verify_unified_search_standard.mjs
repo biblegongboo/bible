@@ -10,6 +10,7 @@ const checks = [
   ['Books alphabet', html.includes('id="bibleBookAlphabet"')],
   ['Library alphabet', html.includes('id="bibleLibraryAlphabet"')],
   ['Museum alphabet retained', html.includes('id="bibleMuseumLetters"')],
+  ['knowledge alphabet IDs are mapped explicitly', explorer.includes("words: 'bibleWordAlphabet'") && explorer.includes("topics: 'bibleTopicAlphabet'") && explorer.includes("books: 'bibleBookAlphabet'")],
   ['independent list and detail scrolling', html.includes('.bible-explore-layout.is-search-browser')],
   ['automatic prefetch sentinel', explorer.includes("rootMargin: '0px 0px 420px 0px'")],
   ['manual knowledge load button removed', !explorer.includes('data-knowledge-more')],
