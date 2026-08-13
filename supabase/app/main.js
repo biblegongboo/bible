@@ -6796,7 +6796,7 @@ function biblePeopleOpen_() {
   if (!biblePeopleDirectoryLoaded) {
     biblePeopleDirectoryLoaded = true;
     biblePeopleSetStatus_('Loading names...');
-    biblePeopleRunSearch_('a', true);
+    document.querySelector('#biblePeopleAlphabet [data-people-letter="A"]')?.click();
   }
 }
 
@@ -6867,14 +6867,15 @@ function biblePeopleRenderAlphabet_() {
       var input = document.getElementById('biblePeopleSearchInput');
       if (input) input.value = biblePeopleLetter;
       biblePeopleRenderAlphabet_();
-      if (biblePeopleLetter) biblePeopleRunSearch_(biblePeopleLetter, true);
-      else biblePeopleLoadNameIndex_().then(function(index) {
+      biblePeopleLoadNameIndex_().then(function(index) {
         var people = Object.keys(index).map(function(personId) {
           var item = index[personId] || {};
           return { PERSON_ID: personId, NAME_EN: item.name, NAME_KO: item.name_ko, GENDER: item.gender, ALIASES: [] };
+        }).filter(function(person) {
+          return !biblePeopleLetter || String(person.NAME_EN || '').trim().toUpperCase().startsWith(biblePeopleLetter);
         }).sort(function(a, b) { return String(a.NAME_EN).localeCompare(String(b.NAME_EN)); });
         biblePeopleRenderResults_(people);
-        biblePeopleSetStatus_(people.length + ' people available. Scroll the left list to continue.');
+        biblePeopleSetStatus_(people.length + ' ' + (biblePeopleLetter || 'A-Z') + ' people available. Scroll the left list to continue.');
       });
     });
   });

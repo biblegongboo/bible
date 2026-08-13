@@ -22,6 +22,7 @@ const checks = [
   ['automatic prefetch sentinel', explorer.includes("rootMargin: '0px 0px 420px 0px'")],
   ['People automatic prefetch', main.includes('data-people-load-sentinel') && main.includes("rootMargin: '0px 0px 420px 0px'")],
   ['People alphabet does not read list paging state', !main.slice(main.indexOf('function biblePeopleRenderAlphabet_'), main.indexOf('function biblePeopleRelationshipName_')).includes('visibleCount')],
+  ['People alphabet filters canonical names, not aliases', main.slice(main.indexOf('function biblePeopleRenderAlphabet_'), main.indexOf('function biblePeopleRelationshipName_')).includes("String(person.NAME_EN || '').trim().toUpperCase().startsWith(biblePeopleLetter)") && !main.slice(main.indexOf('function biblePeopleRenderAlphabet_'), main.indexOf('function biblePeopleRelationshipName_')).includes('biblePeopleRunSearch_')],
   ['manual knowledge load button removed', !explorer.includes('data-knowledge-more')],
   ['museum pages load 80 at a time', explorer.includes('const museumPageSize = 80')],
   ['museum Previous and Next controls removed', !explorer.includes('data-museum-page="next"')]

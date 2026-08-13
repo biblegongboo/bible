@@ -15,7 +15,7 @@ const checks = [
   ['selected sermon remains in the right detail pane', explorer.includes('bible-sermon-reader') && explorer.includes('data-sermon-neighbor')],
   ['old title-page Next navigation is removed', !explorer.includes('data-sermon-page="next"')],
   ['nested Explorer cache is refreshed', main.includes('bible-explorer.js?v=9.33-all-search-standard2')],
-  ['release HTML requests the pilot bundle', html.includes('main.js?v=9.49-all-search-standard3')]
+  ['release HTML requests the pilot bundle', html.includes('main.js?v=9.50-people-canonical-alphabet1')]
 ];
 for (const [name, ok] of checks) console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`);
 if (checks.some(([, ok]) => !ok)) process.exit(1);
