@@ -25,8 +25,9 @@ let librarySection = 'verse';
 let librarySourceCode = '';
 let sermonIndexPromise = null;
 let sermonSelectedSource = '';
-let sermonPage = 1;
-const SERMON_PAGE_SIZE = 30;
+let sermonLetter = '';
+let sermonSelectedPosition = -1;
+const SERMON_BATCH_SIZE = 80;
 const searchRenderVersions = {};
 
 function beginSearchRender(name) {
@@ -1261,30 +1262,64 @@ function sermonReferenceText(reference) {
 async function renderSermonLibrary(version, results, detail, search) {
   const index = await loadSermonIndex();
   if (!isCurrentSearchRender('library', version)) return;
+  const searchBy = document.getElementById('bibleSermonSearchBy');
+  const sourceFilter = document.getElementById('bibleSermonSource');
+  const alphabet = document.getElementById('bibleSermonAlphabet');
   const query = normalizedSearch(search.value);
   const sources = (index.sources || []).slice().sort((a, b) => String(a.title).localeCompare(String(b.title)));
-  results.innerHTML = `<div class="bible-sermon-summary"><strong>${index.records.toLocaleString()} sermons</strong><span>${index.collections} collections</span></div><button class="bible-person-result${sermonSelectedSource ? '' : ' is-active'}" data-sermon-source=""><strong>All sermons</strong><span>${index.records.toLocaleString()} titles</span></button>` + sources.map((source) => `<button class="bible-person-result${sermonSelectedSource === source.source_id ? ' is-active' : ''}" data-sermon-source="${escapeHtml(source.source_id)}"><strong>${escapeHtml(source.title)}</strong><span>${escapeHtml(source.author || '')} · ${Number(source.records).toLocaleString()} sermons</span></button>`).join('');
-  const entries = index.entries.filter((entry) => (!sermonSelectedSource || entry.source_id === sermonSelectedSource) && (!query || [entry.title, entry.author, sermonReferenceText(entry.reference), entry.language, entry.date, entry.source_title].some((value) => normalizedSearch(value).includes(query))));
-  const pages = Math.max(1, Math.ceil(entries.length / SERMON_PAGE_SIZE));
-  sermonPage = Math.min(Math.max(1, sermonPage), pages);
-  const start = (sermonPage - 1) * SERMON_PAGE_SIZE;
-  const shown = entries.slice(start, start + SERMON_PAGE_SIZE);
-  detail.innerHTML = `<section class="bible-sermon-browser"><header><strong>${entries.length.toLocaleString()} sermons found</strong><span>Choose a title to read one sermon.</span></header><div>${shown.map((entry, offset) => `<button class="bible-sermon-title" data-sermon-entry="${start + offset}"><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml([entry.author, sermonReferenceText(entry.reference), entry.date, entry.language].filter(Boolean).join(' · '))}</span><small>${escapeHtml(entry.source_title)}</small></button>`).join('') || knowledgeEmpty('No sermons match this search')}</div><nav class="bible-sermon-pagination"><button data-sermon-page="prev" ${sermonPage === 1 ? 'disabled' : ''}>Previous</button><span>Page ${sermonPage} of ${pages}</span><button data-sermon-page="next" ${sermonPage === pages ? 'disabled' : ''}>Next</button></nav></section>`;
+  searchBy.hidden = sourceFilter.hidden = alphabet.hidden = false;
+  sourceFilter.innerHTML = '<option value="">All collections</option>' + sources.map((source) =>
+    `<option value="${escapeHtml(source.source_id)}">${escapeHtml(source.title)} (${Number(source.records).toLocaleString()})</option>`).join('');
+  sourceFilter.value = sermonSelectedSource;
+  alphabet.innerHTML = ['All', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map((letter) => {
+    const value = letter === 'All' ? '' : letter;
+    return `<button type="button" data-sermon-letter="${value}" class="${sermonLetter === value ? 'is-active' : ''}">${letter}</button>`;
+  }).join('');
+  const keyFor = (entry) => searchBy.value === 'author' ? entry.author : entry.title;
+  const entries = index.entries.filter((entry) => {
+    if (sermonSelectedSource && entry.source_id !== sermonSelectedSource) return false;
+    if (sermonLetter && !String(keyFor(entry) || '').trim().toUpperCase().startsWith(sermonLetter)) return false;
+    if (!query) return true;
+    const fields = searchBy.value === 'author'
+      ? [entry.author]
+      : [entry.title, entry.author, sermonReferenceText(entry.reference), entry.language, entry.date, entry.source_title];
+    return fields.some((value) => normalizedSearch(value).includes(query));
+  }).sort((a, b) => String(keyFor(a) || a.title).localeCompare(String(keyFor(b) || b.title)) || String(a.title).localeCompare(String(b.title)));
+  let visibleCount = Math.min(SERMON_BATCH_SIZE, entries.length);
+  const paintList = () => {
+    results.innerHTML = `<div class="bible-sermon-list-summary"><strong>${entries.length.toLocaleString()} sermons found</strong><span>${sermonLetter || 'All letters'} · ${searchBy.value === 'author' ? 'By author' : 'By title'}</span></div>` +
+      entries.slice(0, visibleCount).map((entry, position) => `<button class="bible-sermon-list-item${sermonSelectedPosition === position ? ' is-active' : ''}" data-sermon-entry="${position}"><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml([entry.author, sermonReferenceText(entry.reference), entry.date].filter(Boolean).join(' · '))}</span><small>${escapeHtml(entry.source_title)}</small></button>`).join('') +
+      (entries.length ? `<div class="bible-sermon-scroll-note">${visibleCount < entries.length ? `Scroll for more · ${visibleCount.toLocaleString()} of ${entries.length.toLocaleString()}` : `All ${entries.length.toLocaleString()} results shown`}</div>` : knowledgeEmpty('No sermons match this search'));
+    results.querySelectorAll('[data-sermon-entry]').forEach((button) => button.onclick = () => openSermon(Number(button.dataset.sermonEntry)));
+  };
+  detail.innerHTML = entries.length
+    ? knowledgeEmpty('Select a sermon', 'Choose a title from the scrollable list on the left.')
+    : knowledgeEmpty('No sermons match this search');
   setStatus(`${entries.length.toLocaleString()} of ${index.records.toLocaleString()} sermons available.`);
   const openSermon = async (position) => {
     const entry = entries[position];
     if (!entry) return;
+    sermonSelectedPosition = position;
+    paintList();
     detail.innerHTML = knowledgeEmpty('Loading sermon');
     const record = (await loadStorageJsonlGzip(entry.storage_path))[entry.line];
-    detail.innerHTML = `<section class="bible-sermon-reader"><button class="bible-sermon-back">← Sermon titles</button>${libraryRecordHtml(record, 'sermon')}<nav class="bible-sermon-pagination"><button data-sermon-neighbor="${position - 1}" ${position === 0 ? 'disabled' : ''}>Previous sermon</button><span>${position + 1} of ${entries.length.toLocaleString()}</span><button data-sermon-neighbor="${position + 1}" ${position === entries.length - 1 ? 'disabled' : ''}>Next sermon</button></nav></section>`;
-    detail.querySelector('.bible-sermon-back').onclick = () => renderSermonLibrary(version, results, detail, search);
+    detail.innerHTML = `<section class="bible-sermon-reader">${libraryRecordHtml(record, 'sermon')}<nav class="bible-sermon-pagination"><button data-sermon-neighbor="${position - 1}" ${position === 0 ? 'disabled' : ''}>Previous sermon</button><span>${position + 1} of ${entries.length.toLocaleString()}</span><button data-sermon-neighbor="${position + 1}" ${position === entries.length - 1 ? 'disabled' : ''}>Next sermon</button></nav></section>`;
     detail.querySelectorAll('[data-sermon-neighbor]').forEach((button) => button.onclick = () => openSermon(Number(button.dataset.sermonNeighbor)));
     detail.scrollTo(0, 0);
   };
-  results.querySelectorAll('[data-sermon-source]').forEach((button) => button.onclick = () => { sermonSelectedSource = button.dataset.sermonSource; sermonPage = 1; renderLibrary({ section: 'sermon' }); });
-  detail.querySelectorAll('[data-sermon-entry]').forEach((button) => button.onclick = () => openSermon(Number(button.dataset.sermonEntry)));
-  detail.querySelector('[data-sermon-page="prev"]')?.addEventListener('click', () => { sermonPage -= 1; renderLibrary({ section: 'sermon' }); });
-  detail.querySelector('[data-sermon-page="next"]')?.addEventListener('click', () => { sermonPage += 1; renderLibrary({ section: 'sermon' }); });
+  paintList();
+  results.onscroll = () => {
+    if (visibleCount >= entries.length || results.scrollTop + results.clientHeight < results.scrollHeight - 120) return;
+    visibleCount = Math.min(entries.length, visibleCount + SERMON_BATCH_SIZE);
+    const top = results.scrollTop;
+    paintList();
+    results.scrollTop = top;
+  };
+  alphabet.querySelectorAll('[data-sermon-letter]').forEach((button) => button.onclick = () => {
+    sermonLetter = button.dataset.sermonLetter;
+    sermonSelectedPosition = -1;
+    renderLibrary({ section: 'sermon' });
+  });
 }
 
 async function loadLibraryManifests() {
@@ -1304,7 +1339,13 @@ async function renderLibrary(options = {}) {
   const results = document.getElementById('bibleLibraryResults');
   const detail = document.getElementById('bibleLibraryDetail');
   const search = document.getElementById('bibleLibrarySearch');
+  const sermonSearchBy = document.getElementById('bibleSermonSearchBy');
+  const sermonSource = document.getElementById('bibleSermonSource');
+  const sermonAlphabet = document.getElementById('bibleSermonAlphabet');
   if (!results || !detail || !search) return;
+  if (sermonSearchBy) sermonSearchBy.hidden = librarySection !== 'sermon';
+  if (sermonSource) sermonSource.hidden = librarySection !== 'sermon';
+  if (sermonAlphabet) sermonAlphabet.hidden = librarySection !== 'sermon';
   results.innerHTML = knowledgeEmpty('Loading library sources');
   detail.innerHTML = knowledgeEmpty('Select a source');
   try {
@@ -1625,9 +1666,11 @@ function init() {
     button.addEventListener('click', () => renderLibrary({ section: button.dataset.librarySection }));
   });
   document.getElementById('bibleLibrarySearch').addEventListener('input', () => {
-    if (librarySection === 'sermon') sermonPage = 1;
+    if (librarySection === 'sermon') sermonSelectedPosition = -1;
     renderLibrary();
   });
+  document.getElementById('bibleSermonSearchBy')?.addEventListener('change', () => { sermonLetter = ''; sermonSelectedPosition = -1; renderLibrary({ section: 'sermon' }); });
+  document.getElementById('bibleSermonSource')?.addEventListener('change', (event) => { sermonSelectedSource = event.target.value; sermonSelectedPosition = -1; renderLibrary({ section: 'sermon' }); });
   document.getElementById('bibleKnowledgeEntitySearch').addEventListener('input', (event) => {
     event.target.dataset.sourceCode = '';
     renderSemanticKnowledge(event.target.value);
