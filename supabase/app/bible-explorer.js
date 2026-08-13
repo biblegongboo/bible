@@ -603,7 +603,7 @@ function showKnowledgeSection(section) {
   document.querySelectorAll('[data-knowledge-view]').forEach((view) =>
     view.classList.toggle('is-active', view.dataset.knowledgeView === section));
   const layout = document.querySelector(`[data-knowledge-view="${section}"] .bible-explore-layout`);
-  if (layout) layout.classList.toggle('is-search-browser', ['words', 'dictionary', 'topics', 'books'].includes(section));
+  if (layout) layout.classList.toggle('is-search-browser', ['entities', 'words', 'dictionary', 'topics', 'books'].includes(section));
 }
 
 function renderEntityDetail(record, host) {

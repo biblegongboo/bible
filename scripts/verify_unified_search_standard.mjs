@@ -7,6 +7,7 @@ const checks = [
   ['Bible People alphabet', html.includes('id="biblePeopleAlphabet"')],
   ['Places alphabet', html.includes('id="biblePlaceAlphabet"')],
   ['Verse Topics alphabet', html.includes('id="bibleEntitiesAlphabet"')],
+  ['Verse Topics uses independent scrolling', explorer.includes("['entities', 'words', 'dictionary', 'topics', 'books'].includes(section)")],
   ['Journeys search directory', html.includes('id="bibleJourneySearch"') && html.includes('id="bibleJourneyResults"') && html.includes('id="bibleJourneyAlphabet"')],
   ['Timeline search directory', html.includes('id="bibleTimelineSearch"') && html.includes('id="bibleTimelineResults"') && html.includes('id="bibleTimelineAlphabet"')],
   ['Early Church alphabet', html.includes('id="biblePatristicAlphabet"')],
