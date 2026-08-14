@@ -6613,6 +6613,25 @@ function initBibleSpeechControls() {
       var segment = segments[segmentIndex];
       var speak = function() {
         if (runId !== bibleSpeechRunId) return;
+        var speakWithBrowser = function() {
+          if (!bibleBrowserSpeechSupported) {
+            bibleAutoReadActive = false;
+            window.alert('Android text-to-speech could not start. Please check that a text-to-speech engine is enabled in your device settings.');
+            return;
+          }
+          var utterance = new SpeechSynthesisUtterance(segment.text);
+          utterance.lang = segment.lang;
+          utterance.rate = bibleSpeechRate;
+          var voice = getBibleVoice_(segment.lang);
+          if (voice) utterance.voice = voice;
+          utterance.onend = function() {
+            speakBibleSegment_(segmentIndex + 1);
+          };
+          utterance.onerror = function() {
+            bibleAutoReadActive = false;
+          };
+          window.speechSynthesis.speak(utterance);
+        };
         if (bibleNativeSpeech && typeof bibleNativeSpeech.speak === 'function') {
           Promise.resolve(bibleNativeSpeech.speak({
             text: segment.text,
@@ -6624,23 +6643,13 @@ function initBibleSpeechControls() {
           })).then(function() {
             speakBibleSegment_(segmentIndex + 1);
           }).catch(function() {
-            bibleAutoReadActive = false;
-            window.alert('Android text-to-speech could not start. Please check that a text-to-speech engine is enabled in your device settings.');
+            // Preserve the reading feature when the native bridge is present
+            // but temporarily unavailable after remote WebView navigation.
+            speakWithBrowser();
           });
           return;
         }
-        var utterance = new SpeechSynthesisUtterance(segment.text);
-        utterance.lang = segment.lang;
-        utterance.rate = bibleSpeechRate;
-        var voice = getBibleVoice_(segment.lang);
-        if (voice) utterance.voice = voice;
-        utterance.onend = function() {
-          speakBibleSegment_(segmentIndex + 1);
-        };
-        utterance.onerror = function() {
-          bibleAutoReadActive = false;
-        };
-        window.speechSynthesis.speak(utterance);
+        speakWithBrowser();
       };
       if (segment.delayBefore > 0) {
         window.setTimeout(speak, segment.delayBefore);

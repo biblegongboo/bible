@@ -3,6 +3,12 @@
 <link rel="icon" href="data:,">
 <script>
 (function () {
+  const params = new URLSearchParams(location.search);
+  if (params.get('mobile') === 'quiz' || params.get('app') === 'android') {
+    document.documentElement.classList.add('mobile-quiz');
+  }
+})();
+(function () {
   try {
     const user = JSON.parse(localStorage.getItem('quiz_current_user_v1') || 'null');
     if (String(user?.account_type || '').trim().toLowerCase() === 'admin') {
@@ -2108,18 +2114,58 @@ html:not(.admin-user) .admin-preview-panel {
   @media(max-width:760px){.bible-explore-layout.is-search-browser{display:grid;grid-template-columns:1fr;height:auto}.bible-explore-layout.is-search-browser>.bible-people-results{height:42vh;max-height:none}.bible-explore-layout.is-search-browser>.bible-people-detail{height:55vh;min-height:0}}
 </style>
 
-<link rel="stylesheet" href="https://biblegongboo.github.io/gongboo-shared/navigator.css?v=4">
+<style>
+html.mobile-quiz #biblePeoplePanel,
+html.mobile-quiz #bibleExplorePanel{display:none!important}
+html.mobile-quiz .persistent-explore-toggle,
+html.mobile-quiz .persistent-people-toggle,
+html.mobile-quiz .bible-guide-toggle,
+html.mobile-quiz .bible-logout-toggle,
+html.mobile-quiz .bible-verse-places-button,
+html.mobile-quiz .bible-verse-knowledge-button{
+  opacity:.34!important;filter:grayscale(1)!important;cursor:not-allowed!important;
+  pointer-events:none!important;box-shadow:none!important
+}
+html.mobile-quiz .bible-inline-entity-link{border:0!important;background:transparent!important;color:inherit!important;cursor:default!important;pointer-events:none!important;font-weight:inherit!important}
+</style>
+<script>
+if (document.documentElement.classList.contains('mobile-quiz')) {
+  function disableNonQuizControls(root) {
+    (root || document).querySelectorAll('.persistent-explore-toggle,.persistent-people-toggle,.bible-guide-toggle,.bible-logout-toggle,.bible-verse-places-button,.bible-verse-knowledge-button').forEach(function (button) {
+      button.disabled = true;
+      button.setAttribute('aria-disabled', 'true');
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    disableNonQuizControls(document);
+    new MutationObserver(function (records) {
+      records.forEach(function (record) {
+        record.addedNodes.forEach(function (node) {
+          if (node.nodeType === 1) disableNonQuizControls(node);
+        });
+      });
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+  document.addEventListener('click', function (event) {
+    if (event.target.closest('[data-bible-person-id],[data-bible-place-id],[data-bible-place-name],[data-bible-event-id],[data-timeline-person-id],[data-timeline-place-id],[data-related-person-id],[data-bible-verse-places],[data-bible-verse-knowledge]')) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, true);
+}
+</script>
+<link rel="stylesheet" href="https://biblegongboo.github.io/gongboo-shared/navigator.css?v=5">
 <script src="./supabase-config.js?v=8.60-supabase-storage1"></script>
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.98-nt-catalog1"></script>
 <script type="module">
-import { initialize } from './main.js?v=9.55-selected-book-first1';
+import { initialize } from './main.js?v=9.56-android-quiz-mode1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
 });
 </script>
-<script src="https://biblegongboo.github.io/gongboo-shared/navigator.js?v=4"></script>
+<script src="https://biblegongboo.github.io/gongboo-shared/navigator.js?v=5"></script>
 
 
 
