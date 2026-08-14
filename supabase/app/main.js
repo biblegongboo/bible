@@ -7365,6 +7365,10 @@ function initBiblePeopleExplorer() {
 // ========================================================================
 var BIBLE_CHAPTER_CATALOG = [];
 var BIBLE_SELECTED_BOOK = '';
+var BIBLE_DIRECT_BOOK = (function() {
+  var request = String(new URLSearchParams(window.location.search).get('study') || '');
+  return request.indexOf('book:') === 0 ? request.slice(5) : '';
+})();
 var bibleLegacyDetectTotalQuestions_ = detectTotalQuestions;
 var bibleLegacyUpdateSetSelector_ = updateSetSelector;
 var bibleChapterCatalogPromise_ = null;
@@ -7483,6 +7487,12 @@ function renderBibleBookPicker_() {
         return String(item.BOOK_EN || item.BOOK_KO || '') === bookName;
       });
       return String(chapter && chapter.TESTAMENT || 'OT').toUpperCase() === group.testament;
+    }).sort(function(left, right) {
+      // A book chosen from the orange navigator is temporarily placed first so
+      // its chapters open immediately without scrolling the whole page down.
+      if (left === BIBLE_DIRECT_BOOK) return -1;
+      if (right === BIBLE_DIRECT_BOOK) return 1;
+      return bibleBookRank_(left) - bibleBookRank_(right);
     }).forEach(function(bookName) {
     var firstChapter = BIBLE_CHAPTER_CATALOG.find(function(chapter) {
       return String(chapter.BOOK_EN || chapter.BOOK_KO || '') === bookName;
