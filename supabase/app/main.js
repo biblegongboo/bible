@@ -6321,7 +6321,45 @@ console.log("📊 v8.0B: Learn / Study / Exam mode engine enabled");
 // ========================================================================
 // BIBLE: Browser speech controls (Chrome/Safari)
 // ========================================================================
+function getGongBooSpeechAdapter_() {
+  if (!window.GongBooSpeech || typeof window.GongBooSpeech.speak !== 'function') return null;
+  if (!window.__gongbooSpeechCallbacks) window.__gongbooSpeechCallbacks = {};
+  if (!window.__gongbooNativeSpeechDone) {
+    window.__gongbooNativeSpeechDone = function(callbackId, ok) {
+      var callback = window.__gongbooSpeechCallbacks[callbackId];
+      if (!callback) return;
+      delete window.__gongbooSpeechCallbacks[callbackId];
+      if (ok) callback.resolve();
+      else callback.reject(new Error('Android text-to-speech failed.'));
+    };
+  }
+  return {
+    speak: function(options) {
+      return new Promise(function(resolve, reject) {
+        var callbackId = 'bible_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+        window.__gongbooSpeechCallbacks[callbackId] = { resolve: resolve, reject: reject };
+        window.GongBooSpeech.speak(
+          String(options.text || ''),
+          String(options.lang || 'en-US'),
+          Number(options.rate || 1),
+          callbackId
+        );
+      });
+    },
+    stop: function() {
+      window.GongBooSpeech.stop();
+      Object.keys(window.__gongbooSpeechCallbacks).forEach(function(callbackId) {
+        window.__gongbooSpeechCallbacks[callbackId].resolve();
+        delete window.__gongbooSpeechCallbacks[callbackId];
+      });
+      return Promise.resolve();
+    }
+  };
+}
+
 function getBibleNativeSpeechPlugin_() {
+  var hostSpeech = getGongBooSpeechAdapter_();
+  if (hostSpeech) return hostSpeech;
   var capacitor = window.Capacitor;
   if (!capacitor) return null;
   var isNative = typeof capacitor.isNativePlatform === 'function'
