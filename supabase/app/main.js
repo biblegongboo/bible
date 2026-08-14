@@ -328,13 +328,11 @@ function getSessionToken_() {
 
 async function fetchQuizApi_(params, signal) {
   var token = getSessionToken_();
-  if (!token) {
-    clearAuthAndRedirect('TOKEN_MISSING');
-    throw new Error('Please log in again.');
-  }
   var body = {};
   params.forEach(function(value, key) { body[key] = value; });
-  body.session_token = token;
+  // Bible beta content is public. Signed-in sessions may still be forwarded,
+  // but a missing session must never block or redirect a guest learner.
+  if (token) body.session_token = token;
   var response;
   if (window.BibleSupabaseProvider &&
       typeof window.BibleSupabaseProvider.request === 'function') {
@@ -348,8 +346,10 @@ async function fetchQuizApi_(params, signal) {
     });
   }
   if (response && (response.status === 401 || response.status === 403)) {
-    clearAuthAndRedirect('SESSION_EXPIRED');
-    var authError = new Error('Your session has expired. Please log in again.');
+    if (token) clearAuthAndRedirect('SESSION_EXPIRED');
+    var authError = new Error(token
+      ? 'Your session has expired. Please log in again.'
+      : 'The public Bible content service is temporarily unavailable.');
     authError.code = 'AUTH_EXPIRED';
     throw authError;
   }
