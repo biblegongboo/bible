@@ -7827,6 +7827,13 @@ updateSetSelector = function() {
 
   renderBibleBookPicker_();
 
+  // The exact server catalog replaces the instant shell after first paint.
+  // Restore the book selected by the shared navigator instead of collapsing it.
+  if (BIBLE_SELECTED_BOOK) {
+    var selectedBookButton = document.querySelector('#bibleBookPicker [data-book="' + BIBLE_SELECTED_BOOK + '"]');
+    if (selectedBookButton) selectedBookButton.click();
+  }
+
   if (DOM.startNumberInput && !IS_ADMIN_USER) {
     DOM.startNumberInput.parentElement.style.display = 'none';
   }
