@@ -63,15 +63,25 @@ Deno.serve(async (request) => {
   });
   const payload = await request.json().catch(() => ({}));
   const requestedSubject = String(payload.sheet || "BIBLE-OT").replace(/-/g, "_").toUpperCase();
+  const questionTable = requestedSubject === "BIBLE_NT"
+    ? "bible_nt_questions"
+    : "bible_ot_questions";
   if (payload.action === "catalog") {
-    const { data: catalogRows, error: catalogError } = await admin
-      .from("bible_question_catalog")
-      .select("catalog_code,book_code,chapter,start_n,last_n,question_count,status")
-      .order("start_n", { ascending: true });
-    if (catalogError) return json({ status: "error", message: catalogError.message }, 500);
+    const catalogRows: Record<string, unknown>[] = [];
+    const pageSize = 1000;
+    for (let offset = 0; ; offset += pageSize) {
+      const { data: page, error: catalogError } = await admin
+        .from("bible_question_catalog")
+        .select("catalog_code,book_code,chapter,start_n,last_n,question_count,status")
+        .order("catalog_code", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+      if (catalogError) return json({ status: "error", message: catalogError.message }, 500);
+      catalogRows.push(...(page || []));
+      if (!page || page.length < pageSize) break;
+    }
     return json({
       status: "success",
-      catalog: (catalogRows || []).map((row) => ({
+      catalog: catalogRows.map((row) => ({
         CODE: row.catalog_code,
         BOOK_EN: row.book_code,
         CHAPTER: row.chapter,
@@ -87,8 +97,9 @@ Deno.serve(async (request) => {
     if (!/^(OT|NT)-.+-\d{2,3}-\d{2,3}$/i.test(sourceCode)) {
       return json({ status: "error", message: "A valid Scripture reference is required." }, 400);
     }
+    const sourceTable = /^NT-/i.test(sourceCode) ? "bible_nt_questions" : "bible_ot_questions";
     const { data: sourceRows, error: sourceError } = await admin
-      .from("bible_questions")
+      .from(sourceTable)
       .select("n,source_code")
       .eq("source_code", sourceCode)
       .order("n", { ascending: true })
@@ -99,15 +110,9 @@ Deno.serve(async (request) => {
       data: (sourceRows || []).map((row) => ({ N: row.n, SOURCE_CODE: row.source_code })),
     });
   }
-  if (requestedSubject === "BIBLE_NT") {
-    return json(payload.total === "true" || payload.total === true
-      ? { status: "success", total: 0 }
-      : { status: "success", data: [] });
-  }
-
   if (payload.total === "true" || payload.total === true) {
     const { count, error } = await admin
-      .from("bible_questions")
+      .from(questionTable)
       .select("n", { count: "exact", head: true });
     if (error) return json({ status: "error", message: error.message }, 500);
     return json({
@@ -119,7 +124,7 @@ Deno.serve(async (request) => {
   let start = Math.max(1, Number.parseInt(String(payload.start || 1), 10) || 1);
   let limit = Math.min(200, Math.max(1, Number.parseInt(String(payload.limit || 50), 10) || 50));
   const { data: rows, error } = await admin
-    .from("bible_questions")
+    .from(questionTable)
     .select("*")
     .gte("n", start)
     .lte("n", start + limit - 1)
