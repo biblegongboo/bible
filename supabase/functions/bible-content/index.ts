@@ -44,47 +44,25 @@ Deno.serve(async (request) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   const authorization = request.headers.get("Authorization") || "";
   const accessToken = authorization.replace(/^Bearer\s+/i, "");
-  if (!supabaseUrl || !anonKey || !serviceKey || !accessToken) {
-    return json({ status: "error", code: "AUTH_REQUIRED", message: "Please log in again." }, 401);
+  if (!supabaseUrl || !anonKey || !serviceKey) {
+    return json({ status: "error", code: "SERVER_CONFIG", message: "Bible content is unavailable." }, 500);
   }
 
-  const authClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data: authData, error: authError } = await authClient.auth.getUser(accessToken);
-  if (authError || !authData.user) {
-    return json({ status: "error", code: "AUTH_INVALID", message: "Please log in again." }, 401);
+  // Bible study is public during beta. Authentication remains optional so a
+  // signed-in user can still be recognized without blocking guest access.
+  if (accessToken) {
+    const authClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    await authClient.auth.getUser(accessToken);
   }
 
   const admin = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data: profile, error: profileError } = await admin
-    .from("member_profiles")
-    .select("account_type,payment_status,expired_date,access_subjects,is_trial,trial_start,trial_limit,active")
-    .eq("id", authData.user.id)
-    .single();
-  if (profileError || !profile || !profile.active) {
-    return json({ status: "error", code: "AUTH_INACTIVE", message: "This account is inactive." }, 403);
-  }
-
-  const today = new Date().toISOString().slice(0, 10);
-  const isAdmin = profile.account_type === "admin";
-  const isTrial = profile.is_trial === true || profile.payment_status === "p";
-  if (!isAdmin && profile.expired_date && profile.expired_date < today) {
-    return json({ status: "error", code: "AUTH_EXPIRED", message: "Your subscription has expired." }, 403);
-  }
-  if (!isAdmin && !isTrial && profile.payment_status !== "a") {
-    return json({ status: "error", code: "AUTH_NO_ACCESS", message: "No active subscription." }, 403);
-  }
-
   const payload = await request.json().catch(() => ({}));
   const requestedSubject = String(payload.sheet || "BIBLE-OT").replace(/-/g, "_").toUpperCase();
-  const allowedSubjects = Array.isArray(profile.access_subjects) ? profile.access_subjects : [];
-  if (!isAdmin && !isTrial && !allowedSubjects.includes(requestedSubject)) {
-    return json({ status: "error", code: "AUTH_SUBJECT_DENIED", message: "Subject access is not assigned." }, 403);
-  }
   if (payload.action === "catalog") {
     const { data: catalogRows, error: catalogError } = await admin
       .from("bible_question_catalog")
@@ -134,16 +112,12 @@ Deno.serve(async (request) => {
     if (error) return json({ status: "error", message: error.message }, 500);
     return json({
       status: "success",
-      total: isTrial && !isAdmin ? Math.min(Number(profile.trial_limit || 20), count || 0) : count || 0,
+      total: count || 0,
     });
   }
 
   let start = Math.max(1, Number.parseInt(String(payload.start || 1), 10) || 1);
   let limit = Math.min(200, Math.max(1, Number.parseInt(String(payload.limit || 50), 10) || 50));
-  if (isTrial && !isAdmin) {
-    start = Math.max(1, Number(profile.trial_start || 1));
-    limit = Math.min(limit, Math.max(1, Number(profile.trial_limit || 20)));
-  }
   const { data: rows, error } = await admin
     .from("bible_questions")
     .select("*")
