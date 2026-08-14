@@ -125,11 +125,11 @@
 
   async function callQuestionFunction_(payload, signal) {
     var functionName = String(config.questionFunction || 'bible-content');
-    var accessToken = await validAccessToken_();
     var result = await fetch(baseUrl + '/functions/v1/' + functionName, {
       method: 'POST',
-      headers: Object.assign({}, headers_(accessToken), {
-        Authorization: 'Bearer ' + (accessToken || publishableKey),
+      // Bible beta questions are public. Omitting Authorization avoids stale
+      // mobile sessions and invalid publishable-key bearer tokens in WebView.
+      headers: Object.assign({}, headers_(''), {
         'Content-Type': 'application/json;charset=utf-8'
       }),
       body: JSON.stringify(payload),

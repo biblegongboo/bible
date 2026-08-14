@@ -1705,7 +1705,12 @@ async function detectTotalQuestions() {
         return TOTAL_QUESTIONS;
     }
 
-    throw new Error('Question count is unavailable for ' + currentSubject);
+    // The Bible catalog is fixed during beta. Keep Android WebView usable when
+    // its first count request is interrupted; question rows are still fetched
+    // from Supabase when the learner starts a lesson.
+    TOTAL_QUESTIONS = 3035;
+    updateSplash(60, 'Preparing data...');
+    return TOTAL_QUESTIONS;
 }
 
 // ========================================================================
