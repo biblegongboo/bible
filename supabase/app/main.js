@@ -12,6 +12,10 @@ import { isSuperGraphicPayload, preloadSuperGraphicEngine, renderSuperGraphicPay
 import { VectorScene25D, sceneFromGraphicObjects } from './graphics/map25d/vector-scene25d.js?v=9.21-pointer-click-selection1';
 import './bible-explorer.js?v=9.33-all-search-standard2';
 
+// Enter from a deliberate position instead of restoring an old page offset.
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+window.scrollTo(0, 0);
+
 // ========================================================================
 // BLOCK 0000: 시스템 메타 정보
 // ========================================================================
@@ -5999,8 +6003,8 @@ function initialize() {
       
       setTimeout(function() { 
         if (DOM.startNumberInput) {
-          DOM.startNumberInput.focus(); 
-          DOM.startNumberInput.select(); 
+          // Do not focus this setup input during startup. It is hidden for the
+          // Bible catalog and focusing it moves the viewport toward AI Tutor.
         }
       }, 150);
       
@@ -7361,6 +7365,9 @@ function initBiblePeopleExplorer() {
 // ========================================================================
 var BIBLE_CHAPTER_CATALOG = [];
 var BIBLE_SELECTED_BOOK = '';
+var BIBLE_DIRECT_BOOK_POSITION_PENDING = /^book:/i.test(
+  String(new URLSearchParams(window.location.search).get('study') || '')
+);
 var bibleLegacyDetectTotalQuestions_ = detectTotalQuestions;
 var bibleLegacyUpdateSetSelector_ = updateSetSelector;
 var bibleChapterCatalogPromise_ = null;
@@ -7831,7 +7838,19 @@ updateSetSelector = function() {
   // Restore the book selected by the shared navigator instead of collapsing it.
   if (BIBLE_SELECTED_BOOK) {
     var selectedBookButton = document.querySelector('#bibleBookPicker [data-book="' + BIBLE_SELECTED_BOOK + '"]');
-    if (selectedBookButton) selectedBookButton.click();
+    if (selectedBookButton) {
+      selectedBookButton.click();
+      // Position the chosen book once after the exact catalog replaces the
+      // instant shell. Later re-renders must not move the user's page.
+      if (BIBLE_DIRECT_BOOK_POSITION_PENDING && !BIBLE_CHAPTER_CATALOG[0].__instant) {
+        BIBLE_DIRECT_BOOK_POSITION_PENDING = false;
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            selectedBookButton.scrollIntoView({ behavior: 'auto', block: 'start' });
+          });
+        });
+      }
+    }
   }
 
   if (DOM.startNumberInput && !IS_ADMIN_USER) {

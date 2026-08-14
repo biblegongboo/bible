@@ -13,6 +13,7 @@ function expect(pattern, message) {
 
 expect(/prepareBibleInstantHome_\(\);[\s\S]*requestIdleCallback/, 'first screen renders before explorer bindings');
 expect(/function prepareBibleInstantHome_\(\)[\s\S]*updateSetSelector\(\);[\s\S]*hideSplash\(\);/, 'instant catalog closes the splash without a network wait');
+expect(/history\.scrollRestoration = 'manual'/, 'startup disables stale browser scroll restoration');
 expect(/if \(chapter\.__instant\)[\s\S]*await ensureBibleChapterCatalog_\(\)/, 'early chapter clicks wait for the exact catalog');
 expect(/bibleChapterCatalogPromise_/, 'catalog requests are deduplicated');
 
