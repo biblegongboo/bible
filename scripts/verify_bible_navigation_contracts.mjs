@@ -18,7 +18,7 @@ const checks = [
   ['graphic selection happens before a re-render can replace the click target', vector.includes("circle.addEventListener('pointerdown', selectNode)") && vector.includes("hitTarget.addEventListener('pointerdown', selectNode)")],
   ['graphic selection retains a mouse click fallback', vector.includes("circle.addEventListener('click', selectNode)") && vector.includes("hitTarget.addEventListener('click', selectNode)")],
   ['Scripture navigation runs after component handlers', /openBibleScriptureReference_\(referenceButton\.dataset\.bibleSourceCode\);\s*}\);/.test(main)],
-  ['release HTML requests the current main bundle', index.includes('main.js?v=9.50-people-canonical-alphabet1')]
+  ['release HTML requests the current main bundle', index.includes('main.js?v=9.51-fast-boot1')]
   ,['main requests the current Explorer bundle', main.includes('bible-explorer.js?v=9.33-all-search-standard2')]
   ,['missing exact verse opens nearest chapter question without an alert', main.includes('opened the nearest available chapter question') && !main.includes("alert('The chapter opened, but no quiz has been created for '")]
 ];
