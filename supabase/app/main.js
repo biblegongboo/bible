@@ -1026,10 +1026,17 @@ function updateProgressDisplay() {
 }
 
 function showLoadingOverlay(message) {
+  hideLoadingOverlay();
   var overlay = document.createElement('div');
   overlay.id = 'loadingOverlay';
   overlay.className = 'loading-overlay';
-  overlay.innerHTML = '<div class="loading-spinner"></div><h3>' + message + '</h3>';
+  overlay.setAttribute('role', 'status');
+  overlay.setAttribute('aria-live', 'polite');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(4,22,38,.72);padding:24px';
+  overlay.innerHTML = '<div style="width:min(320px,88vw);padding:28px 22px;border-radius:20px;background:#fff;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.28)">' +
+    '<div class="loading-spinner" style="font-size:48px;line-height:1;margin-bottom:14px">⏳</div>' +
+    '<h3 style="margin:0;color:#172033;font-size:20px">' + (message || 'Loading questions...') + '</h3>' +
+    '<p style="margin:10px 0 0;color:#64748b;font-size:14px">Please wait. Do not tap START again.</p></div>';
   document.body.appendChild(overlay);
   return overlay;
 }
@@ -1738,18 +1745,20 @@ function isRetryableQuestionLoadError_(error) {
 }
 
 async function load50Questions(uiStartNumber, retryCount = 0) {
-    const MAX_RETRIES = 3;
+    const MAX_RETRIES = 2;
     if (TOTAL_QUESTIONS === 0) await detectTotalQuestions();
     
     if (currentAbortController) {
         currentAbortController.abort();
         LOG.debug('🛑 Previous request aborted');
     }
-    currentAbortController = new AbortController();
+    const requestController = new AbortController();
+    currentAbortController = requestController;
     
+    const requestTimeout = /Android/i.test(navigator.userAgent) ? 45000 : 25000;
     const timeoutId = setTimeout(() => {
-        if (currentAbortController) currentAbortController.abort();
-    }, 15000);
+        requestController.abort();
+    }, requestTimeout);
     
     try {
         var requestParams = new URLSearchParams();
@@ -1767,7 +1776,7 @@ async function load50Questions(uiStartNumber, retryCount = 0) {
         requestParams.set('sheet', DATA_SHEET);
         console.log('📡 Requesting authorized questions');
         
-        var response = await fetchQuizApi_(requestParams, currentAbortController.signal);
+        var response = await fetchQuizApi_(requestParams, requestController.signal);
         clearTimeout(timeoutId);
         
         if (!response.ok) throw new Error('HTTP ' + response.status);
@@ -1962,7 +1971,7 @@ async function load50Questions(uiStartNumber, retryCount = 0) {
             if (retryCount < MAX_RETRIES) {
                 const delay = Math.pow(2, retryCount) * 1000;
                 console.warn(`🔄 재시도 ${retryCount + 1}/${MAX_RETRIES} (${delay}ms 대기)...`);
-                updateQuestionLoadingStatus_('Loading questions...');
+                updateQuestionLoadingStatus_('Connection is slow · retrying ' + (retryCount + 1) + ' of ' + MAX_RETRIES + '...');
                 await new Promise(resolve => setTimeout(resolve, delay));
                 return load50Questions(uiStartNumber, retryCount + 1);
             }
@@ -1975,7 +1984,7 @@ async function load50Questions(uiStartNumber, retryCount = 0) {
         if (retryCount < MAX_RETRIES) {
             const delay = Math.pow(2, retryCount) * 1000;
             console.warn(`🔄 재시도 ${retryCount + 1}/${MAX_RETRIES} (${delay}ms 대기)...`);
-            updateQuestionLoadingStatus_('Loading questions...');
+            updateQuestionLoadingStatus_('Connection is slow · retrying ' + (retryCount + 1) + ' of ' + MAX_RETRIES + '...');
             await new Promise(resolve => setTimeout(resolve, delay));
             return load50Questions(uiStartNumber, retryCount + 1);
         }
@@ -5847,7 +5856,9 @@ async function startQuizWithNumber(uiStartNumber, options) {
     }
   }
   
-  var overlay = showLoadingOverlay('Loading questions...');
+  var overlay = showLoadingOverlay('Loading Bible questions...');
+  if (DOM.startQuizBtn) DOM.startQuizBtn.disabled = true;
+  document.body.setAttribute('aria-busy', 'true');
   try {
     var questions = await load50Questions(startNum);
     if (questions.length === 0) throw new Error('No question data received');
@@ -5859,6 +5870,8 @@ async function startQuizWithNumber(uiStartNumber, options) {
     isReviewMode = false;
     startAutoSave();
     hideLoadingOverlay();
+    if (DOM.startQuizBtn) DOM.startQuizBtn.disabled = false;
+    document.body.removeAttribute('aria-busy');
     DOM.setupSection.style.display = 'none';
     DOM.quizMain.style.display = 'block';
     
@@ -5882,9 +5895,14 @@ async function startQuizWithNumber(uiStartNumber, options) {
   } catch(err) {
     if (err.name === 'AbortError') {
       LOG.info('🛑 Request aborted, user navigated away');
+      hideLoadingOverlay();
+      if (DOM.startQuizBtn) DOM.startQuizBtn.disabled = false;
+      document.body.removeAttribute('aria-busy');
       return false;
     }
     hideLoadingOverlay();
+    if (DOM.startQuizBtn) DOM.startQuizBtn.disabled = false;
+    document.body.removeAttribute('aria-busy');
     alert(LANG.loadError + ' ' + err.message);
     console.error(err);
     return false;
