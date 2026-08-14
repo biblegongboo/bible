@@ -2123,8 +2123,9 @@ html.mobile-quiz .bible-guide-toggle,
 html.mobile-quiz .bible-logout-toggle,
 html.mobile-quiz .bible-verse-places-button,
 html.mobile-quiz .bible-verse-knowledge-button{
-  opacity:.34!important;filter:grayscale(1)!important;cursor:not-allowed!important;
-  pointer-events:none!important;box-shadow:none!important
+  opacity:.2!important;filter:grayscale(1)!important;cursor:not-allowed!important;
+  pointer-events:none!important;box-shadow:none!important;background:#d1d5db!important;
+  border-color:#9ca3af!important;color:#6b7280!important
 }
 html.mobile-quiz .bible-inline-entity-link{border:0!important;background:transparent!important;color:inherit!important;cursor:default!important;pointer-events:none!important;font-weight:inherit!important}
 </style>
@@ -2138,13 +2139,6 @@ if (document.documentElement.classList.contains('mobile-quiz')) {
   }
   document.addEventListener('DOMContentLoaded', function () {
     disableNonQuizControls(document);
-    new MutationObserver(function (records) {
-      records.forEach(function (record) {
-        record.addedNodes.forEach(function (node) {
-          if (node.nodeType === 1) disableNonQuizControls(node);
-        });
-      });
-    }).observe(document.body, { childList: true, subtree: true });
   });
   document.addEventListener('click', function (event) {
     if (event.target.closest('[data-bible-person-id],[data-bible-place-id],[data-bible-place-name],[data-bible-event-id],[data-timeline-person-id],[data-timeline-place-id],[data-related-person-id],[data-bible-verse-places],[data-bible-verse-knowledge]')) {
@@ -2154,7 +2148,7 @@ if (document.documentElement.classList.contains('mobile-quiz')) {
   }, true);
 }
 </script>
-<link rel="stylesheet" href="https://biblegongboo.github.io/gongboo-shared/navigator.css?v=5">
+<link rel="stylesheet" href="https://biblegongboo.github.io/gongboo-shared/navigator.css?v=6">
 <script src="./supabase-config.js?v=8.60-supabase-storage1"></script>
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=8.98-nt-catalog1"></script>
@@ -2165,7 +2159,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initialize();
 });
 </script>
-<script src="https://biblegongboo.github.io/gongboo-shared/navigator.js?v=5"></script>
+<script src="https://biblegongboo.github.io/gongboo-shared/navigator.js?v=6"></script>
 
 
 
