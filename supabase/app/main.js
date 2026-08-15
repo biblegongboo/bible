@@ -5344,11 +5344,22 @@ function attachBibleEnglishEntityLinks_(q) {
     var people = results[0] || {};
     var context = results[1] || {};
     var names = {};
+    var sourcePeople = {};
+    ((context.source_to_entities && context.source_to_entities[sourceCode]) || []).forEach(function(personId) {
+      sourcePeople[String(personId)] = true;
+    });
     Object.keys(people).forEach(function(personId) {
       var name = String(people[personId] && people[personId].name || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
       var key = name.toLowerCase();
       if (!name || name.length < 3 || /^(god|lord|man|woman|king|son|father)$/i.test(name)) return;
-      names[key] = names[key] === undefined ? { name: key, kind: 'person', id: personId } : null;
+      var candidate = { name: key, kind: 'person', id: personId, inSource: !!sourcePeople[personId] };
+      if (names[key] === undefined) {
+        names[key] = candidate;
+      } else if (names[key] && candidate.inSource !== names[key].inSource) {
+        if (candidate.inSource) names[key] = candidate;
+      } else {
+        names[key] = null;
+      }
     });
     var sourcePlaces = (context.source_to_places && context.source_to_places[sourceCode]) || [];
     sourcePlaces.forEach(function(placeId) {
