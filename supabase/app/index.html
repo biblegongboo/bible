@@ -2100,7 +2100,8 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-testament-group{min-width:0;margin:0 0 18px;padding:0;background:transparent}
   .bible-testament-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 9px;padding:0 2px;color:#334155;font-size:14px;font-weight:800}
   .bible-testament-title small{color:#64748b;font-size:11px;font-weight:700}
-  .bible-book-grid{display:block}
+  .bible-book-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 18px;align-items:start}
+  .bible-book-column{min-width:0}
   .bible-book-button,.bible-chapter-button{color:#1e293b;font:700 13px/1.2 inherit;cursor:pointer;transition:color .15s,background .15s}
   .bible-book-button{display:block;width:100%;min-height:44px;border:0;border-bottom:1px solid #e2e8f0;border-radius:0;padding:0 4px;background:transparent;text-align:left;white-space:nowrap;touch-action:manipulation}
   .bible-book-button:hover{background:#f8fafc;color:#1d4ed8}
@@ -2115,7 +2116,7 @@ html:not(.admin-user) .admin-preview-panel {
   .resume-quick .resume-badge:hover{background:#fffdf3;border-color:#d99a16;transform:none}
   .resume-quick .resume-badge .count{font-size:inherit}
   .bible-legacy-chapter-select{display:none!important}
-  @media(max-width:600px){.setup-area{margin:8px;padding:18px 10px}.card{padding:20px 10px}.bible-book-button{font-size:14px}.bible-chapter-picker{padding:3px 2px 9px}.bible-chapter-button{min-width:36px;height:38px}.card-resume{padding:18px 12px}}
+  @media(max-width:600px){.setup-area{margin:8px;padding:18px 10px}.card{padding:20px 10px}.bible-book-grid{gap:0 10px}.bible-book-button{font-size:13px;overflow:hidden;text-overflow:ellipsis}.bible-testament-title{font-size:12px}.bible-testament-title small{display:none}.bible-chapter-picker{padding:3px 2px 9px}.bible-chapter-button{min-width:36px;height:38px}.card-resume{padding:18px 12px}}
   @media(max-width:760px){.bible-people-panel{padding:0}.bible-people-dialog{min-height:100vh;border-radius:0}.bible-people-layout{grid-template-columns:1fr}.bible-people-results{min-height:0;max-height:210px}.bible-people-detail{min-height:430px}.bible-person-title{display:block}.bible-person-id{display:inline-block;margin-top:10px}.bible-explore-tabs,.bible-knowledge-sections{padding-left:14px;padding-right:14px}.bible-explore-toolbar{padding-left:14px;padding-right:14px}.bible-explore-output{margin-left:14px;margin-right:14px}.bible-source-images{grid-template-columns:1fr}}
   .bible-explore-layout.is-search-browser{grid-template-columns:minmax(220px,28%) minmax(0,1fr);height:min(68vh,720px);min-height:520px;align-items:stretch}
   .bible-explore-layout.is-search-browser>.bible-people-results,.bible-explore-layout.is-search-browser>.bible-people-detail{min-height:0;height:100%;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
@@ -2161,7 +2162,7 @@ if (document.documentElement.classList.contains('mobile-quiz')) {
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=9.60-mobile-loading1"></script>
 <script type="module">
-import { initialize } from './main.js?v=9.63-testament-catalog1';
+import { initialize } from './main.js?v=9.64-two-column-books1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
@@ -2256,7 +2257,7 @@ document.addEventListener('DOMContentLoaded', () => {
       id="chatbotResponse" 
       style="margin-top:10px;padding:18px;background:#f8f9fa;border-radius:16px;min-height:70px;white-space:pre-wrap;border-left:4px solid #f5a623;font-size:15px;line-height:1.6;color:#1a1a2e;"
     >
-      💡 Ask anything about this SAT question.
+      💡 Ask anything about this BIBLE question.
     </div>
   </div>
 </div>

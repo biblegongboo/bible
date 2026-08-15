@@ -7552,57 +7552,48 @@ function renderBibleBookPicker_() {
   bookHost.innerHTML = '';
   var startButton = document.getElementById('startQuizBtn');
   if (startButton) startButton.disabled = true;
-  var groups = [
-    { testament: 'OT', title: 'Old Testament', count: 39 },
-    { testament: 'NT', title: 'New Testament', count: 27 }
-  ];
-  groups.forEach(function(group) {
-    var section = document.createElement('section');
-    section.className = 'bible-testament-group';
-    section.setAttribute('aria-labelledby', 'bible-' + group.testament.toLowerCase() + '-title');
-    var heading = document.createElement('h3');
-    heading.id = 'bible-' + group.testament.toLowerCase() + '-title';
-    heading.className = 'bible-testament-title';
-    heading.innerHTML = '<span>' + group.title + '</span><small>' + group.count + ' books</small>';
-    var grid = document.createElement('div');
-    grid.className = 'bible-book-grid';
-    section.appendChild(heading);
-    section.appendChild(grid);
-    bookHost.appendChild(section);
-    books.filter(function(bookName) {
-      var chapter = BIBLE_CHAPTER_CATALOG.find(function(item) {
-        return String(item.BOOK_EN || item.BOOK_KO || '') === bookName;
+  var grid = document.createElement('div');
+  grid.className = 'bible-book-grid';
+  var midpoint = Math.ceil(books.length / 2);
+  [books.slice(0, midpoint), books.slice(midpoint)].forEach(function(columnBooks, columnIndex) {
+    var column = document.createElement('section');
+    column.className = 'bible-book-column';
+    var previousTestament = '';
+    columnBooks.forEach(function(bookName) {
+      var firstChapter = BIBLE_CHAPTER_CATALOG.find(function(chapter) {
+        return String(chapter.BOOK_EN || chapter.BOOK_KO || '') === bookName;
       });
-      return String(chapter && chapter.TESTAMENT || 'OT').toUpperCase() === group.testament;
-    }).sort(function(left, right) {
-      // A book chosen from the orange navigator is temporarily placed first so
-      // its chapters open immediately without scrolling the whole page down.
-      if (left === BIBLE_DIRECT_BOOK) return -1;
-      if (right === BIBLE_DIRECT_BOOK) return 1;
-      return bibleBookRank_(left) - bibleBookRank_(right);
-    }).forEach(function(bookName) {
-    var firstChapter = BIBLE_CHAPTER_CATALOG.find(function(chapter) {
-      return String(chapter.BOOK_EN || chapter.BOOK_KO || '') === bookName;
-    });
-    var button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'bible-book-button';
-    button.textContent = bookName.replace(/-/g, ' ');
-    button.dataset.book = bookName;
-    button.dataset.testament = String(firstChapter && firstChapter.TESTAMENT || 'OT');
-    button.addEventListener('click', function() {
-      BIBLE_SELECTED_BOOK = bookName;
-      bookHost.querySelectorAll('.bible-book-button').forEach(function(item) {
-        item.classList.toggle('is-selected', item === button);
+      var testament = String(firstChapter && firstChapter.TESTAMENT || 'OT').toUpperCase();
+      if (testament !== previousTestament || (columnIndex === 1 && !previousTestament)) {
+        var heading = document.createElement('h3');
+        heading.className = 'bible-testament-title';
+        heading.innerHTML = testament === 'NT'
+          ? '<span>New Testament</span><small>27 books</small>'
+          : '<span>Old Testament' + (columnIndex === 1 ? ' · continued' : '') + '</span><small>39 books</small>';
+        column.appendChild(heading);
+        previousTestament = testament;
+      }
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'bible-book-button';
+      button.textContent = bookName.replace(/-/g, ' ');
+      button.dataset.book = bookName;
+      button.dataset.testament = testament;
+      button.addEventListener('click', function() {
+        BIBLE_SELECTED_BOOK = bookName;
+        bookHost.querySelectorAll('.bible-book-button').forEach(function(item) {
+          item.classList.toggle('is-selected', item === button);
+        });
+        activateBibleTestament_(button.dataset.testament);
+        renderBibleChapterPicker_(bookName);
+        button.insertAdjacentElement('afterend', chapterHost);
+        if (startButton) startButton.disabled = true;
       });
-      activateBibleTestament_(button.dataset.testament);
-      renderBibleChapterPicker_(bookName);
-      button.insertAdjacentElement('afterend', chapterHost);
-      if (startButton) startButton.disabled = true;
+      column.appendChild(button);
     });
-      grid.appendChild(button);
-    });
+    grid.appendChild(column);
   });
+  bookHost.appendChild(grid);
 }
 
 function renderBibleChapterPicker_(bookName) {
