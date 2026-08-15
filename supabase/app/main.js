@@ -379,6 +379,10 @@ function isTrialProgressSafe(saved) {
 
 // BLOCK 3000: Subject Management
 function applySubjectConfig() {
+  var publicBibleSubjects = [
+    { CODE: 'BIBLE_OT', NAME: 'Old Testament · 구약', CATEGORY: 'BIBLE', SHEET: 'BIBLE-OT', SET_SIZE: 120, FORMAT: 'BIBLE_EN_KO', ACTIVE: 'Y', VERSION: '1.0' },
+    { CODE: 'BIBLE_NT', NAME: 'New Testament · 신약', CATEGORY: 'BIBLE', SHEET: 'BIBLE-NT', SET_SIZE: 120, FORMAT: 'BIBLE_EN_KO', ACTIVE: 'Y', VERSION: '1.0' }
+  ];
   try {
     currentUser = JSON.parse(localStorage.getItem('quiz_current_user_v1') || 'null');
     availableSubjects = JSON.parse(localStorage.getItem('quiz_available_subjects_v1') || '[]');
@@ -401,14 +405,22 @@ function applySubjectConfig() {
     subjectConfig = null;
   }
   if (!hasValidCurrentUser(currentUser)) {
-    clearAuthAndRedirect('LOGIN_DATA_MISSING');
-    return false;
+    // Bible is public during beta. A custom domain has a fresh localStorage,
+    // so first-time visitors must receive a guest Bible configuration instead
+    // of being redirected to the optional member login page.
+    currentUser = { email: '', account_type: 'guest', is_trial: false };
+    availableSubjects = publicBibleSubjects;
+    var requestedPublicSubject = String(new URLSearchParams(window.location.search).get('subject') || '')
+      .trim().replace(/-/g, '_').toUpperCase();
+    subjectConfig = publicBibleSubjects.find(function(subject) {
+      return subject.CODE === requestedPublicSubject;
+    }) || publicBibleSubjects[0];
   }
   applyUserRolePolicy();
   applyCopyProtectionPolicy();
-  if (!subjectConfig || !subjectConfig.CODE || !subjectConfig.SHEET) {
-    clearAuthAndRedirect('SUBJECT_DATA_MISSING');
-    return false;
+  if (!subjectConfig || !subjectConfig.CODE || !subjectConfig.SHEET ||
+      !/^BIBLE_(OT|NT)$/.test(String(subjectConfig.CODE).trim().toUpperCase())) {
+    subjectConfig = publicBibleSubjects[0];
   }
   currentSubject = String(subjectConfig.CODE).trim().toUpperCase();
   CURRENT_SUBJECT = currentSubject;
