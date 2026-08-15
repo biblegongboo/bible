@@ -7653,21 +7653,10 @@ function renderBibleChapterPicker_(bookName) {
         selector.value = option.value;
         selector.dispatchEvent(new Event('change', { bubbles: true }));
       }
+      var start = Math.max(1, parseInt(chapter.START_ROW, 10) || parseInt(chapter.START, 10) || 1);
       var hint = document.querySelector('.card-new .card-hint');
       if (hint) hint.textContent = 'Loading ' + bookName.replace(/-/g, ' ') + ' Chapter ' + chapter.CHAPTER + '...';
       button.disabled = true;
-      var range;
-      try {
-        range = await bibleQuizRangeForChapter_(chapter);
-      } catch (rangeError) {
-        button.disabled = false;
-        if (hint) hint.textContent = rangeError.message;
-        return;
-      }
-      var start = range.start;
-      QUESTIONS_PER_SET = Math.min(200, range.count);
-      currentStartNumber = start;
-      if (DOM.startNumberInput) DOM.startNumberInput.value = String(start);
       var loaded = await startQuizWithNumber(start, { exactStart: true });
       if (!loaded) {
         button.disabled = false;
@@ -7729,25 +7718,6 @@ function bibleCatalogMatchesReference_(chapter, parts) {
   return String(chapter.CODE || '').toLowerCase() === expected ||
     (String(chapter.BOOK_EN || '').toLowerCase() === parts.book.toLowerCase() &&
       parseInt(chapter.CHAPTER, 10) === parts.chapter);
-}
-
-async function bibleQuizRangeForChapter_(chapter) {
-  var chapterCode = String(chapter && chapter.CODE || '').trim();
-  if (!chapterCode) throw new Error('Bible chapter code is missing.');
-  var params = new URLSearchParams();
-  params.set('action', 'chapter_lookup');
-  params.set('chapter_code', chapterCode);
-  params.set('sheet', DATA_SHEET);
-  var response = await fetchQuizApi_(params);
-  if (!response.ok) throw new Error('HTTP ' + response.status);
-  var data = await response.json();
-  if (data && (data.status === 'error' || data.success === false)) {
-    throwQuizApiError_(data, 'The selected Bible chapter could not be found.');
-  }
-  var start = Math.max(0, parseInt(data && data.start, 10) || 0);
-  var count = Math.max(0, parseInt(data && data.count, 10) || 0);
-  if (!start || !count) throw new Error('No questions are available for ' + chapterCode + '.');
-  return { start: start, count: count };
 }
 
 async function bibleQuizNumberForSource_(sourceCode) {
