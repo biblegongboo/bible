@@ -7854,23 +7854,26 @@ document.addEventListener('click', function(event) {
 });
 
 async function loadBibleChapterCatalog_() {
-  var catalogs = await Promise.all(['bible-ot', 'bible-nt'].map(async function(sheet) {
-    var params = new URLSearchParams();
-    params.set('action', 'catalog');
-    params.set('sheet', sheet);
-    params.set('_', String(Date.now()));
-    var response = await fetchQuizApi_(params);
-    if (!response.ok) throw new Error('HTTP ' + response.status);
-    var data = await response.json();
-    if (data && (data.status === 'error' || data.success === false)) {
-      throwQuizApiError_(data, 'Failed to load Bible catalog');
-    }
-    var testament = sheet === 'bible-nt' ? 'NT' : 'OT';
-    return (Array.isArray(data.catalog) ? data.catalog : []).map(function(chapter) {
-      return Object.assign({}, chapter, { TESTAMENT: testament });
-    });
-  }));
-  BIBLE_CHAPTER_CATALOG = catalogs[0].concat(catalogs[1]);
+  var params = new URLSearchParams();
+  params.set('action', 'catalog');
+  params.set('sheet', 'bible');
+  params.set('_', String(Date.now()));
+  var response = await fetchQuizApi_(params);
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+  var data = await response.json();
+  if (data && (data.status === 'error' || data.success === false)) {
+    throwQuizApiError_(data, 'Failed to load Bible catalog');
+  }
+  var seen = {};
+  BIBLE_CHAPTER_CATALOG = (Array.isArray(data.catalog) ? data.catalog : []).filter(function(chapter) {
+    var code = String(chapter && chapter.CODE || '');
+    if (!code || seen[code]) return false;
+    seen[code] = true;
+    return true;
+  }).map(function(chapter) {
+    var code = String(chapter.CODE || '').toUpperCase();
+    return Object.assign({}, chapter, { TESTAMENT: code.indexOf('NT-') === 0 ? 'NT' : 'OT' });
+  });
   return BIBLE_CHAPTER_CATALOG;
 }
 
