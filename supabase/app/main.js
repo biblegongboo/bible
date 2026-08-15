@@ -6446,6 +6446,7 @@ function initBibleSpeechControls() {
   speedSelect.setAttribute('aria-label', 'Reading speed');
   speedSelect.style.cssText = 'border:0;border-radius:8px;padding:0 3px;background:#fff;color:#0f172a;font-size:11px;font-weight:800;cursor:pointer';
   [
+    { value: '0.25', label: '0.25×' },
     { value: '0.5', label: '0.5×' },
     { value: '0.75', label: '0.75×' },
     { value: '1', label: '1.0×' },
@@ -6467,15 +6468,24 @@ function initBibleSpeechControls() {
   var speechSpeedKey = 'bibleSpeechSpeed';
   var speechAutoNextKey = 'bibleSpeechAutoNext';
   var savedSpeed = Number(localStorage.getItem(speechSpeedKey));
-  var bibleSpeechRate = [0.5, 0.75, 1, 1.25, 1.5].indexOf(savedSpeed) !== -1 ? savedSpeed : 1;
+  var bibleSpeechRates = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
+  var bibleSpeechRate = bibleSpeechRates.indexOf(savedSpeed) !== -1 ? savedSpeed : 1;
   var bibleAutoNextEnabled = localStorage.getItem(speechAutoNextKey) !== 'false';
   speedSelect.value = String(bibleSpeechRate);
 
   var bibleAutoReadActive = false;
   var bibleSpeechRunId = 0;
 
+  function setBibleSpeechControlState_(activeButton) {
+    [readButton, replayButton, stopButton].forEach(function(button) {
+      var active = button === activeButton;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+
   function updateAutoNextButton_() {
-    autoNextButton.textContent = '⏭';
+    autoNextButton.textContent = bibleAutoNextEnabled ? 'AUTO ON' : 'AUTO';
     autoNextButton.title = 'Auto next ' + (bibleAutoNextEnabled ? 'on' : 'off');
     autoNextButton.setAttribute('aria-label', 'Automatically move to the next item: ' + (bibleAutoNextEnabled ? 'on' : 'off'));
     autoNextButton.setAttribute('aria-pressed', bibleAutoNextEnabled ? 'true' : 'false');
@@ -6503,6 +6513,7 @@ function initBibleSpeechControls() {
     if (bibleNativeSpeech && typeof bibleNativeSpeech.stop === 'function') {
       Promise.resolve(bibleNativeSpeech.stop()).catch(function() {});
     }
+    setBibleSpeechControlState_(null);
   }
 
   function getBibleVoice_(langCode) {
@@ -6629,6 +6640,7 @@ function initBibleSpeechControls() {
         (!bibleQuizVisible || currentMode === 'learn');
     }
     stopBibleSpeech(true);
+    setBibleSpeechControlState_(replayOnly ? replayButton : readButton);
     var runId = bibleSpeechRunId;
     var questionIndexAtStart = currentIndex;
     var segments = collectBibleSpeechSegments_();
@@ -6638,6 +6650,7 @@ function initBibleSpeechControls() {
     }
 
     function finishBibleSpeech_() {
+      setBibleSpeechControlState_(null);
       if (replayOnly || !bibleAutoNextEnabled) {
         bibleAutoReadActive = false;
         return;
@@ -6724,10 +6737,14 @@ function initBibleSpeechControls() {
   updateAutoNextButton_();
   readButton.addEventListener('click', function() { readCurrentBibleQuestion(false, false); });
   replayButton.addEventListener('click', function() { readCurrentBibleQuestion(false, true); });
-  stopButton.addEventListener('click', function() { stopBibleSpeech(false); });
+  stopButton.addEventListener('click', function() {
+    stopBibleSpeech(false);
+    setBibleSpeechControlState_(stopButton);
+    window.setTimeout(function() { setBibleSpeechControlState_(null); }, 450);
+  });
   speedSelect.addEventListener('change', function() {
     var nextRate = Number(speedSelect.value);
-    if ([0.5, 0.75, 1, 1.25, 1.5].indexOf(nextRate) === -1) nextRate = 1;
+    if (bibleSpeechRates.indexOf(nextRate) === -1) nextRate = 1;
     bibleSpeechRate = nextRate;
     localStorage.setItem(speechSpeedKey, String(nextRate));
     if (bibleBrowserSpeechSupported && window.speechSynthesis.speaking) {
@@ -7636,10 +7653,21 @@ function renderBibleChapterPicker_(bookName) {
         selector.value = option.value;
         selector.dispatchEvent(new Event('change', { bubbles: true }));
       }
-      var start = Math.max(1, parseInt(chapter.START_ROW, 10) || parseInt(chapter.START, 10) || 1);
       var hint = document.querySelector('.card-new .card-hint');
       if (hint) hint.textContent = 'Loading ' + bookName.replace(/-/g, ' ') + ' Chapter ' + chapter.CHAPTER + '...';
       button.disabled = true;
+      var range;
+      try {
+        range = await bibleQuizRangeForChapter_(chapter);
+      } catch (rangeError) {
+        button.disabled = false;
+        if (hint) hint.textContent = rangeError.message;
+        return;
+      }
+      var start = range.start;
+      QUESTIONS_PER_SET = Math.min(200, range.count);
+      currentStartNumber = start;
+      if (DOM.startNumberInput) DOM.startNumberInput.value = String(start);
       var loaded = await startQuizWithNumber(start, { exactStart: true });
       if (!loaded) {
         button.disabled = false;
@@ -7701,6 +7729,25 @@ function bibleCatalogMatchesReference_(chapter, parts) {
   return String(chapter.CODE || '').toLowerCase() === expected ||
     (String(chapter.BOOK_EN || '').toLowerCase() === parts.book.toLowerCase() &&
       parseInt(chapter.CHAPTER, 10) === parts.chapter);
+}
+
+async function bibleQuizRangeForChapter_(chapter) {
+  var chapterCode = String(chapter && chapter.CODE || '').trim();
+  if (!chapterCode) throw new Error('Bible chapter code is missing.');
+  var params = new URLSearchParams();
+  params.set('action', 'chapter_lookup');
+  params.set('chapter_code', chapterCode);
+  params.set('sheet', DATA_SHEET);
+  var response = await fetchQuizApi_(params);
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+  var data = await response.json();
+  if (data && (data.status === 'error' || data.success === false)) {
+    throwQuizApiError_(data, 'The selected Bible chapter could not be found.');
+  }
+  var start = Math.max(0, parseInt(data && data.start, 10) || 0);
+  var count = Math.max(0, parseInt(data && data.count, 10) || 0);
+  if (!start || !count) throw new Error('No questions are available for ' + chapterCode + '.');
+  return { start: start, count: count };
 }
 
 async function bibleQuizNumberForSource_(sourceCode) {

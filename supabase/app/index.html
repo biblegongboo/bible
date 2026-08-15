@@ -2075,6 +2075,7 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-speech-controls .bible-speech-auto-next{font-size:17px!important}
   .bible-speech-controls .bible-speech-speed{padding:0 3px!important;font-size:11px!important;text-align:center}
   .mode-btn.active,
+  .bible-speech-button.active,
   .bible-passage-toggle.is-on,.bible-quiz-toggle.is-on,
   .bible-passage-toggle[aria-pressed="true"],.bible-quiz-toggle[aria-pressed="true"],
   .bible-speech-auto-next[aria-pressed="true"],
@@ -2082,6 +2083,13 @@ html:not(.admin-user) .admin-preview-panel {
     color:#123a67!important;
     border-color:#123a67!important;
     box-shadow:inset 0 0 0 1px rgba(18,58,103,.22),inset 0 2px 5px rgba(18,58,103,.16)!important;
+  }
+  .mode-btn.active,.mode-btn[aria-pressed="true"],
+  .bible-speech-button.active,.bible-speech-button[aria-pressed="true"]{
+    background:#123a67!important;
+    color:#fff!important;
+    border-color:#071f38!important;
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.22),0 3px 9px rgba(7,31,56,.38)!important;
   }
   .mode-btn.active:hover,
   .bible-passage-toggle.is-on:hover,.bible-quiz-toggle.is-on:hover,
@@ -2153,7 +2161,7 @@ if (document.documentElement.classList.contains('mobile-quiz')) {
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
 <script src="./supabase-provider.js?v=9.60-mobile-loading1"></script>
 <script type="module">
-import { initialize } from './main.js?v=9.60-mobile-loading1';
+import { initialize } from './main.js?v=9.61-chapter-lookup1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();
@@ -2310,7 +2318,10 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           problemNumber: problemNumber,
-          question: question,
+          question: 'Answer only in the same language used in the learner question below.\n\n' + question,
+          learnerQuestion: question,
+          responseLanguage: 'same-as-question',
+          responseInstruction: 'Answer only in the same language used by the learner. Do not switch languages.',
           context: (typeof window.getCurrentQuestionContext === 'function')
             ? window.getCurrentQuestionContext()
             : null,
