@@ -62,6 +62,32 @@ Deno.serve(async (request) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const payload = await request.json().catch(() => ({}));
+  if (payload.action === "storage_file") {
+    const storagePath = String(payload.path || "")
+      .replace(/^\/+/, "")
+      .replace(/\\/g, "/");
+    if (!storagePath || storagePath.includes("..") ||
+        !/^(content|commentary)\//.test(storagePath)) {
+      return json({ status: "error", message: "A valid Bible content path is required." }, 400);
+    }
+    const { data: file, error: fileError } = await admin.storage
+      .from("bible-content")
+      .download(storagePath);
+    if (fileError || !file) {
+      return json({
+        status: "error",
+        message: fileError?.message || "Bible content was not found.",
+      }, 404);
+    }
+    return new Response(file, {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": file.type || "application/octet-stream",
+        "Cache-Control": "public, max-age=300",
+      },
+    });
+  }
   const requestedSubject = String(payload.sheet || "BIBLE-OT").replace(/-/g, "_").toUpperCase();
   const questionTable = requestedSubject === "BIBLE_NT"
     ? "bible_nt_questions"

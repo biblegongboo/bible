@@ -81,15 +81,12 @@
     if (!configured_()) {
       throw new Error('Supabase content storage is not configured.');
     }
-    var accessToken = await validAccessToken_();
-    var result = await fetch(
-      baseUrl + '/storage/v1/object/authenticated/bible-content/' +
-        encodeStoragePath_(relativePath),
-      {
-        headers: headers_(accessToken),
-        signal: signal
-      }
-    );
+    // Bible is fully public during beta. Read protected Storage through the
+    // public Bible Edge Function so a guest never needs a member session.
+    var result = await callQuestionFunction_({
+      action: 'storage_file',
+      path: encodeStoragePath_(relativePath)
+    }, signal);
     if (!result.ok) {
       throw new Error(
         'Supabase content request failed: HTTP ' + result.status +
