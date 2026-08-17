@@ -1977,6 +1977,8 @@ html:not(.admin-user) .admin-preview-panel {
   .bible-logout-icon{position:relative;display:block;width:19px;height:18px;border:2px solid currentColor;border-right:0;border-radius:3px;box-sizing:border-box}
   .bible-logout-icon::before{content:'';position:absolute;top:7px;left:7px;width:11px;height:2px;border-radius:2px;background:currentColor}
   .bible-logout-icon::after{content:'';position:absolute;top:4px;right:-1px;width:6px;height:6px;border-top:2px solid currentColor;border-right:2px solid currentColor;transform:rotate(45deg)}
+  .bible-logout-toggle.is-home-link{border-color:#79bde8!important;background:#e5f4ff!important;color:#075985!important}
+  .bible-home-icon{display:block;font-size:23px;font-weight:900;line-height:1;transform:translateY(-1px)}
   /* A short visible confirmation prevents accidental double-taps on the
      compact header controls, especially on touch screens. */
   .quiz-header button{transition:transform .14s ease,filter .14s ease,box-shadow .14s ease,background .14s ease!important}
@@ -2160,9 +2162,9 @@ if (document.documentElement.classList.contains('mobile-quiz')) {
 <link rel="stylesheet" href="https://biblegongboo.github.io/gongboo-shared/navigator.css?v=6">
 <script src="./supabase-config.js?v=8.60-supabase-storage1"></script>
 <script src="./supabase-auth.js?v=8.83-logout1"></script>
-<script src="./supabase-provider.js?v=9.67-public-bible-storage1"></script>
+<script src="./supabase-provider.js?v=9.68-public-museum1"></script>
 <script type="module">
-import { initialize } from './main.js?v=9.66-public-custom-domain1';
+import { initialize } from './main.js?v=9.69-guest-home1';
 
 document.addEventListener('DOMContentLoaded', () => {
   initialize();

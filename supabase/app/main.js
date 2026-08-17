@@ -201,8 +201,19 @@ function clearAuthAndRedirect(reason) {
 function initBibleLogout_() {
   var logoutButton = document.getElementById('bibleLogoutToggle');
   if (!logoutButton || logoutButton.dataset.bound) return;
+  var signedIn = hasValidCurrentUser(currentUser);
+  if (!signedIn) {
+    logoutButton.classList.add('is-home-link');
+    logoutButton.setAttribute('aria-label', 'Go to Bible home');
+    logoutButton.setAttribute('title', 'Bible home');
+    logoutButton.innerHTML = '<span class="bible-home-icon" aria-hidden="true">⌂</span>';
+  }
   logoutButton.dataset.bound = '1';
   logoutButton.addEventListener('click', function() {
+    if (!signedIn) {
+      window.location.replace('./index.html?home=1');
+      return;
+    }
     if (!window.confirm('Log out of GongBoo Bible on this device?')) return;
     if (window.BibleSupabaseAuth && typeof window.BibleSupabaseAuth.signOut === 'function') {
       window.BibleSupabaseAuth.signOut();

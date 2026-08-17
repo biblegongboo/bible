@@ -88,6 +88,29 @@ Deno.serve(async (request) => {
       },
     });
   }
+  if (payload.action === "museum_search") {
+    const search = String(payload.query || "").trim();
+    const letter = String(payload.letter || "").trim().toUpperCase();
+    const limit = Math.min(100, Math.max(1, Number.parseInt(String(payload.limit || 30), 10) || 30));
+    const offset = Math.max(0, Number.parseInt(String(payload.offset || 0), 10) || 0);
+    let museumQuery = admin
+      .from("met_museum_objects")
+      .select("met_object_id,title,object_name,culture,period,object_date,year_begin,year_end,region_tags,topic_tags,bible_era_tags,timeline_100y,is_public_domain,object_url,image_small_url,image_original_url,image_status,medium,credit_line")
+      .eq("image_status", "verified")
+      .order("title", { ascending: true })
+      .range(offset, offset + limit);
+    if (search) museumQuery = museumQuery.ilike("title", `${search}%`);
+    else if (/^[A-Z]$/.test(letter)) museumQuery = museumQuery.ilike("title", `${letter}%`);
+    const era = String(payload.era || "").trim();
+    const region = String(payload.region || "").trim();
+    const topic = String(payload.topic || "").trim();
+    if (era) museumQuery = museumQuery.ilike("bible_era_tags", `%${era}%`);
+    if (region) museumQuery = museumQuery.ilike("region_tags", `%${region}%`);
+    if (topic) museumQuery = museumQuery.ilike("topic_tags", `%${topic}%`);
+    const { data: museumRows, error: museumError } = await museumQuery;
+    if (museumError) return json({ status: "error", message: museumError.message }, 500);
+    return json({ status: "success", data: museumRows || [] });
+  }
   const requestedSubject = String(payload.sheet || "BIBLE-OT").replace(/-/g, "_").toUpperCase();
   const questionTable = requestedSubject === "BIBLE_NT"
     ? "bible_nt_questions"
