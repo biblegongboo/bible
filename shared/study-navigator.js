@@ -8,7 +8,44 @@
   var OT=['Genesis','Exodus','Leviticus','Numbers','Deuteronomy','Joshua','Judges','Ruth','1-Samuel','2-Samuel','1-Kings','2-Kings','1-Chronicles','2-Chronicles','Ezra','Nehemiah','Esther','Job','Psalms','Proverbs','Ecclesiastes','Song-of-Solomon','Isaiah','Jeremiah','Lamentations','Ezekiel','Daniel','Hosea','Joel','Amos','Obadiah','Jonah','Micah','Nahum','Habakkuk','Zephaniah','Haggai','Zechariah','Malachi'];
   var NT=['Matthew','Mark','Luke','John','Acts','Romans','1-Corinthians','2-Corinthians','Galatians','Ephesians','Philippians','Colossians','1-Thessalonians','2-Thessalonians','1-Timothy','2-Timothy','Titus','Philemon','Hebrews','James','1-Peter','2-Peter','1-John','2-John','3-John','Jude','Revelation'];
   var PRODUCTS={realestate:'Real Estate',insurance:'Insurance',mortgage:'Mortgage NMLS',notary:'Notary'};
-  var tree={name:'Select Study',children:[{name:'Bible',children:[{name:'Old Testament',children:OT.map(bookNode)},{name:'New Testament',children:NT.map(bookNode)}]},{name:'License',children:[{name:'National',children:[productNode('mortgage')]},{name:'California',children:[productNode('realestate'),productNode('insurance'),productNode('notary')]}]}]};
+  //var tree={name:'Select Study',children:[{name:'Bible',children:[{name:'Old Testament',children:OT.map(bookNode)},{name:'New Testament',children:NT.map(bookNode)}]},{name:'License',children:[{name:'National',children:[productNode('mortgage')]},{name:'California',children:[productNode('realestate'),productNode('insurance'),productNode('notary')]}]}]};
+  var PRODUCTS={realestate:'Real Estate',insurance:'Insurance',mortgage:'Mortgage NMLS',notary:'Notary'};
+
+// 기존 버전 백업
+// var tree={name:'Select Study',children:[{name:'Bible',children:[{name:'Old Testament',children:OT.map(bookNode)},{name:'New Testament',children:NT.map(bookNode)}]},{name:'License',children:[{name:'National',children:[productNode('mortgage')]},{name:'California',children:[productNode('realestate'),productNode('insurance'),productNode('notary')]}]}]};
+
+
+// 새 버전
+var tree={
+  name:'Select Study',
+  children:[
+    {
+      name:'Bible',
+      children:[
+        {name:'Old Testament',children:OT.map(bookNode)},
+        {name:'New Testament',children:NT.map(bookNode)}
+      ]
+    },
+    {
+      name:'License',
+      children:[
+        {name:'National',children:[productNode('mortgage')]},
+        {name:'California',children:[
+          productNode('realestate'),
+          productNode('insurance'),
+          productNode('notary')
+        ]}
+      ]
+    },
+    {
+      name:'Easy Learning',
+      id:'EASY-ANNE',
+      url:EASY_LEARNING_URL
+    }
+  ]
+};
+
+var stack=[tree],button,label,overlay,list,path;
   var stack=[tree],button,label,overlay,list,path;
   function prettyBook(name){return name.replace(/-/g,' ')}
   function bookNode(name){return{name:prettyBook(name),id:'BIB-'+(OT.indexOf(name)>=0?'OT':'NT')+'-'+name,url:BIBLE_URL+'?study='+encodeURIComponent('book:'+name)}}
